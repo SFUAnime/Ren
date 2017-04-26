@@ -482,7 +482,8 @@ class Economy:
             place += 1
         if highscore != "":
             for page in pagify(highscore, shorten_by=12):
-                await self.bot.say(box(page, lang="py"))
+            #Adding info site.
+                await self.bot.say(box(page, lang="py") + "\nFull rankings at https://discord.injabie3.moe/economy")
         else:
             await self.bot.say("There are no accounts in the bank.")
 
