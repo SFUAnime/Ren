@@ -28,7 +28,7 @@ def checkFiles():
     f = saveFolder + saveFile
     if not dataIO.is_valid_json(f):
         print("Creating default welcome settings.json...")
-        dataIO.save_json(f, { "message" : "Welcome to the server!" })
+        dataIO.save_json(f, {})
         
             
 class Welcome_beta:
@@ -46,6 +46,14 @@ class Welcome_beta:
     #Class constructor
     def __init__(self, bot):
         self.bot = bot
+        
+        #The JSON keys for the settings:
+        self.key_welcomeDMEnabled = "welcomeDMEnabled"
+        self.key_welcomeLogEnabled = "welcomeLogEnabled"
+        self.key_welcomeLogChannel = "welcomeLogChannel"
+        self.key_welcomeTitle = "welcomeTitle"
+        self.key_welcomeMessage = "welcomeMessage"
+        
         checkFolder()
         checkFiles()
         self.loadSettings()
@@ -53,37 +61,26 @@ class Welcome_beta:
     #The async function that is triggered on new member join.
     async def send_welcome_message(self, newUser):
         """Sends the welcome message in DM."""
-        #Get Channel object. Hard-coding for now.
-        loggerID = "303321990792609792" #log
         
         #Do not send DM if it is disabled!
-        if not self.settings[newUser.server.id]["welcomeDMEnabled"]:
+        if not self.settings[newUser.server.id][self.key_welcomeDMEnabled]:
             return
             
         try:
-            welcomeEmbed = discord.Embed(title=self.settings[newUser.server.id]["welcomeTitle"])
-            welcomeEmbed.description = self.settings[newUser.server.id]["welcomeMessage"]
+            welcomeEmbed = discord.Embed(title=self.settings[newUser.server.id][self.key_welcomeTitle])
+            welcomeEmbed.description = self.settings[newUser.server.id][self.key_welcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except Exception as errorMsg:
             print("Server Welcome: Could not send message, make sure the server has a title and message set!")
             print(errorMsg)
-            if self.settings[newUser.server.id]["welcomeLogEnabled"]:
-                await self.bot.send_message(self.bot.get_channel(loggerID), "Server Welcome: Could not send message, make sure the server has a title and message set!")
-                await self.bot.send_message(self.bot.get_channel(loggerID), errorMsg)
+            if self.settings[newUser.server.id][self.key_welcomeLogEnabled]:
+                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), "Server Welcome: Could not send message, make sure the server has a title and message set!")
+                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), errorMsg)
         else:
-            if self.settings[newUser.server.id]["welcomeLogEnabled"]:
-                await self.bot.send_message(self.bot.get_channel(loggerID), "Server Welcome: Welcome DM sent to " + newUser.name + "#" + newUser.discriminator + " (" + newUser.id + ").")
+            if self.settings[newUser.server.id][self.key_welcomeLogEnabled]:
+                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), "Server Welcome: Welcome DM sent to <@" + newUser.id + "> (" + newUser.id + ").")
                 print("Server Welcome: Welcome DM sent to " + newUser.name + "#" + newUser.discriminator + " (" + newUser.id + ").")
-    
-    #The async function that is triggered on member leave.
-    async def send_leave_message(self, leavingUser):
-        """Sends the server leave message in the console."""
-        #Get Channel object. Hard-coding for now.
-        loggerID = "303321990792609792" #log
-        
-        print("Server Leave: " + leavingUser.name + "#" + leavingUser.discriminator + " (" + leavingUser.id + ") has left")
-        await self.bot.send_message(self.bot.get_channel(loggerID), "Server Leave: " + leavingUser.name + "#" + leavingUser.discriminator + " (" + leavingUser.id + ") has left")
     
     ####################
     # MESSAGE COMMANDS #
@@ -117,10 +114,10 @@ class Welcome_beta:
         try:
             self.loadSettings()
             if ctx.message.author.server.id in self.settings:
-                self.settings[ctx.message.author.server.id]["welcomeMessage"] = message.content
+                self.settings[ctx.message.author.server.id][self.key_welcomeMessage] = message.content
             else:
                 self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id]["welcomeMessage"] = message.content
+                self.settings[ctx.message.author.server.id][self.key_welcomeMessage] = message.content
             self.saveSettings()
         except Exception as errorMsg:
             await self.bot.say("Could not save settings! Check the console for details.")
@@ -134,52 +131,74 @@ class Welcome_beta:
     @checks.serverowner() #Only allow server owner to execute the following command.
     async def toggledm(self, ctx):
         """Toggle sending a welcome DM."""
-        key = "welcomeDMEnabled"
         self.loadSettings()
         try:
-            if self.settings[ctx.message.author.server.id][key] is True:
-                self.settings[ctx.message.author.server.id][key] = False
+            if self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] is True:
+                self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] = False
                 set = False
             else:
-                self.settings[ctx.message.author.server.id][key] = True
+                self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] = True
                 set = True
         except: #Typically a KeyError
-            self.settings[ctx.message.author.server.id][key] = True
+            self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] = True
             set = True
         self.saveSettings()
         if set:
-            await self.bot.say(":white_check_mark: Server welcome DM enabled.")
+            await self.bot.say(":white_check_mark: Server Welcome - DM: Enabled.")
         else:
-            await self.bot.say(":negative_squared_cross_mark: Server welcome DM disabled.")
+            await self.bot.say(":negative_squared_cross_mark: Server Welcome - DM: Disabled.")
+
     #[p]welcome togglelog
     @_welcome.command(pass_context=True, no_pm=False)
     @checks.serverowner() #Only allow server owner to execute the following command.
     async def togglelog(self, ctx):
         """Toggle sending welcome DM logs to a channel."""
-        key = "welcomeLogEnabled"
         self.loadSettings()
+        
+        #If no channel is set, send error.
+        if self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] is None:
+            await self.bot.say(":negative_squared_cross_mark: Please set a log channel first.")
+            return
+        
         try:
-            if self.settings[ctx.message.author.server.id][key] is True:
-                self.settings[ctx.message.author.server.id][key] = False
+            if self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] is True:
+                self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = False
                 set = False
             else:
-                self.settings[ctx.message.author.server.id][key] = True
+                self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
                 set = True
         except: #Typically a KeyError
-            self.settings[ctx.message.author.server.id][key] = True
+            self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
             set = True
+            
         self.saveSettings()
         if set:
-            await self.bot.say(":white_check_mark: Server welcome DM logs enabled.")
+            await self.bot.say(":white_check_mark: Server Welcome - DM Logging: Enabled.")
         else:
-            await self.bot.say(":negative_squared_cross_mark: Server welcome DM logs disabled.")
+            await self.bot.say(":negative_squared_cross_mark: Server Welcome - DM Logging: Disabled.")
+
+    #[p]welcome setlog
+    @_welcome.command(pass_context=True, no_pm=True)
+    @checks.serverowner() #Only allow server owner to execute the following command.
+    async def setlog(self, ctx):
+        """Enables, and sets current channel as log channel."""
+        self.loadSettings()
+        try:
+            self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] = ctx.message.channel.id
+            self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
+        except Exception as e: #Typically a KeyError
+            await self.bot.say(":negative_squared_cross_mark: Please try again.")
+            print(e)
+        else:
+            self.saveSettings()
+            await self.bot.say(":white_check_mark: Server Welcome - DM Logging: Enabled, and will be logged to this channel only.")
         
         
     #[p]welcome default
     @_welcome.command(pass_context=True, no_pm=False)
     @checks.serverowner() #Only allow server owner to execute the following command.
     async def default(self, ctx):
-        """Revert to default, and enables welcome DM.  Will ask for confirmation."""
+        """RUN FIRST: Set defaults, and enables welcome DM.  Will ask for confirmation."""
         await self.bot.say("Are you sure you want to revert to default settings? Type \"yes\", otherwise type something else.")
         message = await self.bot.wait_for_message(timeout=60,author=ctx.message.author, channel=ctx.message.channel)
         
@@ -191,11 +210,11 @@ class Welcome_beta:
             try:
                 self.loadSettings()
                 self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id]["welcomeMessage"] = welcomeDefault_message
-                self.settings[ctx.message.author.server.id]["welcomeTitle"] = welcomeDefault_title
-                self.settings[ctx.message.author.server.id]["welcomeDMEnabled"] = True
-                self.settings[ctx.message.author.server.id]["welcomeLogEnabled"] = False
-                self.settings[ctx.message.author.server.id]["welcomeLogChannel"] = None
+                self.settings[ctx.message.author.server.id][self.key_welcomeMessage] = welcomeDefault_message
+                self.settings[ctx.message.author.server.id][self.key_welcomeTitle] = welcomeDefault_title
+                self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] = True
+                self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = False
+                self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] = None
                 self.saveSettings()
             except Exception as e:
                 await self.bot.say(":no_entry: Could not set default settings! Please check the server logs.")
@@ -226,10 +245,10 @@ class Welcome_beta:
         try:
             self.loadSettings()
             if ctx.message.author.server.id in self.settings:
-                self.settings[ctx.message.author.server.id]["welcomeTitle"] = title.content
+                self.settings[ctx.message.author.server.id][self.key_welcomeTitle] = title.content
             else:
                 self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id]["welcomeTitle"] = title.content
+                self.settings[ctx.message.author.server.id][self.key_welcomeTitle] = title.content
             self.saveSettings()
         except:
             await self.bot.say("Could not save settings!")
@@ -242,8 +261,8 @@ class Welcome_beta:
     async def test(self, ctx):
         """Test the welcome DM by sending a DM to you."""
         try:
-            welcomeEmbed = discord.Embed(title=self.settings[ctx.message.server.id]["welcomeTitle"])
-            welcomeEmbed.description = self.settings[ctx.message.author.server.id]["welcomeMessage"]
+            welcomeEmbed = discord.Embed(title=self.settings[ctx.message.server.id][self.key_welcomeTitle])
+            welcomeEmbed.description = self.settings[ctx.message.author.server.id][self.key_welcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
         except:
             await self.bot.say("Could not send message, try setting the title and message again!")
@@ -257,6 +276,5 @@ def setup(bot):
     checkFiles()    #Make sure we have settings!
     customCog = Welcome_beta(bot)
     bot.add_listener(customCog.send_welcome_message, 'on_member_join')
-    bot.add_listener(customCog.send_leave_message, 'on_member_remove')
     bot.add_cog(customCog)
     
