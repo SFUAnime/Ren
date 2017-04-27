@@ -54,6 +54,9 @@ class Welcome_beta:
         self.key_welcomeTitle = "welcomeTitle"
         self.key_welcomeMessage = "welcomeMessage"
         
+        self.key_leaveLogEnabled = "leaveLogEnabled"
+        self.key_leaveLogChannel = "leaveLogChannel"
+        
         checkFolder()
         checkFiles()
         self.loadSettings()
@@ -75,12 +78,19 @@ class Welcome_beta:
             print("Server Welcome: Could not send message, make sure the server has a title and message set!")
             print(errorMsg)
             if self.settings[newUser.server.id][self.key_welcomeLogEnabled]:
-                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), "Server Welcome: Could not send message, make sure the server has a title and message set!")
+                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), ":bangbang: ``Server Welcome:`` User <@" + newUser.id + "> (" + newUser.id + ") has joined.  Could not send DM!")
                 await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), errorMsg)
         else:
             if self.settings[newUser.server.id][self.key_welcomeLogEnabled]:
-                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), "Server Welcome: Welcome DM sent to <@" + newUser.id + "> (" + newUser.id + ").")
-                print("Server Welcome: Welcome DM sent to " + newUser.name + "#" + newUser.discriminator + " (" + newUser.id + ").")
+                await self.bot.send_message(self.bot.get_channel(self.settings[newUser.server.id][self.key_welcomeLogChannel]), ":o: ``Server Welcome:`` User <@" + newUser.id + "> (" + newUser.id + ") has joined.  DM sent.")
+                print("Server Welcome: User" + newUser.name + "#" + newUser.discriminator + " (" + newUser.id + ") has joined.  DM sent.")
+
+    #The async function that is triggered on member leave.
+    async def log_server_leave(self, leaveUser):
+        """Logs the server leave to a channel, if enabled."""
+        if self.settings[leaveUser.server.id][self.key_leaveLogEnabled]:
+            await self.bot.send_message(self.bot.get_channel(self.settings[leaveUser.server.id][self.key_leaveLogChannel]), ":x: ``Server Leave  :`` User <@" + leaveUser.id + "> (" + leaveUser.id + ") has left the server.")
+            print("Server Leave: User " + leaveUser.name + "#" + leaveUser.discriminator + " (" + leaveUser.id + ") has left the server.")
     
     ####################
     # MESSAGE COMMANDS #
@@ -152,30 +162,33 @@ class Welcome_beta:
     @_welcome.command(pass_context=True, no_pm=False)
     @checks.serverowner() #Only allow server owner to execute the following command.
     async def togglelog(self, ctx):
-        """Toggle sending welcome DM logs to a channel."""
+        """Toggle sending logs to a channel."""
         self.loadSettings()
         
         #If no channel is set, send error.
-        if self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] is None:
-            await self.bot.say(":negative_squared_cross_mark: Please set a log channel first.")
+        if self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] is None or self.settings[ctx.message.author.server.id][self.key_leaveLogChannel] is None:
+            await self.bot.say(":negative_squared_cross_mark: Please set a log channel first!")
             return
         
         try:
             if self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] is True:
                 self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = False
+                self.settings[ctx.message.author.server.id][self.key_leaveLogEnabled] = False
                 set = False
             else:
                 self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
+                self.settings[ctx.message.author.server.id][self.key_leaveLogEnabled] = True
                 set = True
         except: #Typically a KeyError
             self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
+            self.settings[ctx.message.author.server.id][self.key_leaveLogEnabled] = True
             set = True
             
         self.saveSettings()
         if set:
-            await self.bot.say(":white_check_mark: Server Welcome - DM Logging: Enabled.")
+            await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: Enabled.")
         else:
-            await self.bot.say(":negative_squared_cross_mark: Server Welcome - DM Logging: Disabled.")
+            await self.bot.say(":negative_squared_cross_mark: Server Welcome/Leave - Logging: Disabled.")
 
     #[p]welcome setlog
     @_welcome.command(pass_context=True, no_pm=True)
@@ -186,12 +199,14 @@ class Welcome_beta:
         try:
             self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] = ctx.message.channel.id
             self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = True
+            self.settings[ctx.message.author.server.id][self.key_leaveLogChannel] = ctx.message.channel.id
+            self.settings[ctx.message.author.server.id][self.key_leaveLogEnabled] = True
         except Exception as e: #Typically a KeyError
             await self.bot.say(":negative_squared_cross_mark: Please try again.")
             print(e)
         else:
             self.saveSettings()
-            await self.bot.say(":white_check_mark: Server Welcome - DM Logging: Enabled, and will be logged to this channel only.")
+            await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: Enabled, and will be logged to this channel only.")
         
         
     #[p]welcome default
@@ -215,6 +230,8 @@ class Welcome_beta:
                 self.settings[ctx.message.author.server.id][self.key_welcomeDMEnabled] = True
                 self.settings[ctx.message.author.server.id][self.key_welcomeLogEnabled] = False
                 self.settings[ctx.message.author.server.id][self.key_welcomeLogChannel] = None
+                self.settings[ctx.message.author.server.id][self.key_leaveLogEnabled] = False
+                self.settings[ctx.message.author.server.id][self.key_leaveLogChannel] = None
                 self.saveSettings()
             except Exception as e:
                 await self.bot.say(":no_entry: Could not set default settings! Please check the server logs.")
@@ -276,5 +293,6 @@ def setup(bot):
     checkFiles()    #Make sure we have settings!
     customCog = Welcome_beta(bot)
     bot.add_listener(customCog.send_welcome_message, 'on_member_join')
+    bot.add_listener(customCog.log_server_leave, 'on_member_remove')
     bot.add_cog(customCog)
     
