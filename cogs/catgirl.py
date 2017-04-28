@@ -21,7 +21,8 @@ def checkFolder():
 
 def checkFiles():
     """Used to initialize an empty database at first startup"""
-    base = { JSON_mainKey : [{ JSON_imageURLKey :"https://cdn.awwni.me/utpd.jpg" , "id" : "null", "is_pixiv" : False}] }
+    base = { JSON_mainKey : [{ JSON_imageURLKey :"https://cdn.awwni.me/utpd.jpg" , "id" : "null", "is_pixiv" : False}], JSON_catboyKey : [] }
+    empty = { JSON_mainKey : [], JSON_catboyKey : [] }
     
     f = saveFolder + "links-web.json"
     if not dataIO.is_valid_json(f):
@@ -31,17 +32,17 @@ def checkFiles():
     f = saveFolder + "links-localx10.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-localx10.json...")
-        dataIO.save_json(f, { JSON_mainKey : []})
+        dataIO.save_json(f, empty)
         
     f = saveFolder + "links-local.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-local.json...")
-        dataIO.save_json(f, { JSON_mainKey : []})
+        dataIO.save_json(f, empty)
         
     f = saveFolder + "links-pending.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-pending.json...")
-        dataIO.save_json(f, { JSON_mainKey : []})
+        dataIO.save_json(f, empty)
             
 class Catgirl_beta:
     """Display cute nyaas~"""
@@ -82,13 +83,15 @@ class Catgirl_beta:
         #Prepend hosted listings with domain name.
         for x in range(0,len(self.pictures_localx10[JSON_mainKey])):
             self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey] = "http://injabie3.x10.mx/p/" + self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey]
-
+        
+        for x in range(0, len(self.pictures_local[JSON_catboyKey])):
+            self.pictures_local[JSON_catboyKey][x][JSON_imageURLKey] = "http://nekomimi.injabie3.moe/p/b/" + self.pictures_local[JSON_catboyKey][x][JSON_imageURLKey]
 
         self.catgirls_local = self.pictures_local[JSON_mainKey]
         self.catgirls = self.pictures_local[JSON_mainKey] + self.pictures_web[JSON_mainKey] + self.pictures_localx10[JSON_mainKey]
-        self.catboys = self.pictures_web[JSON_catboyKey]
+        self.catboys = self.pictures_local[JSON_catboyKey] + self.pictures_web[JSON_catboyKey] + self.catgirls_local_trap
         self.pending = self.pictures_pending[JSON_mainKey]
-
+        
     def __init__(self, bot):
         self.bot = bot
         checkFolder()
@@ -292,9 +295,19 @@ class Catgirl_beta:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def debug(self, ctx):
         """Debug to see if list is OK.  USE ONLY IN A DM!"""
-        msg = "Debug Mode\n```"
+        msg = "Debug Mode\nCatgirls:\n```"
         for x in range(0,len(self.catgirls)):
             msg += self.catgirls[x][JSON_imageURLKey] + "\n"
+            if len(msg) > 900:
+               msg += "```"
+               await self.bot.say(msg)
+               msg = "```"
+        msg += "```"
+        await self.bot.say(msg)
+        
+        msg = "Catboys:\n```"
+        for x in range(0,len(self.catboys)):
+            msg += self.catboys[x][JSON_imageURLKey] + "\n"
             if len(msg) > 900:
                msg += "```"
                await self.bot.say(msg)
