@@ -294,27 +294,26 @@ class Catgirl_beta:
     #[p] nyaa debug
     @_nyaa.command(pass_context=True, no_pm=False)
     async def debug(self, ctx):
-        """Debug to see if list is OK.  USE ONLY IN A DM!"""
+        """Sends entire list via DM for debugging."""
         msg = "Debug Mode\nCatgirls:\n```"
         for x in range(0,len(self.catgirls)):
             msg += self.catgirls[x][JSON_imageURLKey] + "\n"
-            if len(msg) > 900:
+            if len(msg) > 1900:
                msg += "```"
-               await self.bot.say(msg)
+               await self.bot.send_message(ctx.message.author, msg)
                msg = "```"
         msg += "```"
-        await self.bot.say(msg)
+        await self.bot.send_message(ctx.message.author, msg)
         
         msg = "Catboys:\n```"
         for x in range(0,len(self.catboys)):
             msg += self.catboys[x][JSON_imageURLKey] + "\n"
-            if len(msg) > 900:
+            if len(msg) > 1900:
                msg += "```"
-               await self.bot.say(msg)
+               await self.bot.send_message(ctx.message.author, msg)
                msg = "```"
         msg += "```"
-        await self.bot.say(msg)
-        #await self.bot.say("This feature is disabled.")
+        await self.bot.send_message(ctx.message.author, msg)
     
     #[p]nyaa add
     @_nyaa.command(pass_context=True, no_pm=True)
