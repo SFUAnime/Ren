@@ -1,10 +1,11 @@
 # Manually imported from:
 # https://github.com/Rapptz/RoboDanny/blob/master/cogs/stars.py
 # DATE IMPORTED: 2017-04-14
-# DATE LAST MODIFIED: 2017-04-15
+# DATE LAST MODIFIED: 2017-05-06
 
 # Global variables:
 messageReaction = "rem_test" #The emoji name you want to use for initiating stars.
+messageReactionCode = "<:ren:303022146513403907>" #The emoji code retrieved by doing \emoji
 #messageReaction = "\N{WHITE MEDIUM STAR}" #Default reaction emoji
 
 from discord.ext import commands
@@ -124,13 +125,17 @@ class Stars:
 
     def star_emoji(self, stars):
         if 5 >= stars >= 0:
-            return '\N{WHITE MEDIUM STAR}'
+            #return '\N{WHITE MEDIUM STAR}'
+            return messageReactionCode
         elif 10 >= stars >= 6:
-            return '\N{GLOWING STAR}'
+            #return '\N{GLOWING STAR}'
+            return messageReactionCode
         elif 25 >= stars >= 11:
-            return '\N{DIZZY SYMBOL}'
+            #return '\N{DIZZY SYMBOL}'
+            return messageReactionCode
         else:
-            return '\N{SPARKLES}'
+            #return '\N{SPARKLES}'
+            return messageReactionCode
 
     def star_gradient_colour(self, stars):
         # We define as 13 stars to be 100% of the star gradient (half of the 26 emoji threshold)
