@@ -87,7 +87,7 @@ class ModCustom(object):
             await self.bot.say("Role has been added to blacklist.")
         else:
             await self.bot.say("Role is already blacklisted.")
-            
+
     @plonked.command(name="removeuser")
     async def _blacklist_removeuser(self, user: discord.Member):
         """Removes user from bot's blacklist"""
@@ -107,7 +107,7 @@ class ModCustom(object):
             await self.bot.say("Role has been removed from blacklist.")
         else:
             await self.bot.say("Role is not in blacklist.")
-            
+
     @plonked.command(name="clear")
     async def _blacklist_clear(self):
         """Clears the blacklist"""
@@ -169,7 +169,7 @@ class ModCustom(object):
             await self.bot.say("Role has been removed from whitelist.")
         else:
             await self.bot.say("Role is not in whitelist.")
-    
+
     @overridden.command(name="clear")
     async def _whitelist_clear(self):
         """Clears the whitelist"""
