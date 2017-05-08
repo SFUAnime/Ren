@@ -209,7 +209,7 @@ class Stars:
             raise StarError('\N{NO ENTRY SIGN} You already starred this message.')
 
         if reaction:
-            mod = self.bot.get_cog('Mod')
+            mod = self.bot.get_cog('ModCustom')
             if mod:
                 member = message.server.get_member(starrer_id)
                 if member and mod.is_plonked(message.server, member): # note: message.server isnt needed
