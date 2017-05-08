@@ -4,7 +4,7 @@
 # DATE LAST MODIFIED: 2017-05-06
 
 # Global variables:
-messageReaction = "rem_test" #The emoji name you want to use for initiating stars.
+messageReaction = "ren" #The emoji name you want to use for initiating stars.
 messageReactionCode = "<:ren:303022146513403907>" #The emoji code retrieved by doing \emoji
 #messageReaction = "\N{WHITE MEDIUM STAR}" #Default reaction emoji
 
