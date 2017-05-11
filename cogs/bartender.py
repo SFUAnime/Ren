@@ -32,7 +32,7 @@ class Bartender:
     def __init__(self,bot):
         self.bot = bot
         self.settings = dataIO.load_json(SETTINGS)
-        self.items = [["beer", ":beer:", 2], ["wine", ":wine_glass:", 2], ["cocktail", ":cocktail:", 4], ["tropical", ":tropical_drink:", 5], ["sake", ":sake:", 4], ["champagne", ":champagne:", 30], ["tea", ":tea:", 1], ["coffee", ":coffee:", 1]]
+        self.items = [["beer", ":beer:", 2], ["wine", ":wine_glass:", 2], ["cocktail", ":cocktail:", 4], ["tropical", ":tropical_drink:", 5], ["sake", ":sake:", 4], ["champagne", ":champagne:", 30], ["tea", ":tea:", 1], ["coffee", ":coffee:", 1], ["water", ":potable_water:",1],["soju",":flag_kr:",29],["mango juice",":lemon:",5],["whiskey",":tumbler_glass:",69],["melon soda",":melon:",8],["white russian",":white_large_square: :flag_ru:",50],["dr pepper",":hot_pepper:",9]]
         self.numbers = ["one", "two", "tree", "four", "five", "six", "seven", "eight", "nine", "ten"]
 
     @commands.group(name="bar", pass_context=True, no_pm=False)
