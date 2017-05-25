@@ -40,6 +40,10 @@ class Highlight(object):
         self.bot = bot
         self.highlights = dataIO.load_json("data/highlight/words.json")
     
+    def _update_highlights(self, new_obj):
+        dataIO.save_json("data/highlight/words.json", new_obj)
+        self.highlights = dataIO.load_json("data/highlight/words.json")
+    
     def _check_guilds(self, guild_id):
         """returns guild pos in list"""
         guilds = [list(x) for x in self.highlights['guilds']]
@@ -51,8 +55,7 @@ class Highlight(object):
             users['users'] = []
             new_guild[guild_id] = users
             self.highlights['guilds'].append(new_guild)
-            dataIO.save_json("data/highlight/words.json", self.highlights)
-            self.highlights = dataIO.load_json("data/highlight/words.json")
+            self._update_highlights(self.highlights)
             
         return next(x for (x,d) in enumerate(self.highlights['guilds']) if guild_id in d)
     
@@ -83,8 +86,7 @@ class Highlight(object):
             user_add = user[1]
             if len(user_add['words']) <= 4: # user can only have max of 5 words
                 user_add['words'].append(word)
-                self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_add
-                dataIO.save_json("data/highlight/words.json", self.highlights)
+                self._update_highlights(self.highlights)
                 t_msg = await self.bot.say("Highlight word added, {}".format(user_name))
                 await asyncio.sleep(2)
                 await self.bot.delete_message(t_msg)
@@ -97,9 +99,7 @@ class Highlight(object):
             new_user['id'] = ctx.message.author.id
             new_user['words'] = [word]
             self.highlights['guilds'][guild_idx][guild_id]['users'].append(new_user)
-            dataIO.save_json("data/highlight/words.json", self.highlights)
-            
-        self.highlights = dataIO.load_json("data/highlight/words.json")
+            self._update_highlights(self.highlights)
         
     @highlight.command(name="remove", pass_context=True, no_pm=True)
     async def remove_highlight(self, ctx, word: str):
@@ -115,7 +115,7 @@ class Highlight(object):
             if word in user_rm['words']:
                 user_rm['words'].remove(word)
                 self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_rm
-                dataIO.save_json("data/highlight/words.json", self.highlights)
+                self._update_highlights(self.highlights)
                 t_msg = await self.bot.say("Highlight word removed, {}".format(user_name))
                 await asyncio.sleep(2)
                 await self.bot.delete_message(t_msg)
@@ -129,8 +129,6 @@ class Highlight(object):
             t_msg = await self.bot.say(msg.format(user_name))
             await asyncio.sleep(2)
             await self.bot.delete_message(t_msg)
-            
-        self.highlights = dataIO.load_json("data/highlight/words.json")
         
     @highlight.command(name="list", pass_context=True, no_pm=True)
     async def list_highlight(self, ctx):
@@ -176,7 +174,7 @@ class Highlight(object):
         guild_id = msg.server.id
         user_id = msg.author.id
         user_name = msg.author.name
-        user_obj = msg.author   
+        user_obj = msg.author
         guild_idx = self._check_guilds(guild_id)
         user = self._is_registered(guild_idx,guild_id,user_id)
         
