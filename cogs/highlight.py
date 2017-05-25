@@ -44,6 +44,10 @@ class Highlight(object):
         dataIO.save_json("data/highlight/words.json", new_obj)
         self.highlights = dataIO.load_json("data/highlight/words.json")
     
+    async def _sleep_then_delete(self, msg, time):
+        await asyncio.sleep(time)
+        await self.bot.delete_message(msg)
+    
     def _check_guilds(self, guild_id):
         """returns guild pos in list"""
         guilds = [list(x) for x in self.highlights['guilds']]
@@ -84,16 +88,16 @@ class Highlight(object):
         if user is not None:
             user_idx = user[0]
             user_add = user[1]
-            if len(user_add['words']) <= 4: # user can only have max of 5 words
+            if len(user_add['words']) <= 4 and word not in user_add['words']: # user can only have max of 5 words
                 user_add['words'].append(word)
                 self._update_highlights(self.highlights)
                 t_msg = await self.bot.say("Highlight word added, {}".format(user_name))
-                await asyncio.sleep(2)
-                await self.bot.delete_message(t_msg)
+                await self._sleep_then_delete(t_msg,2)
             else:
-                t_msg = await self.bot.say("Sorry {}, you already have 5 words highlighted".format(user_name))
-                await asyncio.sleep(2)
-                await self.bot.delete_message(t_msg)
+                msg = "Sorry {}, you already have 5 words highlighted"
+                msg += ", or you are trying to add a duplicate word"
+                t_msg = await self.bot.say(msg.format(user_name))
+                await self._sleep_then_delete(t_msg,5)
         else:
             new_user = {}
             new_user['id'] = ctx.message.author.id
@@ -117,18 +121,15 @@ class Highlight(object):
                 self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_rm
                 self._update_highlights(self.highlights)
                 t_msg = await self.bot.say("Highlight word removed, {}".format(user_name))
-                await asyncio.sleep(2)
-                await self.bot.delete_message(t_msg)
+                await self._sleep_then_delete(t_msg,2)
             else:
                 t_msg = await self.bot.say("Sorry {}, you don't have this word highlighted".format(user_name))
-                await asyncio.sleep(2)
-                await self.bot.delete_message(t_msg)
+                await self._sleep_then_delete(t_msg,5)
         else:
             msg = "Sorry {}, you aren't currently registered for highlights."
             msg += " Add a word to become registered"
             t_msg = await self.bot.say(msg.format(user_name))
-            await asyncio.sleep(2)
-            await self.bot.delete_message(t_msg)
+            await self._sleep_then_delete(t_msg,5)
         
     @highlight.command(name="list", pass_context=True, no_pm=True)
     async def list_highlight(self, ctx):
@@ -148,13 +149,11 @@ class Highlight(object):
                     
                 embed = discord.Embed(description=msg,colour=discord.Colour.red())
                 embed.set_author(name=ctx.message.author.name,icon_url=ctx.message.author.avatar_url)
-                temp_msg = await self.bot.say(embed=embed)
-                await asyncio.sleep(5)
-                await self.bot.delete_message(temp_msg)
+                t_msg = await self.bot.say(embed=embed)
+                await self._sleep_then_delete(t_msg,5)
             else:
                 t_msg = await self.bot.say("Sorry {}, you have no highlighted words currently".format(user_name))
-                await asyncio.sleep(2)
-                await self.bot.delete_message(t_msg)
+                await self._sleep_then_delete(t_msg,5)
             
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def import_highlight(self, ctx, from_server: str):
