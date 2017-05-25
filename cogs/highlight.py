@@ -30,16 +30,7 @@ def check_filesystem():
             if "words" in file:
                 #build a default words.json
                 dict = {}
-                default = {}
-                users = {}
-                user = {}
-                users['users'] = []
-                user['id'] = 123456789
-                user['words'] = ["one", "two", "three", "four", "five"]
-                users['users'].append(user)
-                default['123456789'] = users
                 dict['guilds'] = []
-                dict['guilds'].append(default)
                 dataIO.save_json("data/highlight/words.json",dict)
                 
             print("Highlight: Creating file: {} ...".format(file))
@@ -185,11 +176,13 @@ class Highlight(object):
         guild_id = msg.server.id
         user_id = msg.author.id
         user_name = msg.author.name
-        user_obj = msg.author
+        user_obj = msg.author   
         guild_idx = self._check_guilds(guild_id)
         user = self._is_registered(guild_idx,guild_id,user_id)
         
         if user is not None:
+            if user[1]['id'] == user_id:
+                return
             user_words = user[1]['words']
             for word in user_words:
                 if word in msg.content:
