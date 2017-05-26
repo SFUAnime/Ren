@@ -67,9 +67,8 @@ class Highlight(object):
         users = self.highlights['guilds'][guild_idx][guild_id]['users']
 
         for user in users:
-            if user_id == user['id']:
-                user_add = user        
-                return [next(index for (index, d) in enumerate(users) if d["id"] == user['id']), user_add]
+            if user_id == user['id']:   
+                return [next(index for (index, d) in enumerate(users) if d["id"] == user['id']), user]
         return None
     
     @commands.group(name="highlight", pass_context=True, no_pm=True)
@@ -82,6 +81,7 @@ class Highlight(object):
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
+        
         guild_idx = self._check_guilds(guild_id)
         user = self._is_registered(guild_idx,guild_id,user_id)
         
@@ -90,6 +90,7 @@ class Highlight(object):
             user_add = user[1]
             if len(user_add['words']) <= 4 and word not in user_add['words']: # user can only have max of 5 words
                 user_add['words'].append(word)
+                self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_add
                 self._update_highlights(self.highlights)
                 t_msg = await self.bot.say("Highlight word added, {}".format(user_name))
                 await self._sleep_then_delete(t_msg,2)
@@ -110,6 +111,7 @@ class Highlight(object):
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
+        
         guild_idx = self._check_guilds(guild_id)
         user = self._is_registered(guild_idx,guild_id,user_id)
         
@@ -136,6 +138,7 @@ class Highlight(object):
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
+        
         guild_idx = self._check_guilds(guild_id)
         user = self._is_registered(guild_idx,guild_id,user_id)
         
@@ -174,16 +177,15 @@ class Highlight(object):
         user_id = msg.author.id
         user_name = msg.author.name
         user_obj = msg.author
-        guild_idx = self._check_guilds(guild_id)
-        user = self._is_registered(guild_idx,guild_id,user_id)
         
-        if user is not None:
-            if user[1]['id'] == user_id:
-                return
-            user_words = user[1]['words']
-            for word in user_words:
-                if word in msg.content:
-                    await self._notify_user(user_obj,msg,word)
+        guild_idx = self._check_guilds(guild_id)
+        
+        # iterate through every users words on the server, and notify all highlights
+        for user in self.highlights['guilds'][guild_idx][guild_id]['users']:
+            for word in user['words']:
+                if word in msg.content and user_id != user['id']:
+                    hilite_user = await self.bot.get_user_info(user['id'])
+                    await self._notify_user(hilite_user,msg,word)
                     
     async def _notify_user(self, user, message, word):
         msgs = []
