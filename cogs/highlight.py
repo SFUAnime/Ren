@@ -54,10 +54,13 @@ class Highlight(object):
         await asyncio.sleep(time)
         await self.bot.delete_message(msg)
     
+    def _get_guild_ids(self):
+        guilds = [list(x) for x in self.highlights['guilds']]
+        return list(itertools.chain.from_iterable(guilds)) # flatten list
+    
     def _check_guilds(self, guild_id):
         """returns guild pos in list"""
-        guilds = [list(x) for x in self.highlights['guilds']]
-        guilds_ids = list(itertools.chain.from_iterable(guilds)) # flatten list
+        guilds_ids = self._get_guild_ids()
         
         if guild_id not in guilds_ids:
             new_guild = {}
@@ -170,8 +173,41 @@ class Highlight(object):
             
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def import_highlight(self, ctx, from_server: str):
-        """Transfer highlights from a different guild to the current guild"""
-        pass # do some sort of utils.get to find guild id based on user passing guild name
+        """Transfer highlights from a different guild to the current guild, OVERWRITING any words in the current guild"""
+        guild_id = ctx.message.server.id
+        user_id = ctx.message.author.id
+        user_name = ctx.message.author.name
+        
+        guild_idx = self._check_guilds(guild_id)
+        user = self._is_registered(guild_idx,guild_id,user_id)
+        
+        guild = discord.utils.get(self.bot.servers, name=from_server)
+        
+        # This is kind of ugly, dont really like it but kind of has to be done like this based on how i have
+        # the highlight data structured, will definitely be revisting this
+        if guild is not None and user is not None:
+            user_idx = user[0]
+            if guild.id in self._get_guild_ids():
+                impt_guild_idx = self._check_guilds(guild.id)
+                impt_user = self._is_registered(impt_guild_idx,guild.id,user_id)
+                
+                if impt_user is not None:
+                    impt_user_idx = impt_user[0]
+                    impt = self.highlights['guilds'][impt_guild_idx][guild.id]['users'][impt_user_idx]
+                    self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = impt
+                    self._update_highlights(self.highlights)
+                    t_msg = await self.bot.say("Highlight words imported from {0} for {1}".format(from_server,user_name))
+                    await self._sleep_then_delete(t_msg,3)
+            else:
+                msg = "Sorry {}, the guild you want to import from"
+                msg += " is not registered for highlights, or you are not registered in that guild"
+                t_msg = await self.bot.say(msg.format(user_name))
+                await self._sleep_then_delete(t_msg,5)
+        else:
+            msg = "Sorry {}, this bot is not in the guild you want to import from,"
+            msg += " or you are not registered in this guild"
+            t_msg = await self.bot.say(msg.format(user_name))
+            await self._sleep_then_delete(t_msg,5)
     
     async def check_highlights(self, msg):
         """
