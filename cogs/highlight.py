@@ -5,6 +5,7 @@ from cogs.utils.dataIO import dataIO
 import asyncio
 import aiohttp
 from datetime import datetime, timedelta
+from threading import Lock
 import os
 import itertools
 
@@ -38,11 +39,16 @@ def check_filesystem():
 class Highlight(object):
     def __init__(self, bot):
         self.bot = bot
+        self.lock = Lock()
         self.highlights = dataIO.load_json("data/highlight/words.json")
     
     def _update_highlights(self, new_obj):
-        dataIO.save_json("data/highlight/words.json", new_obj)
-        self.highlights = dataIO.load_json("data/highlight/words.json")
+        self.lock.acquire()
+        try:
+            dataIO.save_json("data/highlight/words.json", new_obj)
+            self.highlights = dataIO.load_json("data/highlight/words.json")
+        finally:
+            self.lock.release()
     
     async def _sleep_then_delete(self, msg, time):
         await asyncio.sleep(time)
