@@ -170,6 +170,11 @@ class Highlight(object):
             else:
                 t_msg = await self.bot.say("Sorry {}, you have no highlighted words currently".format(user_name))
                 await self._sleep_then_delete(t_msg,5)
+        else:
+            msg = "Sorry {}, you aren't currently registered for highlights."
+            msg += " Add a word to become registered"
+            t_msg = await self.bot.say(msg.format(user_name))
+            await self._sleep_then_delete(t_msg,5)
             
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def import_highlight(self, ctx, from_server: str):
