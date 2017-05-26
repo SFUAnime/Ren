@@ -116,6 +116,8 @@ class Highlight(object):
             new_user['words'] = [word]
             self.highlights['guilds'][guild_idx][guild_id]['users'].append(new_user)
             self._update_highlights(self.highlights)
+            
+        await self.bot.delete_message(ctx.message)
         
     @highlight.command(name="remove", pass_context=True, no_pm=True)
     async def remove_highlight(self, ctx, word: str):
@@ -144,6 +146,8 @@ class Highlight(object):
             msg += " Add a word to become registered"
             t_msg = await self.bot.say(msg.format(user_name))
             await self._sleep_then_delete(t_msg,5)
+            
+        await self.bot.delete_message(ctx.message)
         
     @highlight.command(name="list", pass_context=True, no_pm=True)
     async def list_highlight(self, ctx):
