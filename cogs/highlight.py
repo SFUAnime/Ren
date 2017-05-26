@@ -250,7 +250,7 @@ class Highlight(object):
         msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
         notify_msg = "In <#{1.channel.id}>, you were mentioned with highlight word **{0}**:\n".format(word,message)
         for msg in msg_ctx:
-            time = msg.timestamp.isoformat(' ')
+            time = msg.timestamp.strftime('%a, %d %b %Y %I:%M%p')
             notify_msg += "[{0}] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
         await self.bot.send_message(user,notify_msg)
         
