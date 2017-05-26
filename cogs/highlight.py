@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from threading import Lock
 import os
 import itertools
+import re
 
 """
 Cogs Purpose: To dm a user certain "highlight" words that they specify
@@ -239,7 +240,8 @@ class Highlight(object):
         for user in self.highlights['guilds'][guild_idx][guild_id]['users']:
             for word in user['words']:
                 active = await self._is_active(user['id'],msg.channel,msg)
-                if word in msg.content and not active and user_id != user['id']:
+                match = self._is_word_match(word,msg.content)
+                if match and not active and user_id != user['id']:
                     hilite_user = await self.bot.get_user_info(user['id'])
                     await self._notify_user(hilite_user,msg,word)
                     
@@ -253,6 +255,10 @@ class Highlight(object):
             time = msg.timestamp.strftime('%a, %d %b %Y %I:%M%p')
             notify_msg += "[{0}] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
         await self.bot.send_message(user,notify_msg)
+        
+    def _is_word_match(self, word, string):
+        regex = r'\b{}\b'.format(word.lower())
+        return bool(re.search(regex,string.lower()))
         
     async def _is_active(self, user_id, channel, message):
         # NOTE: this is a naive approach to checking activity, for now to keep simple, just see if user
