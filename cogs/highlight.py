@@ -4,7 +4,7 @@ from __main__ import send_cmd_help
 from cogs.utils.dataIO import dataIO
 import asyncio
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import itertools
 
@@ -183,7 +183,8 @@ class Highlight(object):
         # iterate through every users words on the server, and notify all highlights
         for user in self.highlights['guilds'][guild_idx][guild_id]['users']:
             for word in user['words']:
-                if word in msg.content and user_id != user['id']:
+                active = await self._is_active(user['id'],msg.channel,msg)
+                if word in msg.content and not active and user_id != user['id']:
                     hilite_user = await self.bot.get_user_info(user['id'])
                     await self._notify_user(hilite_user,msg,word)
                     
@@ -198,8 +199,18 @@ class Highlight(object):
             notify_msg += "[{0}] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
         await self.bot.send_message(user,notify_msg)
         
-    async def _last_spoken(self):
-        pass # TODO: check if user sent message in last 10 seconds or so, if so dont send a PM
+    async def _is_active(self, user_id, channel, message):
+        # NOTE: this is a naive approach to checking activity, for now to keep simple, just see if user
+        # created a message in the last 50 messages. and if they did, was in less than 20 seconds since 
+        # the message we are currently checking for highlight words
+        is_active = False
+        
+        async for msg in self.bot.logs_from(channel,limit=50,before=message):
+            delta_since_msg = message.timestamp - msg.timestamp
+            if msg.author.id == user_id and delta_since_msg <= timedelta(seconds=20):
+                is_active = True
+                break
+        return is_active   
     
 def setup(bot):
     check_filesystem()
