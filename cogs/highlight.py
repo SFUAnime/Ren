@@ -73,11 +73,13 @@ class Highlight(object):
     
     @commands.group(name="highlight", pass_context=True, no_pm=True)
     async def highlight(self, ctx):
+        """Slack-like feature to be notified based on specific words outside of at-mentions"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
         
     @highlight.command(name="add", pass_context=True, no_pm=True)
     async def add_highlight(self, ctx, word: str):
+        """Add a word to be highlighted in the current guild"""
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
@@ -108,6 +110,7 @@ class Highlight(object):
         
     @highlight.command(name="remove", pass_context=True, no_pm=True)
     async def remove_highlight(self, ctx, word: str):
+        """Remove a highlighted word in the current guild"""
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
@@ -135,6 +138,7 @@ class Highlight(object):
         
     @highlight.command(name="list", pass_context=True, no_pm=True)
     async def list_highlight(self, ctx):
+        """List your highighted words for the current guild"""
         guild_id = ctx.message.server.id
         user_id = ctx.message.author.id
         user_name = ctx.message.author.name
@@ -160,8 +164,8 @@ class Highlight(object):
             
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def import_highlight(self, ctx, from_server: str):
-        #do some sort of  utils.get to find guild id
-        pass
+        """Transfer highlights from a different guild to the current guild"""
+        pass # do some sort of utils.get to find guild id based on user passing guild name
     
     async def check_highlights(self, msg):
         """
