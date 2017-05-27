@@ -221,12 +221,6 @@ class Highlight(object):
             await self._sleep_then_delete(t_msg,5)
     
     async def check_highlights(self, msg):
-        """
-        1. check if the msg is in any of any users words
-        2. if it was, get 5-6 messages AROUND the msg
-        3. construct some metadata based off this info
-        4. format a message, send to DM
-        """
         if isinstance(msg.channel,discord.PrivateChannel):
             return
             
