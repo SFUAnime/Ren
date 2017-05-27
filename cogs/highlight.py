@@ -276,7 +276,7 @@ class Highlight(object):
             if msg.author.id == user_id and delta_since_msg <= timedelta(seconds=20):
                 is_active = True
                 break
-        return is_active   
+        return is_active
     
 def setup(bot):
     check_filesystem()
