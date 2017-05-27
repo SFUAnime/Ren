@@ -116,6 +116,8 @@ class Highlight(object):
             new_user['words'] = [word]
             self.highlights['guilds'][guild_idx][guild_id]['users'].append(new_user)
             self._update_highlights(self.highlights)
+            t_msg = await self.bot.say("Registered and highlight word added, {}".format(user_name))
+            await self._sleep_then_delete(t_msg,2)
             
         await self.bot.delete_message(ctx.message)
         
