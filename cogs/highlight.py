@@ -4,7 +4,7 @@ from __main__ import send_cmd_help
 from cogs.utils.dataIO import dataIO
 import asyncio
 import aiohttp
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from threading import Lock
 import os
 import itertools
@@ -241,7 +241,7 @@ class Highlight(object):
             for word in user['words']:
                 active = await self._is_active(user['id'],msg.channel,msg)
                 match = self._is_word_match(word,msg.content)
-                if match and not active and user_id != user['id']:
+                if match and not active: # and user_id != user['id']:
                     hilite_user = await self.bot.get_user_info(user['id'])
                     await self._notify_user(hilite_user,msg,word)
                     
@@ -251,10 +251,16 @@ class Highlight(object):
             msgs.append(msg)
         msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
         notify_msg = "In <#{1.channel.id}>, you were mentioned with highlight word **{0}**:\n".format(word,message)
+        embed_msg = ""
         for msg in msg_ctx:
-            time = msg.timestamp.strftime('%a, %d %b %Y %I:%M%p')
-            notify_msg += "[{0}] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
-        await self.bot.send_message(user,notify_msg)
+            time = msg.timestamp
+            time = time.replace(tzinfo=timezone.utc).strftime('%H:%M:%S')
+            embed_msg += "[{0} UTC] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
+        embed = discord.Embed(title=user.name,description=embed_msg,colour=discord.Colour.red())
+        time = message.timestamp.replace(tzinfo=timezone.utc)
+        footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p'))
+        embed.set_footer(text=footer)
+        await self.bot.send_message(user,content=notify_msg,embed=embed)
         
     def _is_word_match(self, word, string):
         regex = r'\b{}\b'.format(word.lower())
