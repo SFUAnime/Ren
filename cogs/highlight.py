@@ -241,7 +241,7 @@ class Highlight(object):
             for word in user['words']:
                 active = await self._is_active(user['id'],msg.channel,msg)
                 match = self._is_word_match(word,msg.content)
-                if match and not active: # and user_id != user['id']:
+                if match and not active and user_id != user['id']:
                     hilite_user = await self.bot.get_user_info(user['id'])
                     await self._notify_user(hilite_user,msg,word)
                     
@@ -285,4 +285,3 @@ def setup(bot):
     hilite = Highlight(bot)
     bot.add_listener(hilite.check_highlights, 'on_message')
     bot.add_cog(hilite)
-    
