@@ -269,9 +269,6 @@ class Highlight(object):
         return bool(re.search(regex,string.lower()))
         
     async def _is_active(self, user_id, channel, message):
-        # NOTE: this is a naive approach to checking activity, for now to keep simple, just see if user
-        # created a message in the last 50 messages. and if they did, was in less than 20 seconds since 
-        # the message we are currently checking for highlight words
         is_active = False
         
         async for msg in self.bot.logs_from(channel,limit=50,before=message):
