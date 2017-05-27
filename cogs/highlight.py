@@ -246,8 +246,9 @@ class Highlight(object):
                     await self._notify_user(hilite_user,msg,word)
                     
     async def _notify_user(self, user, message, word):
+        await asyncio.sleep(3) # possibly pick up messages after trigger that will help with the context
         msgs = []
-        async for msg in self.bot.logs_from(message.channel,limit=10,around=message):
+        async for msg in self.bot.logs_from(message.channel,limit=6,around=message):
             msgs.append(msg)
         msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
         notify_msg = "In <#{1.channel.id}>, you were mentioned with highlight word **{0}**:\n".format(word,message)
