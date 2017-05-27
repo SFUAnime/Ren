@@ -297,6 +297,7 @@ class Tags:
         await self.bot.say('Tag alias "{}" that points to "{.name}" successfully created.'.format(new_name, original))
 
     @tag.command(pass_context=True, ignore_extra=False)
+    @checks.mod_or_permissions(administrator=True)
     async def make(self, ctx):
         """Interactive makes a tag for you.
         This walks you through the process of creating a tag with

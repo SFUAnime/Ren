@@ -55,7 +55,7 @@ class Kanna_beta:
                 
         #Prepend local listings with domain name.
         for x in range(0,len(self.pictures_local[JSON_mainKey])):
-            self.pictures_local[JSON_mainKey][x][JSON_imageURLKey] = "https://nyan.injabie3.moe/p/" + self.pictures_local[JSON_mainKey][x][JSON_imageURLKey]
+            self.pictures_local[JSON_mainKey][x][JSON_imageURLKey] = "https://nekomimi.injabie3.moe/p/" + self.pictures_local[JSON_mainKey][x][JSON_imageURLKey]
         for x in range(0,len(self.pictures_localx10[JSON_mainKey])):
             self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey] = "http://injabie3.x10.mx/p/" + self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey]
 

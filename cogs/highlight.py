@@ -13,7 +13,6 @@ import re
 """
 Cogs Purpose: To dm a user certain "highlight" words that they specify
 Requirements:
-
 Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) but that bot is currently closed source.
         So this is my own, and most definitely subpar, implementation of highlights
 """
