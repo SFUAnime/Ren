@@ -19,7 +19,7 @@ Requirements:
     - sudo pip install bs4
     - sudo pip install feedparser
 """
-#---------------------------------------------------------------------------------------------#
+
 def date2epoch(date):
     try:
         epoch = datetime.strptime(date,'%a, %d %b %Y %H:%M:%S %z').timestamp()
@@ -28,26 +28,42 @@ def date2epoch(date):
         return epoch
         
     return epoch
-
-#---------------------------------------------------------------------------------------------#
+    
 def epoch2date(epoch):
     date = datetime.fromtimestamp(epoch).strftime('%a, %d %b %Y %I:%M%p')
     return date
- 
-#---------------------------------------------------------------------------------------------#
+    
+def config_setup():
+    print("RSS: insert the channel id of where the bot should post:")
+    config_channel = None
+    while config_channel is None:
+        config_channel = str(input("> "))
+        
+    print("RSS: insert the rss url(s) for the bot to monitor:")
+    print("RSS: insert d to finish adding rss urls")
+    config_feeds = []
+    while True:
+        latest = input("> ")
+        if latest == "d":
+            break
+        config_feeds.append(str(latest))
+        
+    dict = {}
+    dict["channel"] = config_channel
+    dict["feeds"] = config_feeds
+    return dict
+    
 def check_filesystem():
 
-    folders = ("data/rss")
+    folders = ["data/rss"]
     for folder in folders:
         if not os.path.exists(folder):
             print("RSS: Creating folder: {} ...".format(folder))
             os.makedirs(folder)
             
-    files = ("data/rss/config.json", "data/rss/feeds.json")
+    files = ["data/rss/config.json", "data/rss/feeds.json"]
     for file in files:
         if not os.path.exists(file):
-            print("RSS: Creating file: {} ...".format(file))
-          
             if "feeds" in file:
                 #build a default feeds.json
                 dict = {}
@@ -60,12 +76,14 @@ def check_filesystem():
             elif "config" in file:
                 #build a default config.json
                 dict = {}
-                dict['post_channel'] = "change_me"
-                dict['rss_feed_urls'] = ["change_me"]
+                config = config_setup()
+                dict['post_channel'] = config["channel"]
+                dict['rss_feed_urls'] = config["feeds"]
                 dict['check_interval'] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json",dict)
-
-#---------------------------------------------------------------------------------------------#                
+                
+            print("RSS: Creating file: {} ...".format(file))
+            
 class RSSFeed(object):
     def __init__(self, bot):
         self.settings = dataIO.load_json("data/rss/config.json")
@@ -74,11 +92,9 @@ class RSSFeed(object):
         self.check_interval = self.settings['check_interval']
         self.channel_id = self.settings['post_channel']
         
-#---------------------------------------------------------------------------------------------#
     def _is_new_item(self,latest_post_time, item_post_time):
         return latest_post_time < item_post_time
-        
-#---------------------------------------------------------------------------------------------#   
+           
     def _get_latest_post_time(self, feed_items):
         published_times = []
         for item in feed_items:
@@ -87,20 +103,18 @@ class RSSFeed(object):
             return max(published_times)
         else:
             return None #lets be explicit :)
-
-#---------------------------------------------------------------------------------------------#
+            
     @commands.group(name="rss", pass_context=True, no_pm=True)
     async def _rss(self, ctx):
         """Utilities for the RSS cog"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
-
-#---------------------------------------------------------------------------------------------#            
+            
     @_rss.command(pass_context=True, no_pm=True)
     async def setinterval(self,ctx):
         """Set the interval for rss to scan for updates"""
         pass
-#---------------------------------------------------------------------------------------------#   
+        
     def _get_feed(self, rss_url, channel, index=None): 
         
         if channel is None:
@@ -145,10 +159,11 @@ class RSSFeed(object):
         dataIO.save_json("data/rss/feeds.json", feeds)
         
         return news
-        
-#---------------------------------------------------------------------------------------------#       
+               
     async def _rss(self):
         """ Checks for rss updates periodically and posts any new content to the specific channel"""
+        
+        await self.bot.wait_until_ready()
         
         while self == self.bot.get_cog("RSSFeed"):
             print("------------------------------------")
@@ -204,11 +219,8 @@ class RSSFeed(object):
                 print("borked")                        
                 raise e
             
-#---------------------------------------------------------------------------------------------# 
 def setup(bot):
-    #check_filesystem()
+    check_filesystem()
     rss_obj = RSSFeed(bot)
     bot.add_cog(rss_obj)
     bot.loop.create_task(rss_obj._rss())
-
-#---------------------------------------------------------------------------------------------#
