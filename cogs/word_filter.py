@@ -160,7 +160,7 @@ class WordFilter(object):
     
     def _is_one_word(self, string):
         return len(string.split()) == 1
-        
+    
     def _is_all_filtered(self, string):
         words = string.split()
         cnt = 0
