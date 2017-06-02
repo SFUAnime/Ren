@@ -8,11 +8,14 @@ import asyncio
 from threading import Lock
 import os
 import re
+import random
 
 """
 Cog Purpose: 
     - To filter words in a more smart/useful way then simply detecting and deleting a message
 """
+
+colour = discord.Colour
 
 def check_filesystem():
 
@@ -35,6 +38,7 @@ class WordFilter(object):
         self.bot = bot
         self.lock = Lock()
         self.filters = dataIO.load_json("data/word_filter/filter.json")
+        self.colours = [colour.purple(),colour.red(),colour.blue(),colour.orange(),colour.green()]
     
     def _update_filters(self, new_obj):
         self.lock.acquire()
@@ -125,8 +129,8 @@ class WordFilter(object):
             return
         
         # NOTE: only here for initial testing on ren's test channel, will be removed (soon)
-        if msg.channel.id != "317516907009802241":
-            return
+        # if msg.channel.id != "317516907009802241":
+            # return
         
         guild_id = msg.server.id
         filtered_words = self.filters[guild_id]
@@ -137,9 +141,11 @@ class WordFilter(object):
         for word in filtered_words:
             filtered_msg = self._filter_word(word,filtered_msg)
             
+        all_filtered = self._is_all_filtered(filtered_msg)
+        
         if filtered_msg == original_msg:
             return # no bad words, dont need to do anything else
-        elif filtered_msg != original_msg and one_word:
+        elif (filtered_msg != original_msg and one_word) or all_filtered:
             await self.bot.delete_message(msg) # delete message but don't show full message context
             filter_notify = "{0.author.mention} was filtered!".format(msg)
             n_msg = await self.bot.send_message(msg.channel,filter_notify)
@@ -147,8 +153,9 @@ class WordFilter(object):
             await self.bot.delete_message(n_msg)
         else:
             await self.bot.delete_message(msg)
-            filter_notify = "{0.author.mention} was filtered! Message was: \n{1}".format(msg,filtered_msg)
-            await self.bot.send_message(msg.channel,filter_notify)
+            filter_notify = "{0.author.mention} was filtered! Message was: \n".format(msg)
+            embed = discord.Embed(colour=random.choice(self.colours),description="{0.author.name}#{0.author.discriminator}: {1}".format(msg,filtered_msg))
+            await self.bot.send_message(msg.channel,filter_notify,embed=embed)
             
     def _filter_word(self, word, string):
         regex = r'\b{}\b'.format(word)
@@ -159,6 +166,14 @@ class WordFilter(object):
     def _is_one_word(self, string):
         return len(string.split()) == 1
     
+    def _is_all_filtered(self, string):
+        words = string.split()
+        cnt = 0
+        for word in words:
+            if bool(re.search("[*]+",word)):
+                cnt += 1
+        return cnt == len(words)
+        
 def setup(bot):
     check_filesystem()
     filter = WordFilter(bot)
