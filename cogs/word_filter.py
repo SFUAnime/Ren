@@ -49,14 +49,14 @@ class WordFilter(object):
             self.lock.release()
             
     @commands.group(name="word_filter", pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def word_filter(self, ctx):
         """Smart word filtering"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
     
     @word_filter.command(name="add", pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def add_filter(self, ctx, word: str):
         """Add word to filter"""
         guild_id = ctx.message.server.id
@@ -77,7 +77,7 @@ class WordFilter(object):
             await self.bot.send_message(user,"`Word Filter:` The word **{0}** is already in the filter for guild **{1}**".format(word,guild_name))
         
     @word_filter.command(name="remove", pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def remove_filter(self, ctx, word: str):
         """Remove word  from filter"""
         guild_id = ctx.message.server.id
@@ -97,7 +97,7 @@ class WordFilter(object):
             await self.bot.send_message(user,"`Word Filter:` **{0}** removed from the filter in the guild **{1}**".format(word,guild_name))
     
     @word_filter.command(name="list", pass_context=True, no_pm=True)
-    @checks.admin_or_permissions(administrator=True)
+    @checks.mod_or_permissions(manage_messages=True)
     async def list_filter(self, ctx):
         """List filtered words, NOTE: do this in a channel outside of the viewing public"""
         guild_id = ctx.message.server.id
@@ -127,10 +127,6 @@ class WordFilter(object):
     async def check_words(self, msg):
         if isinstance(msg.channel,discord.PrivateChannel) or msg.server.id not in list(self.filters):
             return
-        
-        # NOTE: only here for initial testing on ren's test channel, will be removed (soon)
-        # if msg.channel.id != "317516907009802241":
-            # return
         
         guild_id = msg.server.id
         filtered_words = self.filters[guild_id]
