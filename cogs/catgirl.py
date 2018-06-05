@@ -111,7 +111,7 @@ class Catgirl_beta:
         randCatgirl = random.choice(self.catgirls)
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
-        embed.title = "Catgirl"
+        embed.title = "Catgirl"+randCatgirl[JSON_pixivID]
         embed.url = randCatgirl[JSON_imageURLKey]
         if JSON_isPixiv in randCatgirl and randCatgirl[JSON_isPixiv]:
             source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[JSON_pixivID])
