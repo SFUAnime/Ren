@@ -25,6 +25,7 @@ class RoleAssigner:
                                      cogname="lui-cogs/roleAssigner" )
         self.roles = self.config.get( "roles" )
 
+    @checks.mod_or_permissions( manage_messages=True )
     @commands.group( name="roleassigner", aliases=[ "ra" ], pass_context=True,
                      no_pm=True )
     async def _roleAssigner( self, ctx ):
