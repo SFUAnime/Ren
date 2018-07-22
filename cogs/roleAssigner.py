@@ -1,10 +1,8 @@
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
-import asyncio #Used for task loop.
-import os #Used to create folder at first load.
-import random #Used for selecting random catgirls.
+import asyncio
+import os # Used to create folder path.
 from .utils import config, checks, formats 
 import itertools
 
