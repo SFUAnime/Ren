@@ -28,7 +28,7 @@ class RoleAssigner:
     @commands.group( name="roleassigner", aliases=[ "ra" ], pass_context=True,
                      no_pm=True )
     async def _roleAssigner( self, ctx ):
-        """Role assigner"""
+        """Role assigner, one role per user from a list of roles."""
         if ctx.invoked_subcommand is None:
             await send_cmd_help( ctx )
 
@@ -71,8 +71,8 @@ class RoleAssigner:
     @_roleAssigner.command( name="list", pass_context=True )
     async def _rA_list( self, ctx ):
         """List roles for random assignment.""" 
-        msg = ":information_source: **Role Assigner - List:** The following roles " \
-              "will be assigned:\n"
+        msg = ":information_source: **Role Assigner - List:** One of the " \
+              "following roles will be assigned to each user:\n"
         if not self.roles:
             await self.bot.say( ":warning: **Role Assigner - List:** No roles "
                                 "added!" )
