@@ -14,21 +14,28 @@ class dab:
     async def mycom(self):
 	
         number = random.randint(0, 10000)
+	await asyncio.sleep(3)
     
         # prints some ASCII art to whom ever is lucky enough
         if number == 420:
 		
-            await.self.bot.say("Squidward will visit you")
+            await self.bot.say("Squidward will visit you")
             await asyncio.sleep(5)
             await.self.bot.say("https://media3.giphy.com/media/lae7QSMFxEkkE/giphy.gif")
             await asyncio.sleep(5)
-            await.self.bot.say("Squidward has visited you")
+            await self.bot.say("Squidward has visited you")
         
       
         # for the unlucky ones
         else:
-            await.self.bot.say("He won't visit you yet")
-            await.self.bot.say("Maybe if you're lucky you'll get to see him")
-        
+            await self.bot.say("He won't visit you yet")
+            await self.bot.say("Maybe if you're lucky you'll get to see him")
+
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# # # Set-up # # #     # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #                           å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ
+# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
       
-      
+def setup(bot):
+    check_folders()
+    check_files()
+    bot.add_cog(Guess(bot))
