@@ -3,7 +3,7 @@
 import random
 import asyncio
 import discord
-
+import commands
 
 ''' dab '''
 class dab:
@@ -13,7 +13,6 @@ class dab:
     @commands.command(name = "squid", pass_context = True)
     async def mycom(self):
 	
-        # generate a number
         number = random.randint(0, 10000)
     
         # prints some ASCII art to whom ever is lucky enough
@@ -24,12 +23,12 @@ class dab:
             await.self.bot.say("https://media3.giphy.com/media/lae7QSMFxEkkE/giphy.gif")
             await asyncio.sleep(5)
             await.self.bot.say("Squidward has visited you")
-        break
+        
       
         # for the unlucky ones
         else:
             await.self.bot.say("He won't visit you yet")
-            await.self.bot.say("maybe if you're lucky you'll get to see him")
-        break
+            await.self.bot.say("Maybe if you're lucky you'll get to see him")
+        
       
       
