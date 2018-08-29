@@ -15,8 +15,8 @@ class dab:
   @commands.command(name = "squid", pass_context = True)
 	async def mycom(self):
 	
-    # generate a number
-    number = print random.randint(0, 10000)
+	# generate a number
+	number = print random.randint(0, 10000)
     
     # prints some ASCII art to whom ever is lucky enough
     if number = 666 or 420:
