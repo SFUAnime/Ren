@@ -3,17 +3,17 @@
 import random
 import asyncio
 import discord
-import commands
+from discord.ext import commands
 
 ''' dab '''
-class dab:
+class Dab:
     def __init__(self, bot):
         self.bot = bot
     
-    @commands.command(name = "squid", pass_context = True)
+    @commands.command(name="squid")
     async def mycom(self):
         number = random.randint(0, 10000)
-        # prints some ASCII art to whom ever is lucky enough
+        # prints something fun to whom ever is lucky enough
         if number == 420:
 		
             await self.bot.say("Squidward will visit you")
@@ -32,7 +32,5 @@ class dab:
 # # # Set-up # # #     # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #                           å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ
 # --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
       
-def setup(bot):
-    check_folders()
-    check_files()
-    bot.add_cog(Guess(bot))
+# wait....
+# no set-up..? :thonk:
