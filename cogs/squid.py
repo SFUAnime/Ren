@@ -16,7 +16,7 @@ class dab:
         number = random.randint(0, 10000)
     
         # prints some ASCII art to whom ever is lucky enough
-        if number = 666 or 420:
+        if number == 420:
 		
             await.self.bot.say("Squidward will visit you")
             await asyncio.sleep(5)
