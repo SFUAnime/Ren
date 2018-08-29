@@ -18,7 +18,7 @@ class dab:
 		
             await self.bot.say("Squidward will visit you")
             await asyncio.sleep(5)
-            await.self.bot.say("https://media3.giphy.com/media/lae7QSMFxEkkE/giphy.gif")
+            await self.bot.say("https://media3.giphy.com/media/lae7QSMFxEkkE/giphy.gif")
             await asyncio.sleep(5)
             await self.bot.say("Squidward has visited you")
         
