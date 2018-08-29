@@ -12,10 +12,7 @@ class dab:
     
     @commands.command(name = "squid", pass_context = True)
     async def mycom(self):
-	
         number = random.randint(0, 10000)
-	await asyncio.sleep(3)
-    
         # prints some ASCII art to whom ever is lucky enough
         if number == 420:
 		
