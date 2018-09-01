@@ -67,7 +67,6 @@ ignore=alias.py,
        welcome.py,
        wikipedia.py,
        wolfram.py,
-       word_filter.py,
        zalgo.py,
    	   utils
 
