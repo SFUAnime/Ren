@@ -1,18 +1,17 @@
-import discord
+import os
 import time # To auto remove birthday role on the next day.
-from .utils.paginator import Pages # For making pages, requires the util!
-from discord.ext import commands
-from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
-from threading import Lock
 import asyncio
 import datetime
+from threading import Lock
+import discord
+from discord.ext import commands
+from __main__ import send_cmd_help
+from cogs.utils.paginator import Pages # For making pages, requires the util!
+from cogs.utils.dataIO import dataIO
 
 # Requires checks utility from:
 # https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from .utils import checks
-
-import os #Used to create folder at first load.
+from cogs.utils import checks
 
 #Global variables
 keyBirthdayRole = "birthdayRole"
@@ -40,7 +39,7 @@ def checkFiles():
         dataIO.save_json(f, {})
 
 
-class Birthday_beta:
+class Birthday:
     """Adds a role to someone on their birthday, and automatically remove them from this role after the day is over."""
 
 
@@ -298,7 +297,7 @@ class Birthday_beta:
     # Event loop - Try an absolute timeout #
     ########################################
     async def birthdayLoop(self):
-        while self == self.bot.get_cog("Birthday_beta"):
+        while self == self.bot.get_cog("Birthday"):
             await asyncio.sleep(7.5*60)
             # print("Birthday: Performing daily sweep...")
             await self._dailySweep()
@@ -419,7 +418,7 @@ class Birthday_beta:
 def setup(bot):
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have settings!
-    customCog = Birthday_beta(bot)
+    customCog = Birthday(bot)
     bot.add_cog(customCog)
     bot.loop.create_task(customCog.birthdayLoop())
     # bot.loop.create_task(customCog._dailyAdd())
