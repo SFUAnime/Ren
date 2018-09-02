@@ -110,7 +110,7 @@ class Stars:
         try:
             ctx.db = self.stars[guild_id]
             ctx.starboard = self.bot.get_channel(ctx.db.get('channel'))
-            await self.clean_starboard(ctx, 100) # Leave stars that have over 100 stars
+            await self.clean_starboard(ctx, 1) # Leave stars that have over 1 star.
             await asyncio.sleep(ctx.db['janitor'])
         except KeyError:
             pass
