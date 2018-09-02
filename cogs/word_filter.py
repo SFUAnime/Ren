@@ -36,7 +36,7 @@ def checkFileSystem():
             dataIO.save_json(file, empty)
             print("Word Filter: Creating file: {} ...".format(file))
 
-class WordFilter():
+class WordFilter(): # pylint: disable=too-many-instance-attributes
     """Word Filter cog, for all your word filtering needs."""
 
     def __init__(self, bot):
@@ -294,7 +294,8 @@ class WordFilter():
             await self.bot.say("Sorry, there are no whitelisted channels in "
                                "**{}**".format(guildName))
 
-    async def checkWords(self, msg, newMsg=None): # pylint: disable=too-many-branches
+    async def checkWords(self, msg, newMsg=None): \
+        # pylint: disable=too-many-branches,too-many-locals
         """This method, given a message, will check to see if the message contains
         any filterable words, and if it does, deletes the original message and
         sends another message with the filterable words censored.
@@ -340,7 +341,7 @@ class WordFilter():
         for word in filteredWords:
             try:
                 filteredMsg = _filterWord(word, filteredMsg)
-            except Exception as error:
+            except Exception as error: # pylint: disable=broad-except
                 print("Word Filter exception:")
                 print(error)
                 print(word)
@@ -377,7 +378,7 @@ def _filterWord(word, string):
 
     try:
         number = len(re.search(regex, string, flags=re.IGNORECASE).group(0))
-    except:
+    except Exception: # pylint: disable=broad-except
         # Nothing to replace, return original string
         return string
 
