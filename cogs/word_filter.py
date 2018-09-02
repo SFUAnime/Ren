@@ -3,17 +3,17 @@ To filter words in a more smart/useful wya than simply detecting and
 deleting a message.
 """
 
+import os
+import re
+import random
+import asyncio
+from threading import Lock
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 from cogs.utils.dataIO import dataIO
 from cogs.utils import checks
 from cogs.utils.paginator import Pages
-import asyncio
-from threading import Lock
-import os
-import re
-import random
 
 COLOUR = discord.Colour
 
@@ -294,7 +294,11 @@ class WordFilter():
             await self.bot.say("Sorry, there are no whitelisted channels in "
                                "**{}**".format(guildName))
 
-    async def checkWords(self, msg, newMsg=None):
+    async def checkWords(self, msg, newMsg=None): # pylint: disable=too-many-branches
+        """This method, given a message, will check to see if the message contains
+        any filterable words, and if it does, deletes the original message and
+        sends another message with the filterable words censored.
+        """
         modRole = self.bot.settings.get_server_mod(msg.server).lower()
         adminRole = self.bot.settings.get_server_admin(msg.server).lower()
 
@@ -321,7 +325,7 @@ class WordFilter():
                 for role in msg.author.roles:
                     if role.name.lower() == modRole or role.name.lower() == adminRole:
                         return
-        except Exception as error: #Most likely key error, so ignore.
+        except Exception as error: # pylint: disable=broad-except
             print(error)
 
         filteredWords = self.filters[guildId]
@@ -331,11 +335,11 @@ class WordFilter():
             checkMsg = msg.content
         originalMsg = checkMsg
         filteredMsg = originalMsg
-        oneWord = self._isOneWord(checkMsg)
+        oneWord = _isOneWord(checkMsg)
 
         for word in filteredWords:
             try:
-                filteredMsg = self._filterWord(word, filteredMsg)
+                filteredMsg = _filterWord(word, filteredMsg)
             except Exception as error:
                 print("Word Filter exception:")
                 print(error)
@@ -344,7 +348,7 @@ class WordFilter():
                 print("==========")
 
 
-        allFiltered = self._isAllFiltered(filteredMsg)
+        allFiltered = _isAllFiltered(filteredMsg)
 
         if filteredMsg == originalMsg:
             pass # no bad words, don't need to do anything else
@@ -362,35 +366,35 @@ class WordFilter():
                                   "{1}".format(msg, filteredMsg))
             await self.bot.send_message(msg.channel, filterNotify, embed=embed)
 
-    def _filterWord(self, word, string):
-        regex = r'\b{}\b'.format(word)
+def _filterWord(word, string):
+    regex = r'\b{}\b'.format(word)
 
-        # Replace the offending string with the correct number of stars.  Note that
-        # this only considers the length of the first time an offending string is
-        # found with the current regex.  It will replace every string found with
-        # this regex with the number of stars corresponding to the first offending
-        # string.
+    # Replace the offending string with the correct number of stars.  Note that
+    # this only considers the length of the first time an offending string is
+    # found with the current regex.  It will replace every string found with
+    # this regex with the number of stars corresponding to the first offending
+    # string.
 
-        try:
-            number = len(re.search(regex, string, flags=re.IGNORECASE).group(0))
-        except:
-            # Nothing to replace, return original string
-            return string
+    try:
+        number = len(re.search(regex, string, flags=re.IGNORECASE).group(0))
+    except:
+        # Nothing to replace, return original string
+        return string
 
-        stars = '*'*number
-        repl = "{0}{1}{0}".format('`', stars)
-        return re.sub(regex, repl, string, flags=re.IGNORECASE)
+    stars = '*'*number
+    repl = "{0}{1}{0}".format('`', stars)
+    return re.sub(regex, repl, string, flags=re.IGNORECASE)
 
-    def _isOneWord(self, string):
-        return len(string.split()) == 1
+def _isOneWord(string):
+    return len(string.split()) == 1
 
-    def _isAllFiltered(self, string):
-        words = string.split()
-        cnt = 0
-        for word in words:
-            if bool(re.search("[*]+", word)):
-                cnt += 1
-        return cnt == len(words)
+def _isAllFiltered(string):
+    words = string.split()
+    cnt = 0
+    for word in words:
+        if bool(re.search("[*]+", word)):
+            cnt += 1
+    return cnt == len(words)
 
 def setup(bot):
     """Add the cog to the bot."""
