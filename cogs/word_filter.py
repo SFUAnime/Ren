@@ -17,6 +17,7 @@ from cogs.utils import checks
 from cogs.utils.paginator import Pages
 
 COLOUR = discord.Colour
+LOGGER = None
 
 def checkFileSystem():
     """Check if the folders/files are created."""
@@ -331,8 +332,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                     if role.name.lower() == modRole or role.name.lower() == adminRole:
                         return
         except Exception as error: # pylint: disable=broad-except
-            logger.error("Exception occurred in checking keyToggleMod!")
-            logger.error(error)
+            LOGGER.error("Exception occurred in checking keyToggleMod!")
+            LOGGER.error(error)
 
         filteredWords = self.filters[guildId]
         if newMsg:
@@ -347,18 +348,17 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             try:
                 filteredMsg = _filterWord(word, filteredMsg)
             except Exception as error: # pylint: disable=broad-except
-                print("Word Filter exception:")
-                print(error)
-                print(word)
-                print(filteredMsg)
-                print("==========")
-
+                LOGGER.error("Exception!")
+                LOGGER.error(error)
+                LOGGER.info("Word: %s", word)
+                LOGGER.info("Filtered message: %s", filteredMsg)
 
         allFiltered = _isAllFiltered(filteredMsg)
 
         if filteredMsg == originalMsg:
-            pass # no bad words, don't need to do anything else
-        elif (filteredMsg != originalMsg and oneWord) or allFiltered:
+            return # no bad words, don't need to do anything else
+
+        if (filteredMsg != originalMsg and oneWord) or allFiltered:
             await self.bot.delete_message(msg) # delete message but don't show full message context
             filterNotify = "{0.author.mention} was filtered!".format(msg)
             notifyMsg = await self.bot.send_message(msg.channel, filterNotify)
@@ -371,6 +371,10 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                   description="{0.author.name}#{0.author.discriminator}: "
                                   "{1}".format(msg, filteredMsg))
             await self.bot.send_message(msg.channel, filterNotify, embed=embed)
+
+        LOGGER.info("Author : %s#%s (%s)", msg.author.name, msg.author.discriminator,
+                    msg.author.id)
+        LOGGER.info("Message: %s", originalMsg)
 
 def _filterWord(word, string):
     regex = r'\b{}\b'.format(word)
@@ -404,19 +408,19 @@ def _isAllFiltered(string):
 
 def setup(bot):
     """Add the cog to the bot."""
-    global logger
+    global LOGGER # pylint: disable=global-statement
     checkFileSystem()
     wordFilterCog = WordFilter(bot)
     bot.add_listener(wordFilterCog.checkWords, 'on_message')
     bot.add_listener(wordFilterCog.checkWords, 'on_message_edit')
-    logger = logging.getLogger("red.WordFilter")
-    if logger.level == 0:
-        # Prevents the logger from being loaded again in case of module reload.
-        logger.setLevel(logging.INFO)
+    LOGGER = logging.getLogger("red.WordFilter")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
         handler = logging.FileHandler(filename="data/word_filter/info.log",
                                       encoding="utf-8",
                                       mode="a")
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
                                                datefmt="[%d/%m/%Y %H:%M:%S]"))
-        logger.addHandler(handler)
+        LOGGER.addHandler(handler)
     bot.add_cog(wordFilterCog)
