@@ -299,11 +299,19 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             await self.bot.say("Sorry, there are no whitelisted channels in "
                                "**{}**".format(guildName))
 
-    async def checkWords(self, msg, newMsg=None): \
-        # pylint: disable=too-many-branches,too-many-locals
-        """This method, given a message, will check to see if the message contains
-        any filterable words, and if it does, deletes the original message and
-        sends another message with the filterable words censored.
+    def checkMessageServerAndChannel(self, msg):
+        """Checks to see if the message is in a server/channel eligible for
+        filtering.
+
+        Parameters
+        ----------
+        msg : discord.Message
+            The message that we want to check.
+
+        Returns
+        -------
+        Boolean
+            True if the message is eligible for filtering, else False.
         """
         modRole = self.bot.settings.get_server_mod(msg.server).lower()
         adminRole = self.bot.settings.get_server_admin(msg.server).lower()
@@ -311,7 +319,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         # Filter only configured servers, not private DMs.
         if isinstance(msg.channel, discord.PrivateChannel) or msg.server.id not \
             in list(self.filters):
-            return
+            return False
 
         guildId = msg.server.id
 
@@ -320,20 +328,63 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             whitelist = self.whitelist[guildId]
             for channels in whitelist:
                 if channels.lower() == msg.channel.name.lower():
-                    return
-        except: # pylint: disable=bare-except
+                    return False
+        except Exception as error: # pylint: disable=broad-except
             # Most likely no whitelisted channels.
-            pass
+            LOGGER.error("Exception occured while checking whitelist channels!")
+            LOGGER.error(error)
 
         # Check if mod or admin, and do not filter if togglemod is enabled.
         try:
             if self.settings[msg.author.server.id][self.keyToggleMod]:
                 for role in msg.author.roles:
                     if role.name.lower() == modRole or role.name.lower() == adminRole:
-                        return
+                        return False
         except Exception as error: # pylint: disable=broad-except
             LOGGER.error("Exception occurred in checking keyToggleMod!")
             LOGGER.error(error)
+
+        return True
+
+    def containsFilterableWords(self, msg):
+        """Checks to see if the message contains words that we need to filter out.
+        If the message is in a server/channel that does not exist or is whitelisted,
+        this function will return False.
+
+        Parameters
+        ---------
+        msg : discord.Message
+            The message that we want to check.
+
+        Returns
+        -------
+        Boolean
+            True if message contains words that can be filtered, else False.
+        """
+        if not self.checkMessageServerAndChannel(msg):
+            return False
+        guildId = msg.server.id
+
+        filteredMsg = msg.content
+        for word in self.filters[guildId]:
+            filteredMsg = _filterWord(word, filteredMsg)
+
+        if msg.content == filteredMsg:
+            return False
+        return True
+
+    async def checkWords(self, msg, newMsg=None): # pylint: disable=too-many-locals
+        """This method, given a message, will check to see if the message contains
+        any filterable words, and if it does, deletes the original message and
+        sends another message with the filterable words censored.
+        """
+        if newMsg and not self.checkMessageServerAndChannel(newMsg):
+            return
+
+        if not self.checkMessageServerAndChannel(msg):
+            return
+
+        guildId = msg.server.id
 
         filteredWords = self.filters[guildId]
         if newMsg:
