@@ -111,7 +111,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                         "`Word Filter:` The word `{0}` is already in "
                                         "the filter for guild **{1}**".format(word, guildName))
 
-    @wordFilter.command(name="remove", pass_context=True, no_pm=True)
+    @wordFilter.command(name="del", pass_context=True, no_pm=True,
+                        aliases=["delete", "remove"])
     @checks.mod_or_permissions(manage_messages=True)
     async def removeFilter(self, ctx, word: str):
         """Remove word from filter"""
@@ -136,7 +137,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                         "`Word Filter:` `{0}` removed from the filter "
                                         "in the guild **{1}**".format(word, guildName))
 
-    @wordFilter.command(name="list", pass_context=True, no_pm=True)
+    @wordFilter.command(name="list", pass_context=True, no_pm=True,
+                        aliases=["ls"])
     @checks.mod_or_permissions(manage_messages=True)
     async def listFilter(self, ctx):
         """List filtered words in raw format.
@@ -234,8 +236,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             await self.bot.say(":negative_squared_cross_mark: Word Filter: Channel "
                                "`{0}` is already whitelisted.".format(channelName))
 
-    @_whitelist.command(name="remove", pass_context=True, no_pm=True,
-                        aliases=["delete"])
+    @_whitelist.command(name="del", pass_context=True, no_pm=True,
+                        aliases=["delete", "remove"])
     @checks.mod_or_permissions(manage_messages=True)
     async def _whitelistRemove(self, ctx, channelName: str):
         """Remove channel from whitelist
@@ -259,7 +261,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from "
                                "the channel whitelist.".format(channelName))
 
-    @_whitelist.command(name="list", pass_context=True, no_pm=True)
+    @_whitelist.command(name="list", pass_context=True, no_pm=True,
+                        aliases=["ls"])
     @checks.mod_or_permissions(manage_messages=True)
     async def _whitelistList(self, ctx):
         """List whitelisted channels.
