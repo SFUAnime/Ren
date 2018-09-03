@@ -8,6 +8,7 @@ import re
 import random
 import asyncio
 from threading import Lock
+import logging
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help # pylint: disable=no-name-in-module
@@ -323,14 +324,15 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             # Most likely no whitelisted channels.
             pass
 
-        #Check if mod or admin, and do not filter if togglemod is enabled.
+        # Check if mod or admin, and do not filter if togglemod is enabled.
         try:
-            if self.settings[msg.author.server.id][self.keyToggleMod] is True:
+            if self.settings[msg.author.server.id][self.keyToggleMod]:
                 for role in msg.author.roles:
                     if role.name.lower() == modRole or role.name.lower() == adminRole:
                         return
         except Exception as error: # pylint: disable=broad-except
-            print(error)
+            logger.error("Exception occurred in checking keyToggleMod!")
+            logger.error(error)
 
         filteredWords = self.filters[guildId]
         if newMsg:
@@ -402,8 +404,19 @@ def _isAllFiltered(string):
 
 def setup(bot):
     """Add the cog to the bot."""
+    global logger
     checkFileSystem()
     wordFilterCog = WordFilter(bot)
     bot.add_listener(wordFilterCog.checkWords, 'on_message')
     bot.add_listener(wordFilterCog.checkWords, 'on_message_edit')
+    logger = logging.getLogger("red.WordFilter")
+    if logger.level == 0:
+        # Prevents the logger from being loaded again in case of module reload.
+        logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename="data/word_filter/info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        logger.addHandler(handler)
     bot.add_cog(wordFilterCog)
