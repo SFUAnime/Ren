@@ -96,7 +96,7 @@ PAYOUTS = {
     },
     "2 symbols" : {
         "payout" : lambda x: x * 2 + x,
-        "phrase" : "Two consecutive symbols! Your bid has been multiplied!"
+        "phrase" : "Two consecutive symbols! Your bid has been multiplied * 2!"
     },
 }
 
