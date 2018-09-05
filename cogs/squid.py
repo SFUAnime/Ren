@@ -2,35 +2,33 @@
 
 import random
 import asyncio
-import discord
 from discord.ext import commands
 
-''' dab '''
+
 class Dab:
     def __init__(self, bot):
         self.bot = bot
-    
+
     @commands.command(name="squid")
     async def mycom(self):
-        number = random.randint(0, 10000)
+        number = random.randint(400, 500)
         # prints something fun to whom ever is lucky enough
         if number == 420:
-		
+
             await self.bot.say("Squidward will visit you")
             await asyncio.sleep(5)
             await self.bot.say("https://media3.giphy.com/media/lae7QSMFxEkkE/giphy.gif")
             await asyncio.sleep(5)
             await self.bot.say("Squidward has visited you")
-        
-      
+
         # for the unlucky ones
         else:
             await self.bot.say("He won't visit you yet")
             await self.bot.say("Maybe if you're lucky you'll get to see him")
 
-# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-# # # Set-up # # #     # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #                           å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ∆˚¬µ˜øπœ¨®ß†¨√∑≈¥Ω å∫ç∂´ƒ©˙ˆ
-# --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------------
+# # # Set-up # # #     # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #
+# -----------------------------------------------------------------------------------
       
-# wait....
+# wait...
 # no set-up..? :thonk:
