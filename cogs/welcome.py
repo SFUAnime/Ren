@@ -67,24 +67,22 @@ class Welcome: # pylint: disable=too-many-instance-attributes
     async def sendWelcomeMessage(self, newUser):
         """Sends the welcome message in DM."""
 
+        serverId = newUser.server.id
         #Do not send DM if it is disabled!
-        if not self.settings[newUser.server.id][self.keyWelcomeDMEnabled]:
+        if not self.settings[serverId][self.keyWelcomeDMEnabled]:
             return
 
         try:
-            welcomeEmbed = discord.Embed(title=self.settings[newUser.server.id] \
-                [self.keyWelcomeTitle])
-            welcomeEmbed.description = self.settings[newUser.server.id] \
-                [self.keyWelcomeMessage]
+            welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
+            welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
             print("Server Welcome: Could not send message, make sure the server has "
                   "a title and message set!")
             print(errorMsg)
-            if self.settings[newUser.server.id][self.keyWelcomeLogEnabled]:
-                channel = self.bot.get_channel(self.settings[newUser.server.id] \
-                    [self.keyWelcomeLogChannel])
+            if self.settings[serverId][self.keyWelcomeLogEnabled]:
+                channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
                                             ":bangbang: ``Server Welcome:`` User "
                                             "{0.name}#{0.descriminator} ({0.id}) has"
@@ -92,9 +90,8 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                                 newUser))
                 await self.bot.send_message(channel, errorMsg)
         else:
-            if self.settings[newUser.server.id][self.keyWelcomeLogEnabled]:
-                channel = self.bot.get_channel(self.settings[newUser.server.id] \
-                    [self.keyWelcomeLogChannel])
+            if self.settings[serverId][self.keyWelcomeLogEnabled]:
+                channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
                                             ":o: ``Server Welcome:`` User {0.name}#"
                                             "{0.discriminator} ({0.id}) has joined. "
@@ -104,9 +101,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
 
     async def logServerLeave(self, leaveUser):
         """Logs the server leave to a channel, if enabled."""
-        if self.settings[leaveUser.server.id][self.keyLeaveLogEnabled]:
-            channel = self.bot.get_channel(self.settings[leaveUser.server.id] \
-                [self.keyLeaveLogChannel])
+        serverId = leaveUser.server.id
+        if self.settings[serverId][self.keyLeaveLogEnabled]:
+            channel = self.bot.get_channel(self.settings[serverId][self.keyLeaveLogChannel])
             await self.bot.send_message(channel,
                                         ":x: ``Server Leave  :`` User {0.name}#"
                                         "{0.discriminator} ({0.id}) has left the "
@@ -227,15 +224,12 @@ class Welcome: # pylint: disable=too-many-instance-attributes
     async def setlog(self, ctx):
         """Enables, and sets current channel as log channel."""
         self.loadSettings()
+        serverId = ctx.message.author.server.id
         try:
-            self.settings[ctx.message.author.server.id][self.keyWelcomeLogChannel] \
-                = ctx.message.channel.id
-            self.settings[ctx.message.author.server.id][self.keyWelcomeLogEnabled] \
-                = True
-            self.settings[ctx.message.author.server.id][self.keyLeaveLogChannel] \
-                = ctx.message.channel.id
-            self.settings[ctx.message.author.server.id][self.keyLeaveLogEnabled] \
-                = True
+            self.settings[serverId][self.keyWelcomeLogChannel] = ctx.message.channel.id
+            self.settings[serverId][self.keyWelcomeLogEnabled] = True
+            self.settings[serverId][self.keyLeaveLogChannel] = ctx.message.channel.id
+            self.settings[serverId][self.keyLeaveLogEnabled] = True
         except KeyError as errorMsg: #Typically a KeyError
             await self.bot.say(":negative_squared_cross_mark: Please set default "
                                "settings first!")
@@ -264,21 +258,15 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         if str.lower(message.content) == "yes":
             try:
                 self.loadSettings()
-                self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeMessage] = DEFAULT_MESSAGE
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeTitle] = DEFAULT_TITLE
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeDMEnabled] = True
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeLogEnabled] = False
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeLogChannel] = None
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyLeaveLogEnabled] = False
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyLeaveLogChannel] = None
+                serverId = ctx.message.author.server.id
+                self.settings[serverId] = {}
+                self.settings[serverId][self.keyWelcomeMessage] = DEFAULT_MESSAGE
+                self.settings[serverId][self.keyWelcomeTitle] = DEFAULT_TITLE
+                self.settings[serverId][self.keyWelcomeDMEnabled] = True
+                self.settings[serverId][self.keyWelcomeLogEnabled] = False
+                self.settings[serverId][self.keyWelcomeLogChannel] = None
+                self.settings[serverId][self.keyLeaveLogEnabled] = False
+                self.settings[serverId][self.keyLeaveLogChannel] = None
                 self.saveSettings()
             except Exception as errorMsg: # pylint: disable=broad-except
                 await self.bot.say(":no_entry: Could not set default settings! "
@@ -312,13 +300,12 @@ class Welcome: # pylint: disable=too-many-instance-attributes
 
         try:
             self.loadSettings()
-            if ctx.message.author.server.id in self.settings:
-                self.settings[ctx.message.author.server.id][self.keyWelcomeTitle] \
-                    = title.content
+            serverId = ctx.message.author.server.id
+            if serverId in self.settings:
+                self.settings[serverId][self.keyWelcomeTitle] = title.content
             else:
-                self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id][self.keyWelcomeTitle] \
-                    = title.content
+                self.settings[serverId] = {}
+                self.settings[serverId][self.keyWelcomeTitle] = title.content
             self.saveSettings()
         except Exception as errorMsg: # pylint: disable=broad-except
             await self.bot.say("Could not save settings! Please check server logs!")
@@ -332,10 +319,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
     async def test(self, ctx):
         """Test the welcome DM by sending a DM to you."""
         try:
-            welcomeEmbed = discord.Embed(title=self.settings[ctx.message.server.id] \
-                [self.keyWelcomeTitle])
-            welcomeEmbed.description = self.settings[ctx.message.author.server.id] \
-                [self.keyWelcomeMessage]
+            serverId = ctx.message.server.id
+            welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
+            welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
         except KeyError:
             await self.bot.say("Could not send message, try setting the title and "
