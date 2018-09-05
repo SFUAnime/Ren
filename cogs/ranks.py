@@ -64,7 +64,7 @@ class Ranks:
                                    user=self.settings["mysql_username"],
                                    passwd=self.settings["mysql_password"])
         cursor = database.cursor()
-        cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = {0}"
+        cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = {0} "
                        "order by xp desc limit 20".format(ctx.message.server.id))
 
         msg = ":information_source: **Ranks - Leaderboard (WIP)**\n```"
