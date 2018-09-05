@@ -1,3 +1,4 @@
+'''this will make squidward dab for you'''
 # imports to make the dream
 
 import random
@@ -6,11 +7,13 @@ from discord.ext import commands
 
 
 class Dab:
+    '''Dabbing quidward'''
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(name="squid")
     async def mycom(self):
+        '''gives you a chance to see "him"'''
         number = random.randint(400, 500)
         # prints something fun to whom ever is lucky enough
         if number == 420:
@@ -25,10 +28,3 @@ class Dab:
         else:
             await self.bot.say("He won't visit you yet")
             await self.bot.say("Maybe if you're lucky you'll get to see him")
-
-# -----------------------------------------------------------------------------------
-# # # Set-up # # #     # # # Set-up # # #    # # # Set-up # # #    # # # Set-up # # #
-# -----------------------------------------------------------------------------------
-      
-# wait...
-# no set-up..? :thonk:
