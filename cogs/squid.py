@@ -6,7 +6,7 @@ import asyncio
 from discord.ext import commands
 
 
-class Dab:
+class Dab: # pylint: disable=too-few-public-methods
     '''Dabbing quidward'''
     def __init__(self, bot):
         self.bot = bot
