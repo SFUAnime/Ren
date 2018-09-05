@@ -44,7 +44,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
     def __init__(self, bot):
         self.bot = bot
         self.lock = Lock()
-        self.lock_settings = Lock()
+        self.lockSettings = Lock()
         self.filters = dataIO.load_json("data/word_filter/filter.json")
         self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
         self.settings = dataIO.load_json("data/word_filter/settings.json")
@@ -74,12 +74,12 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             self.lock.release()
 
     def _updateSettings(self, newObj):
-        self.lock_settings.acquire()
+        self.lockSettings.acquire()
         try:
             dataIO.save_json("data/word_filter/settings.json", newObj)
             self.settings = dataIO.load_json("data/word_filter/settings.json")
         finally:
-            self.lock_settings.release()
+            self.lockSettings.release()
 
     @commands.group(name="word_filter", pass_context=True, no_pm=True, aliases=["wf"])
     @checks.mod_or_permissions(manage_messages=True)
