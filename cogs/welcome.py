@@ -79,7 +79,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             welcomeEmbed.colour = discord.Colour.red()
             if self.settings[serverId][self.keyWelcomeImage]:
                 imageUrl = self.settings[serverId][self.keyWelcomeImage]
-                welcomeEmbed.set_image(url=imageUrl.replace(' ', '%20'))
+                welcomeEmbed.set_image(url=imageUrl.replace(" ", "%20"))
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
             print("Server Welcome: Could not send message, make sure the server has "
