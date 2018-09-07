@@ -55,6 +55,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         self.keyWelcomeLogChannel = "welcomeLogChannel"
         self.keyWelcomeTitle = "welcomeTitle"
         self.keyWelcomeMessage = "welcomeMessage"
+        self.keyWelcomeImage = "welcomeImage"
 
         self.keyLeaveLogEnabled = "leaveLogEnabled"
         self.keyLeaveLogChannel = "leaveLogChannel"
@@ -64,7 +65,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         self.loadSettings()
 
     #The async function that is triggered on new member join.
-    async def sendWelcomeMessage(self, newUser):
+    async def sendWelcomeMessage(self, newUser, test=False):
         """Sends the welcome message in DM."""
 
         serverId = newUser.server.id
@@ -76,12 +77,15 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
             welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
+            if self.settings[serverId][self.keyWelcomeImage]:
+                imageUrl = self.settings[serverId][self.keyWelcomeImage]
+                welcomeEmbed.set_image(url=imageUrl.replace(' ', '%20'))
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
             print("Server Welcome: Could not send message, make sure the server has "
                   "a title and message set!")
             print(errorMsg)
-            if self.settings[serverId][self.keyWelcomeLogEnabled]:
+            if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
                 channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
                                             ":bangbang: ``Server Welcome:`` User "
@@ -90,7 +94,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                                 newUser))
                 await self.bot.send_message(channel, errorMsg)
         else:
-            if self.settings[serverId][self.keyWelcomeLogEnabled]:
+            if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
                 channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
                                             ":o: ``Server Welcome:`` User {0.name}#"
@@ -262,6 +266,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                 self.settings[serverId] = {}
                 self.settings[serverId][self.keyWelcomeMessage] = DEFAULT_MESSAGE
                 self.settings[serverId][self.keyWelcomeTitle] = DEFAULT_TITLE
+                self.settings[serverId][self.keyWelcomeImage] = None
                 self.settings[serverId][self.keyWelcomeDMEnabled] = True
                 self.settings[serverId][self.keyWelcomeLogEnabled] = False
                 self.settings[serverId][self.keyWelcomeLogChannel] = None
@@ -313,22 +318,36 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         else:
             await self.bot.say("Title set to:")
             await self.bot.say("```" + title.content + "```")
-    #[p]welcome test
+
+    #[p]welcome setimage
+    @_welcome.group(name="setimage", pass_context=True, no_pm=True)
+    async def _welcomeSetImage(self, ctx, imageUrl: str = None):
+        """Sets an image in the embed with a URL.  Empty URL results in no image."""
+        if imageUrl == "":
+            imageUrl = None
+
+        try:
+            self.loadSettings()
+            serverId = ctx.message.author.server.id
+            if serverId in self.settings:
+                self.settings[serverId][self.keyWelcomeImage] = imageUrl
+            else:
+                self.settings[serverId] = {}
+                self.settings[serverId][self.keyWelcomeImage] = imageUrl
+            self.saveSettings()
+        except Exception as errorMsg: # pylint: disable=broad-except
+            await self.bot.say("Could not save settings! Please check server logs!")
+            print(errorMsg)
+        else:
+            await self.bot.say("Image set to `{}`. Be sure to test it!".format(imageUrl))
+
+   #[p]welcome test
     @_welcome.command(pass_context=True, no_pm=False)
     @checks.serverowner() #Only allow server owner to execute the following command.
     async def test(self, ctx):
         """Test the welcome DM by sending a DM to you."""
-        try:
-            serverId = ctx.message.server.id
-            welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
-            welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
-            welcomeEmbed.colour = discord.Colour.red()
-        except KeyError:
-            await self.bot.say("Could not send message, try setting the title and "
-                               "message again!")
-        else:
-            await self.bot.send_message(ctx.message.author, embed=welcomeEmbed)
-            await self.bot.say("I've slid it into your DMs ;)")
+        await self.sendWelcomeMessage(ctx.message.author, test=True)
+        await self.bot.say("If this server has been configured, you should have received a DM.")
 
 
 def setup(bot):
