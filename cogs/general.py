@@ -289,7 +289,7 @@ class General:
                                "cog and try again!")
             return
 
-        if word_filter.containsFilterableWords( ctx.message ):
+        if word_filter.containsFilterableWords(ctx.message):
             await self.bot.say("You have filtered out words in your query. "
                                "Please check your query and try again!")
             return
