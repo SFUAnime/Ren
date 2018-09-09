@@ -158,10 +158,11 @@ class Stars:
         emoji = self.star_emoji(starrers)
         # base = '%s ID: %s' % (msg.channel.mention, msg.id)
 
+        msgUrl = "https://discordapp.com/channels/%s/%s/%s" % (msg.server.id, msg.channel.id, msg.id)
         if starrers > 1:
-            base = '%s **%s** %s ID: %s' % (emoji, starrers, msg.channel.mention, msg.id)
+            base = '%s **%s** %s ID: %s\nJump: %s' % (emoji, starrers, msg.channel.mention, msg.id, msgUrl)
         else:
-            base = '%s %s ID: %s' % (emoji, msg.channel.mention, msg.id)
+            base = '%s %s ID: %s\nJump: %s' % (emoji, msg.channel.mention, msg.id, msgUrl)
 
 
         content = msg.content
