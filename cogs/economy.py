@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 from cogs.utils.dataIO import dataIO
@@ -483,7 +484,11 @@ class Economy:
         if highscore != "":
             for page in pagify(highscore, shorten_by=12):
             #Adding info site.
-                await self.bot.say(box(page, lang="py") + "\nFull rankings at https://ren.injabie3.moe/economy")
+                siteInfo = "\nFull rankings at https://ren.injabie3.moe/economy"
+                sleepTime = 10
+                msgId = await self.bot.say(box(page, lang="py") + siteInfo)
+                await asyncio.sleep(sleepTime)
+                await self.bot.delete_message(msgId)
         else:
             await self.bot.say("There are no accounts in the bank.")
 
