@@ -1,4 +1,4 @@
-'''this will make squidward dab for you'''
+'''this will make quidward dab for you'''
 # imports to make the dream
 
 import random
@@ -28,3 +28,11 @@ class Dab: # pylint: disable=too-few-public-methods
         else:
             await self.bot.say("He won't visit you yet")
             await self.bot.say("Maybe if you're lucky you'll get to see him")
+
+# $ê† üp
+
+def setup(bot):
+    bot.add_cog(Bartender(bot))
+    
+# †h|$ $høü1d ₿é å11 Я|gh†¿
+# 7h15 5h0u1d 83 411 219h7?
