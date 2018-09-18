@@ -64,10 +64,8 @@ ignore=alias.py,
        tempchannels.py,
        translated.py,
        trivia.py,
-       welcome.py,
        wikipedia.py,
        wolfram.py,
-       word_filter.py,
        zalgo.py,
    	   utils
 
@@ -279,7 +277,7 @@ ignore-docstrings=yes
 ignore-imports=no
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=5
 
 
 [FORMAT]
@@ -374,7 +372,7 @@ argument-naming-style=camelCase
 #argument-rgx=
 
 # Naming style matching correct attribute names.
-attr-naming-style=snake_case
+attr-naming-style=camelCase
 
 # Regular expression matching correct attribute names. Overrides attr-naming-
 # style.

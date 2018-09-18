@@ -278,11 +278,22 @@ class General:
             await self.bot.say("I need the `Embed links` permission "
                                "to send this")
 
-    @commands.command()
-    async def urban(self, *, search_terms : str, definition_number : int=1):
+    @commands.command(pass_context=True)
+    async def urban(self, ctx, *, search_terms : str, definition_number : int=1):
         """Urban Dictionary search
 
         Definition number must be between 1 and 10"""
+        word_filter = self.bot.get_cog("WordFilter")
+        if not word_filter:
+            await self.bot.say("Word Filter is not loaded.  Please load this "
+                               "cog and try again!")
+            return
+
+        if word_filter.containsFilterableWords(ctx.message):
+            await self.bot.say("You have filtered out words in your query. "
+                               "Please check your query and try again!")
+            return
+
         def encode(s):
             return quote_plus(s, encoding='utf-8', errors='replace')
 

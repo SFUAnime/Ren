@@ -259,7 +259,11 @@ class Highlight(object):
         async for msg in self.bot.logs_from(message.channel,limit=6,around=message):
             msgs.append(msg)
         msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
-        notify_msg = "In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n".format(word,message)
+        msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
+                                                                   message.channel.id,
+                                                                   message.id)
+        notify_msg = ("In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n"
+                      "Jump: {2}".format(word, message, msgUrl))
         embed_msg = ""
         msg_still_there = False
         for msg in msg_ctx:

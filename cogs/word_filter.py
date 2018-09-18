@@ -1,365 +1,477 @@
-import discord
-from discord.ext import commands
-from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
-from .utils import checks
-from .utils.paginator import Pages
-import asyncio
-from threading import Lock
+"""Word Filter cog.
+To filter words in a more smart/useful wya than simply detecting and
+deleting a message.
+"""
+
 import os
 import re
 import random
+import asyncio
+from threading import Lock
+import logging
+import discord
+from discord.ext import commands
+from __main__ import send_cmd_help # pylint: disable=no-name-in-module
+from cogs.utils.dataIO import dataIO
+from cogs.utils import checks
+from cogs.utils.paginator import Pages
 
-"""
-Cog Purpose: 
-    - To filter words in a more smart/useful way then simply detecting and deleting a message
-"""
+COLOUR = discord.Colour
+LOGGER = None
 
-colour = discord.Colour
-
-def check_filesystem():
+def checkFileSystem():
+    """Check if the folders/files are created."""
 
     folders = ["data/word_filter"]
     for folder in folders:
         if not os.path.exists(folder):
             print("Word Filter: Creating folder: {} ...".format(folder))
             os.makedirs(folder)
-            
-    files = ["data/word_filter/filter.json", "data/word_filter/settings.json", "data/word_filter/whitelist.json"]
+
+    files = ["data/word_filter/filter.json",
+             "data/word_filter/settings.json",
+             "data/word_filter/whitelist.json"]
     for file in files:
         if not os.path.exists(file):
             #build a default filter.json
-            dict = {}
-            dataIO.save_json(file,dict)    
+            empty = {}
+            dataIO.save_json(file, empty)
             print("Word Filter: Creating file: {} ...".format(file))
 
-class WordFilter(object):
+class WordFilter(): # pylint: disable=too-many-instance-attributes
+    """Word Filter cog, for all your word filtering needs."""
+
     def __init__(self, bot):
         self.bot = bot
         self.lock = Lock()
-        self.lock_settings = Lock()
+        self.lockSettings = Lock()
         self.filters = dataIO.load_json("data/word_filter/filter.json")
         self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
         self.settings = dataIO.load_json("data/word_filter/settings.json")
-        self.colours = [colour.purple(),colour.red(),colour.blue(),colour.orange(),colour.green()]
-        
+        self.colours = [COLOUR.purple(),
+                        COLOUR.red(),
+                        COLOUR.blue(),
+                        COLOUR.orange(),
+                        COLOUR.green()]
+
         #JSON keys for settings:
-        self.key_toggleMod = "toggleMod"
-    
-    def _update_filters(self, new_obj):
+        self.keyToggleMod = "toggleMod"
+
+    def _updateFilters(self, newObj):
         self.lock.acquire()
         try:
-            dataIO.save_json("data/word_filter/filter.json", new_obj)
+            dataIO.save_json("data/word_filter/filter.json", newObj)
             self.filters = dataIO.load_json("data/word_filter/filter.json")
         finally:
             self.lock.release()
-    
-    def _update_whitelist(self, new_obj):
+
+    def _updateWhitelist(self, newObj):
         self.lock.acquire()
         try:
-            dataIO.save_json("data/word_filter/whitelist.json", new_obj)
+            dataIO.save_json("data/word_filter/whitelist.json", newObj)
             self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
         finally:
             self.lock.release()
-    
-    def _update_settings(self, new_obj):
-        self.lock_settings.acquire()
+
+    def _updateSettings(self, newObj):
+        self.lockSettings.acquire()
         try:
-            dataIO.save_json("data/word_filter/settings.json", new_obj)
+            dataIO.save_json("data/word_filter/settings.json", newObj)
             self.settings = dataIO.load_json("data/word_filter/settings.json")
         finally:
-            self.lock_settings.release()
-            
+            self.lockSettings.release()
+
     @commands.group(name="word_filter", pass_context=True, no_pm=True, aliases=["wf"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def word_filter(self, ctx):
+    async def wordFilter(self, ctx):
         """Smart word filtering"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
-    
-    @word_filter.command(name="add", pass_context=True, no_pm=True)
+
+    @wordFilter.command(name="add", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(manage_messages=True)
-    async def add_filter(self, ctx, word: str):
+    async def addFilter(self, ctx, word: str):
         """Add word to filter"""
-        guild_id = ctx.message.server.id
+        guildId = ctx.message.server.id
         user = ctx.message.author
-        guild_name = ctx.message.server.name
-        
-        if guild_id not in list(self.filters):
-            dict = {}
-            dict[guild_id] = []
-            self.filters.update(dict)
-            self._update_filters(self.filters)
-            
-        if word not in self.filters[guild_id]:
-            self.filters[guild_id].append(word)
-            self._update_filters(self.filters)
-            await self.bot.send_message(user,"`Word Filter:` `{0}` was added to the filter in the guild **{1}**".format(word,guild_name))
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.filters):
+            myDict = {}
+            myDict[guildId] = []
+            self.filters.update(myDict)
+            self._updateFilters(self.filters)
+
+        if word not in self.filters[guildId]:
+            self.filters[guildId].append(word)
+            self._updateFilters(self.filters)
+            await self.bot.send_message(user,
+                                        "`Word Filter:` `{0}` was added to the filter "
+                                        "in the guild **{1}**".format(word, guildName))
         else:
-            await self.bot.send_message(user,"`Word Filter:` The word `{0}` is already in the filter for guild **{1}**".format(word,guild_name))
-        
-    @word_filter.command(name="remove", pass_context=True, no_pm=True)
+            await self.bot.send_message(user,
+                                        "`Word Filter:` The word `{0}` is already in "
+                                        "the filter for guild **{1}**".format(word, guildName))
+
+    @wordFilter.command(name="del", pass_context=True, no_pm=True,
+                        aliases=["delete", "remove"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def remove_filter(self, ctx, word: str):
+    async def removeFilter(self, ctx, word: str):
         """Remove word from filter"""
-        guild_id = ctx.message.server.id
+        guildId = ctx.message.server.id
         user = ctx.message.author
-        guild_name = ctx.message.server.name
-        
-        if guild_id not in list(self.filters):
-            await self.bot.send_message(user,"`Word Filter:` The guild **{}** is not registered, please add a word first".format(guild_name))
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.filters):
+            await self.bot.send_message(user,
+                                        "`Word Filter:` The guild **{}** is not "
+                                        "registered, please add a word first".format(guildName))
             return
-        
-        if len(self.filters[guild_id]) == 0 or word not in self.filters[guild_id]:
-            await self.bot.send_message(user,"`Word Filter:` The word `{0}` is not in the filter for guild **{1}**".format(word,guild_name))
-            return
+
+        if not self.filters[guildId] or word not in self.filters[guildId]:
+            await self.bot.send_message(user,
+                                        "`Word Filter:` The word `{0}` is not in the "
+                                        "filter for guild **{1}**".format(word, guildName))
         else:
-            self.filters[guild_id].remove(word)
-            self._update_filters(self.filters)
-            await self.bot.send_message(user,"`Word Filter:` `{0}` removed from the filter in the guild **{1}**".format(word,guild_name))
-    
-    @word_filter.command(name="list", pass_context=True, no_pm=True)
+            self.filters[guildId].remove(word)
+            self._updateFilters(self.filters)
+            await self.bot.send_message(user,
+                                        "`Word Filter:` `{0}` removed from the filter "
+                                        "in the guild **{1}**".format(word, guildName))
+
+    @wordFilter.command(name="list", pass_context=True, no_pm=True,
+                        aliases=["ls"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def list_filter(self, ctx):
-        """List filtered words in raw format, NOTE: do this in a channel outside of the viewing public"""
-        guild_id = ctx.message.server.id
-        guild_name = ctx.message.server.name
+    async def listFilter(self, ctx):
+        """List filtered words in raw format.
+        NOTE: do this in a channel outside of the viewing public
+        """
+        guildId = ctx.message.server.id
+        guildName = ctx.message.server.name
         user = ctx.message.author
-        
-        if guild_id not in list(self.filters):
-            await self.bot.send_message(user,"`Word Filter:` The guild **{}** is not registered, please add a word first".format(guild_name))
+
+        if guildId not in list(self.filters):
+            await self.bot.send_message(user,
+                                        "`Word Filter:` The guild **{}** is not "
+                                        "registered, please add a word first".format(guildName))
             return
-        
-        if len(self.filters[guild_id]) > 0:
+
+        if self.filters[guildId]:
             display = []
-            for n in range(0, len(self.filters[guild_id])):
-                display.append("`"+self.filters[guild_id][n]+"`")
+            for regex in self.filters[guildId]:
+                display.append("`{}`".format(regex))
             # msg = ""
-            # for word in self.filters[guild_id]:
+            # for word in self.filters[guildId]:
                 # msg += word
                 # msg += "\n"
-            # title = "Filtered words for: **{}**".format(guild_name)   
+            # title = "Filtered words for: **{}**".format(guildName)
             # embed = discord.Embed(title=title,description=msg,colour=discord.Colour.red())
             # await self.bot.send_message(user,embed=embed)
-            
-            p = Pages(self.bot,message=ctx.message,entries=display)
-            p.embed.title = "Filtered words for: **{}**".format(guild_name)
-            p.embed.colour = discord.Colour.red()
-            await p.paginate()
+
+            page = Pages(self.bot, message=ctx.message, entries=display)
+            page.embed.title = "Filtered words for: **{}**".format(guildName)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
         else:
-            await self.bot.send_message(user, "Sorry you have no filtered words in **{}**".format(guild_name))
-    
-    @word_filter.command(name="togglemod", pass_context=True, no_pm=True)
+            await self.bot.send_message(user,
+                                        "Sorry you have no filtered words in "
+                                        "**{}**".format(guildName))
+
+    @wordFilter.command(name="togglemod", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(manage_messages=True)
-    async def toggle_mod(self, ctx):
+    async def toggleMod(self, ctx):
         """Toggle global override of filters for server admins/mods."""
-        self._update_settings(self.settings)
+        self._updateSettings(self.settings)
         try:
-            if self.settings[ctx.message.author.server.id][self.key_toggleMod] is True:
-                self.settings[ctx.message.author.server.id][self.key_toggleMod] = False
-                set = False
+            if self.settings[ctx.message.author.server.id][self.keyToggleMod] is True:
+                self.settings[ctx.message.author.server.id][self.keyToggleMod] = False
+                isSet = False
             else:
-                self.settings[ctx.message.author.server.id][self.key_toggleMod] = True
-                set = True
-        except:
+                self.settings[ctx.message.author.server.id][self.keyToggleMod] = True
+                isSet = True
+        except KeyError:
             if ctx.message.author.server.id not in self.settings:
                 self.settings[ctx.message.author.server.id] = {}
-            self.settings[ctx.message.author.server.id][self.key_toggleMod] = True
-            set = True
-        self._update_settings(self.settings)
-        if set:
-            await self.bot.say(":white_check_mark: Word Filter: Moderators (and higher) **will not be** filtered.")
+            self.settings[ctx.message.author.server.id][self.keyToggleMod] = True
+            isSet = True
+        self._updateSettings(self.settings)
+        if isSet:
+            await self.bot.say(":white_check_mark: Word Filter: Moderators (and "
+                               "higher) **will not be** filtered.")
         else:
-            await self.bot.say(":negative_squared_cross_mark: Word Filter: Moderators (and higher) **will be** filtered.")
-        
-        self._update_settings(self.settings)
-        
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: Moderators "
+                               "(and higher) **will be** filtered.")
+
+        self._updateSettings(self.settings)
+
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
     ############################################
-    @word_filter.group(name="whitelist", pass_context=True, no_pm=True, aliases=["wl"])
+    @wordFilter.group(name="whitelist", pass_context=True, no_pm=True,
+                      aliases=["wl"])
     @checks.mod_or_permissions(manage_messages=True)
     async def _whitelist(self, ctx):
         """Channel whitelisting settings."""
         if str(ctx.invoked_subcommand).lower() == "word_filter whitelist":
             await send_cmd_help(ctx)
-    
+
     @_whitelist.command(name="add", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelist_add(self, ctx, channel_name: str):
-        """
-        Add channel to whitelist.
+    async def _whitelistAdd(self, ctx, channelName: str):
+        """Add channel to whitelist.
         All messages in the channel will not be filtered.
         """
-        guild_id = ctx.message.server.id
-        user = ctx.message.author
-        guild_name = ctx.message.server.name
-        
-        if guild_id not in list(self.whitelist):
-            dict = {}
-            dict[guild_id] = []
-            self.whitelist.update(dict)
-            self._update_whitelist(self.whitelist)
-            
-        if channel_name not in self.whitelist[guild_id]:
-            self.whitelist[guild_id].append(channel_name)
-            self._update_whitelist(self.whitelist)
-            await self.bot.say(":white_check_mark: Word Filter: Channel with name `{0}` will not be filtered.".format(channel_name))
+        guildId = ctx.message.server.id
+
+        if guildId not in list(self.whitelist):
+            myDict = {}
+            myDict[guildId] = []
+            self.whitelist.update(myDict)
+            self._updateWhitelist(self.whitelist)
+
+        if channelName not in self.whitelist[guildId]:
+            self.whitelist[guildId].append(channelName)
+            self._updateWhitelist(self.whitelist)
+            await self.bot.say(":white_check_mark: Word Filter: Channel with name "
+                               "`{0}` will not be filtered.".format(channelName))
         else:
-            await self.bot.say(":negative_squared_cross_mark: Word Filter: Channel `{0}` is already whitelisted.".format(channel_name))
-        
-    @_whitelist.command(name="remove", pass_context=True, no_pm=True, aliases=["delete"])
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: Channel "
+                               "`{0}` is already whitelisted.".format(channelName))
+
+    @_whitelist.command(name="del", pass_context=True, no_pm=True,
+                        aliases=["delete", "remove"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelist_remove(self, ctx, channel_name: str):
-        """
-        Remove channel from whitelist
+    async def _whitelistRemove(self, ctx, channelName: str):
+        """Remove channel from whitelist
         All messages in the removed channel will be subjected to the filter.
         """
-        guild_id = ctx.message.server.id
-        user = ctx.message.author
-        guild_name = ctx.message.server.name
-        
-        if guild_id not in list(self.whitelist):
-            await self.bot.say(":negative_squared_cross_mark: Word Filter: The guild **{}** is not registered, please add a channel to the whitelist first.".format(guild_name))
+        guildId = ctx.message.server.id
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.whitelist):
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: The "
+                               "guild **{}** is not registered, please add a "
+                               "channel to the whitelist first.".format(guildName))
             return
-        
-        if len(self.whitelist[guild_id]) == 0 or channel_name not in self.whitelist[guild_id]:
-            await self.bot.say(":negative_squared_cross_mark: Word Filter: Channel `{0}` was already not whitelisted.".format(channel_name))
-            return
+
+        if not self.whitelist[guildId] or channelName not in self.whitelist[guildId]:
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: Channel "
+                               "`{0}` was already not whitelisted.".format(channelName))
         else:
-            self.whitelist[guild_id].remove(channel_name)
-            self._update_whitelist(self.whitelist)
-            await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from the channel whitelist.".format(channel_name))
-    
-    @_whitelist.command(name="list", pass_context=True, no_pm=True)
+            self.whitelist[guildId].remove(channelName)
+            self._updateWhitelist(self.whitelist)
+            await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from "
+                               "the channel whitelist.".format(channelName))
+
+    @_whitelist.command(name="list", pass_context=True, no_pm=True,
+                        aliases=["ls"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelist_list(self, ctx):
-        """List whitelisted channels. NOTE: do this in a channel outside of the viewing public"""
-        guild_id = ctx.message.server.id
-        guild_name = ctx.message.server.name
-        user = ctx.message.author
-        
-        if guild_id not in list(self.whitelist):
-            await self.bot.say(":negative_squared_cross_mark: Word Filter: The guild **{}** is not registered, please add a channel first".format(guild_name))
+    async def _whitelistList(self, ctx):
+        """List whitelisted channels.
+        NOTE: do this in a channel outside of the viewing public
+        """
+        guildId = ctx.message.server.id
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.whitelist):
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: The "
+                               "guild **{}** is not registered, please add a "
+                               "channel first".format(guildName))
             return
-        
-        if len(self.whitelist[guild_id]) > 0:
+
+        if self.whitelist[guildId]:
             display = []
-            for n in range(0, len(self.whitelist[guild_id])):
-                display.append("`"+self.whitelist[guild_id][n]+"`")
+            for channel in self.whitelist[guildId]:
+                display.append("`{}`".format(channel))
             # msg = ""
-            # for word in self.whitelist[guild_id]:
+            # for word in self.whitelist[guildId]:
                 # msg += word
                 # msg += "\n"
-            # title = "Filtered words for: **{}**".format(guild_name)   
+            # title = "Filtered words for: **{}**".format(guildName)
             # embed = discord.Embed(title=title,description=msg,colour=discord.Colour.red())
             # await self.bot.send_message(user,embed=embed)
-            
-            p = Pages(self.bot,message=ctx.message,entries=display)
-            p.embed.title = "Whitelisted channels for: **{}**".format(guild_name)
-            p.embed.colour = discord.Colour.red()
-            await p.paginate()
+
+            page = Pages(self.bot, message=ctx.message, entries=display)
+            page.embed.title = "Whitelisted channels for: **{}**".format(guildName)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
         else:
-            await self.bot.say("Sorry, there are no whitelisted channels in **{}**".format(guild_name))
-            
-    async def check_words(self, msg, new_msg=None):
-        mod_role = self.bot.settings.get_server_mod(msg.server).lower()
-        admin_role = self.bot.settings.get_server_admin(msg.server).lower()
-        
-        #Filter only configured servers, not private DMs.
-        if isinstance(msg.channel,discord.PrivateChannel) or msg.server.id not in list(self.filters):
-            return
-            
-        guild_id = msg.server.id
-        
-        #Do not filter whitelisted channels
+            await self.bot.say("Sorry, there are no whitelisted channels in "
+                               "**{}**".format(guildName))
+
+    def checkMessageServerAndChannel(self, msg):
+        """Checks to see if the message is in a server/channel eligible for
+        filtering.
+
+        Parameters
+        ----------
+        msg : discord.Message
+            The message that we want to check.
+
+        Returns
+        -------
+        Boolean
+            True if the message is eligible for filtering, else False.
+        """
+        modRole = self.bot.settings.get_server_mod(msg.server).lower()
+        adminRole = self.bot.settings.get_server_admin(msg.server).lower()
+
+        # Filter only configured servers, not private DMs.
+        if isinstance(msg.channel, discord.PrivateChannel) or msg.server.id not \
+            in list(self.filters):
+            return False
+
+        guildId = msg.server.id
+
+        # Do not filter whitelisted channels
         try:
-            whitelist = self.whitelist[guild_id]
+            whitelist = self.whitelist[guildId]
             for channels in whitelist:
                 if channels.lower() == msg.channel.name.lower():
-                    return
-        except:
+                    return False
+        except Exception as error: # pylint: disable=broad-except
             # Most likely no whitelisted channels.
-            pass
-        
-        #Check if mod or admin, and do not filter if togglemod is enabled.
+            LOGGER.error("Exception occured while checking whitelist channels!")
+            LOGGER.error(error)
+
+        # Check if mod or admin, and do not filter if togglemod is enabled.
         try:
-            if self.settings[msg.author.server.id][self.key_toggleMod] is True:
-                for x in range(0, len(msg.author.roles)):
-                    if msg.author.roles[x].name.lower() == mod_role or msg.author.roles[x].name.lower() == admin_role:
-                        return
-        except Exception as e: #Most likely key error, so ignore.
-            print(e)
-            pass
-        
-        
-        filtered_words = self.filters[guild_id]
-        if new_msg:
-            check_msg = new_msg.content
+            if self.settings[msg.author.server.id][self.keyToggleMod]:
+                for role in msg.author.roles:
+                    if role.name.lower() == modRole or role.name.lower() == adminRole:
+                        return False
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error("Exception occurred in checking keyToggleMod!")
+            LOGGER.error(error)
+
+        return True
+
+    def containsFilterableWords(self, msg):
+        """Checks to see if the message contains words that we need to filter out.
+        If the message is in a server/channel that does not exist or is whitelisted,
+        this function will return False.
+
+        Parameters
+        ---------
+        msg : discord.Message
+            The message that we want to check.
+
+        Returns
+        -------
+        Boolean
+            True if message contains words that can be filtered, else False.
+        """
+        if not self.checkMessageServerAndChannel(msg):
+            return False
+        guildId = msg.server.id
+
+        filteredMsg = msg.content
+        for word in self.filters[guildId]:
+            filteredMsg = _filterWord(word, filteredMsg)
+
+        if msg.content == filteredMsg:
+            return False
+        return True
+
+    async def checkWords(self, msg, newMsg=None): # pylint: disable=too-many-locals
+        """This method, given a message, will check to see if the message contains
+        any filterable words, and if it does, deletes the original message and
+        sends another message with the filterable words censored.
+        """
+        if newMsg and not self.checkMessageServerAndChannel(newMsg):
+            return
+
+        if not self.checkMessageServerAndChannel(msg):
+            return
+
+        guildId = msg.server.id
+
+        filteredWords = self.filters[guildId]
+        if newMsg:
+            checkMsg = newMsg.content
         else:
-            check_msg = msg.content
-        original_msg = check_msg
-        filtered_msg = original_msg
-        one_word = self._is_one_word(check_msg)
-        
-        for word in filtered_words:
+            checkMsg = msg.content
+        originalMsg = checkMsg
+        filteredMsg = originalMsg
+        oneWord = _isOneWord(checkMsg)
+
+        for word in filteredWords:
             try:
-                filtered_msg = self._filter_word(word,filtered_msg)
-            except Exception as e:
-                print("Word Filter exception:")
-                print(e)
-                print(word)
-                print(filtered_msg)
-                print("==========")
-            
-            
-        all_filtered = self._is_all_filtered(filtered_msg)
-        
-        if filtered_msg == original_msg:
-            return # no bad words, dont need to do anything else
-        elif (filtered_msg != original_msg and one_word) or all_filtered:
+                filteredMsg = _filterWord(word, filteredMsg)
+            except Exception as error: # pylint: disable=broad-except
+                LOGGER.error("Exception!")
+                LOGGER.error(error)
+                LOGGER.info("Word: %s", word)
+                LOGGER.info("Filtered message: %s", filteredMsg)
+
+        allFiltered = _isAllFiltered(filteredMsg)
+
+        if filteredMsg == originalMsg:
+            return # no bad words, don't need to do anything else
+
+        if (filteredMsg != originalMsg and oneWord) or allFiltered:
             await self.bot.delete_message(msg) # delete message but don't show full message context
-            filter_notify = "{0.author.mention} was filtered!".format(msg)
-            n_msg = await self.bot.send_message(msg.channel,filter_notify)
+            filterNotify = "{0.author.mention} was filtered!".format(msg)
+            notifyMsg = await self.bot.send_message(msg.channel, filterNotify)
             await asyncio.sleep(3)
-            await self.bot.delete_message(n_msg)
+            await self.bot.delete_message(notifyMsg)
         else:
             await self.bot.delete_message(msg)
-            filter_notify = "{0.author.mention} was filtered! Message was: \n".format(msg)
-            embed = discord.Embed(colour=random.choice(self.colours),description="{0.author.name}#{0.author.discriminator}: {1}".format(msg,filtered_msg))
-            await self.bot.send_message(msg.channel,filter_notify,embed=embed)
-            
-    def _filter_word(self, word, string):
-        regex = r'\b{}\b'.format(word)
-        
-        # Replace the offending string with the correct number of stars.  Note that this only considers the length of the first time
-        # an offending string is found with the current regex.  It will replace every string found with this regex with the number of
-        # stars corresponding to the first offending string.
-        
-        try:
-            number = len(re.search(regex,string,flags=re.IGNORECASE).group(0))
-        except:
-            # Nothing to replace, return original string
-            return string
-        
-        stars = '*'*number
-        repl = "{0}{1}{0}".format('`',stars)
-        return re.sub(regex,repl,string,flags=re.IGNORECASE)
-    
-    def _is_one_word(self, string):
-        return len(string.split()) == 1
-    
-    def _is_all_filtered(self, string):
-        words = string.split()
-        cnt = 0
-        for word in words:
-            if bool(re.search("[*]+",word)):
-                cnt += 1
-        return cnt == len(words)
-        
+            filterNotify = "{0.author.mention} was filtered! Message was: \n".format(msg)
+            embed = discord.Embed(colour=random.choice(self.colours),
+                                  description="{0.author.name}#{0.author.discriminator}: "
+                                  "{1}".format(msg, filteredMsg))
+            await self.bot.send_message(msg.channel, filterNotify, embed=embed)
+
+        LOGGER.info("Author : %s#%s (%s)", msg.author.name, msg.author.discriminator,
+                    msg.author.id)
+        LOGGER.info("Message: %s", originalMsg)
+
+def _filterWord(word, string):
+    regex = r'\b{}\b'.format(word)
+
+    # Replace the offending string with the correct number of stars.  Note that
+    # this only considers the length of the first time an offending string is
+    # found with the current regex.  It will replace every string found with
+    # this regex with the number of stars corresponding to the first offending
+    # string.
+
+    try:
+        number = len(re.search(regex, string, flags=re.IGNORECASE).group(0))
+    except Exception: # pylint: disable=broad-except
+        # Nothing to replace, return original string
+        return string
+
+    stars = '*'*number
+    repl = "{0}{1}{0}".format('`', stars)
+    return re.sub(regex, repl, string, flags=re.IGNORECASE)
+
+def _isOneWord(string):
+    return len(string.split()) == 1
+
+def _isAllFiltered(string):
+    words = string.split()
+    cnt = 0
+    for word in words:
+        if bool(re.search("[*]+", word)):
+            cnt += 1
+    return cnt == len(words)
+
 def setup(bot):
-    check_filesystem()
-    filter = WordFilter(bot)
-    bot.add_listener(filter.check_words, 'on_message')
-    bot.add_listener(filter.check_words, 'on_message_edit')
-    bot.add_cog(filter)
+    """Add the cog to the bot."""
+    global LOGGER # pylint: disable=global-statement
+    checkFileSystem()
+    wordFilterCog = WordFilter(bot)
+    bot.add_listener(wordFilterCog.checkWords, 'on_message')
+    bot.add_listener(wordFilterCog.checkWords, 'on_message_edit')
+    LOGGER = logging.getLogger("red.WordFilter")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename="data/word_filter/info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
+    bot.add_cog(wordFilterCog)
