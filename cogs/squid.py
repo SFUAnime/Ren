@@ -32,7 +32,8 @@ class Dab: # pylint: disable=too-few-public-methods
 # $ê† üp
 
 def setup(bot):
-    bot.add_cog(Bartender(bot))
+    '''setup for cog'''
+    bot.add_cog(Squid(bot))
     
 # †h|$ $høü1d ₿é å11 Я|gh†¿
 # 7h15 5h0u1d 83 411 219h7?
