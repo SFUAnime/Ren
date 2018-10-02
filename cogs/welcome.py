@@ -3,6 +3,7 @@ Sends welcome DMs to users that join the server.
 """
 
 import os
+import logging
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help # pylint: disable=no-name-in-module
