@@ -113,8 +113,8 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                         ":x: ``Server Leave  :`` User {0.name}#"
                                         "{0.discriminator} ({0.id}) has left the "
                                         "server.".format(leaveUser))
-            print("Server Leave  : User {0.name}#{0.discriminator} ({0.id}) has "
-                  "left the server.".format(leaveUser))
+            LOGGER.info("User {0.name}#{0.discriminator} ({0.id}) has left the "
+                        "server.".format(leaveUser))
 
     ####################
     # MESSAGE COMMANDS #
