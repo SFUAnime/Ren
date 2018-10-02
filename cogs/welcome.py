@@ -83,9 +83,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                 welcomeEmbed.set_image(url=imageUrl.replace(" ", "%20"))
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
-            print("Server Welcome: Could not send message, make sure the server has "
-                  "a title and message set!")
-            print(errorMsg)
+            LOGGER.error("Could not send message, make sure the server has a title "
+                         "and message set!")
+            LOGGER.error(errorMsg)
             if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
                 channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
@@ -101,8 +101,8 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                             ":o: ``Server Welcome:`` User {0.name}#"
                                             "{0.discriminator} ({0.id}) has joined. "
                                             "DM sent.".format(newUser))
-                print("Server Welcome: User {0.name}#{0.discriminator} ({0.id}) has "
-                      "joined.  DM sent.".format(newUser))
+                LOGGER.info("User {0.name}#{0.discriminator} ({0.id}) has joined.  "
+                            "DM sent.".format(newUser))
 
     async def logServerLeave(self, leaveUser):
         """Logs the server leave to a channel, if enabled."""
