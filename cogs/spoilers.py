@@ -29,7 +29,7 @@ def checkFiles():
 
     theFile = SAVE_FOLDER + SAVE_FILE
     if not dataIO.is_valid_json(theFile):
-        print("Creating default welcome settings.json...")
+        print("Creating default spoilers settings.json...")
         dataIO.save_json(theFile, {})
 
 class Spoilers: # pylint: disable=too-many-instance-attributes
@@ -53,9 +53,19 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         checkFiles()
         self.loadSettings()
 
+    async def checkForMessage(self, msg, newMsg=None):
+        pass
+
+    async def checkForReaction(self, reaction, user):
+        # As per documentation, access the message via reaction.message.
+        pass
+
 def setup(bot):
     """Add the cog to the bot."""
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have settings!
-    customCog = Spoilers(bot)
-    bot.add_cog(customCog)
+    spoilersCog = Spoilers(bot)
+    bot.add_listener(spoilersCog.checkForMessage, "on_message")
+    bot.add_listener(spoilersCog.checkForMessage, "on_message_edit")
+    bot.add_listener(spoilersCog.checkForReaction, "on_reaction_add")
+    bot.add_cog(spoilersCog)
