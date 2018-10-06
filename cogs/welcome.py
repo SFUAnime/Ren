@@ -207,9 +207,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                         ctx.message.author.id)
 
     #[p]welcome togglelog
-    @_welcome.command(pass_context=True, no_pm=False)
+    @_welcome.command(pass_context=True, no_pm=False, name="togglelog")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def togglelog(self, ctx):
+    async def toggleLog(self, ctx):
         """Toggle sending logs to a channel."""
         self.loadSettings()
 
@@ -250,9 +250,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                         ctx.message.author.id)
 
     #[p]welcome setlog
-    @_welcome.command(pass_context=True, no_pm=True)
+    @_welcome.command(pass_context=True, no_pm=True, name="setlog")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def setlog(self, ctx):
+    async def setLog(self, ctx):
         """Enables, and sets current channel as log channel."""
         self.loadSettings()
         serverId = ctx.message.author.server.id
@@ -322,9 +322,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
 
 
     #[p]welcome settitle
-    @_welcome.command(pass_context=True, no_pm=False)
+    @_welcome.command(pass_context=True, no_pm=False, name="settitle")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def settitle(self, ctx):
+    async def setTitle(self, ctx):
         """Interactively configure the title for the welcome DM."""
 
         await self.bot.say("What would you like the welcome DM message to be?")
@@ -363,7 +363,7 @@ class Welcome: # pylint: disable=too-many-instance-attributes
 
     #[p]welcome setimage
     @_welcome.group(name="setimage", pass_context=True, no_pm=True)
-    async def _welcomeSetImage(self, ctx, imageUrl: str = None):
+    async def setImage(self, ctx, imageUrl: str = None):
         """Sets an image in the embed with a URL.  Empty URL results in no image."""
         if imageUrl == "":
             imageUrl = None
