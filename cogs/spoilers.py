@@ -55,15 +55,18 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         """
         if msg.author.bot or not msg.content:
             return
-        split = msg.content.split()[0]
-        if split == PREFIX:
+        split = msg.content.split()
+        if split[0] == PREFIX:
+            split.pop(0)
             store = {}
-            store[KEY_MESSAGE] = msg.content
+            store[KEY_MESSAGE] = " ".join(split)
             store[KEY_AUTHOR_ID] = msg.author.id
             store[KEY_AUTHOR_NAME] = "{}#{}".format(msg.author.name,
                                                     msg.author.discriminator)
             await self.bot.delete_message(msg)
-            newMsg = await self.bot.send_message(msg.channel, ":warning: React to see message!")
+            newMsg = await self.bot.send_message(msg.channel,
+                                                 ":warning: {} created a spoiler!  React to see "
+                                                 "the message!".format(msg.author.mention))
             if not self.messages:
                 self.messages = {}
             self.messages[newMsg.id] = store
