@@ -4,6 +4,7 @@ later retrieval.
 """
 
 import os
+import logging
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help # pylint: disable=no-name-in-module
@@ -17,6 +18,7 @@ from cogs.utils import config, checks
 KEY_MESSAGE = "message"
 KEY_AUTHOR_ID = "authorid"
 KEY_AUTHOR_NAME = "author"
+LOGGER = None
 PREFIX = "spoiler"
 SAVE_FOLDER = "data/lui-cogs/spoilers/" #Path to save folder.
 SAVE_FILE = "settings.json"
@@ -90,12 +92,28 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             else:
                 embed.set_author(name=msg[KEY_AUTHOR_NAME])
             embed.description = msg[KEY_MESSAGE]
-            await self.bot.send_message(user, embed=embed)
+            try:
+                await self.bot.send_message(user, embed=embed)
+            except discord.Exception:
+                LOGGER.error("Could not send DM to %s#%s (%s), DM issues.",
+                             user.name,
+                             user.discriminator,
+                             user.id)
 
 def setup(bot):
     """Add the cog to the bot."""
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have settings!
     spoilersCog = Spoilers(bot)
+    LOGGER = logging.getLogger("red.WordFilter")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename="data/lui-cogs/spoilers/info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     bot.add_listener(spoilersCog.checkForReaction, "on_reaction_add")
     bot.add_cog(spoilersCog)
