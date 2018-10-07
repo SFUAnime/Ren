@@ -50,6 +50,8 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
 
     async def checkForMessage(self, msg, newMsg=None):
         # If the message
+        if msg.author.bot or not msg.content:
+            return
         split = msg.content.split()[0]
         if split == PREFIX:
             store = {}
