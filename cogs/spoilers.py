@@ -73,6 +73,8 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         user that reacted.
         """
         # As per documentation, access the message via reaction.message.
+        if user.bot:
+            return
         msgId = reaction.message.id
         if msgId in self.messages.keys():
             await self.bot.remove_reaction(reaction.message,
