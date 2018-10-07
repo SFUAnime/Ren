@@ -49,7 +49,10 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         self.messages = self.settings.get("messages") if not None else {}
 
     async def checkForMessage(self, msg, newMsg=None):
-        # If the message
+        """Message listener
+        CHecks to see if the message contains the prefix, and if it does, it saves it
+        for later retrieval.
+        """
         if msg.author.bot or not msg.content:
             return
         split = msg.content.split()[0]
@@ -67,13 +70,17 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             await self.settings.put("messages", self.messages)
 
     async def checkForReaction(self, reaction, user):
+        """Reaction listener
+        Checks to see if a spoilered message is reacted, and if so, send a DM to the
+        user that reacted.
+        """
         # As per documentation, access the message via reaction.message.
         msgId = reaction.message.id
-        if reaction.message.id in self.messages.keys():
-            msg = self.messages[reaction.message.id]
+        if msgId in self.messages.keys():
+            msg = self.messages[msgId]
             embed = discord.Embed()
             userObj = discord.utils.get(user.server.members,
-                                       id=msg[KEY_AUTHOR_ID])
+                                        id=msg[KEY_AUTHOR_ID])
             if userObj:
                 embed.set_author(name="{0.name}#{0.discriminator}".format(userObj),
                                  icon_url=userObj.avatar_url)
@@ -81,7 +88,6 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
                 embed.set_author(name=msg[KEY_AUTHOR_NAME])
             embed.description = msg[KEY_MESSAGE]
             await self.bot.send_message(user, embed=embed)
-        pass
 
 def setup(bot):
     """Add the cog to the bot."""
