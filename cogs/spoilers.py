@@ -11,10 +11,13 @@ from cogs.utils.dataIO import dataIO
 
 # Requires checks utility from:
 # https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from cogs.utils import checks
+from cogs.utils import config, checks
 
 #Global variables
-
+KEY_MESSAGE = "message"
+KEY_AUTHOR_ID = "authorid"
+KEY_AUTHOR_NAME = "author"
+PREFIX = "spoiler"
 SAVE_FOLDER = "data/lui-cogs/spoilers/" #Path to save folder.
 SAVE_FILE = "settings.json"
 
@@ -26,23 +29,13 @@ def checkFolder():
 
 def checkFiles():
     """Used to initialize an empty database at first startup"""
-
     theFile = SAVE_FOLDER + SAVE_FILE
     if not dataIO.is_valid_json(theFile):
-        print("Creating default spoilers settings.json...")
+        print("Creating default spoilers {}...".format(myFile))
         dataIO.save_json(theFile, {})
 
 class Spoilers: # pylint: disable=too-many-instance-attributes
     """Store messages for later retrieval."""
-
-
-    def loadSettings(self):
-        """Loads settings from the JSON file"""
-        self.settings = dataIO.load_json(SAVE_FOLDER+SAVE_FILE)
-
-    def saveSettings(self):
-        """Loads settings from the JSON file"""
-        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, self.settings)
 
     #Class constructor
     def __init__(self, bot):
@@ -51,13 +44,41 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         #The JSON keys for the settings:
         checkFolder()
         checkFiles()
-        self.loadSettings()
+        self.settings = config.Config("settings.json",
+                                      cogname="lui-cogs/spoilers")
+        self.messages = self.settings.get("messages") if not None else {}
 
     async def checkForMessage(self, msg, newMsg=None):
-        pass
+        # If the message
+        split = msg.content.split()[0]
+        if split == PREFIX:
+            store = {}
+            store[KEY_MESSAGE] = msg.content
+            store[KEY_AUTHOR_ID] = msg.author.id
+            store[KEY_AUTHOR_NAME] = "{}#{}".format(msg.author.name,
+                                                    msg.author.discriminator)
+            await self.bot.delete_message(msg)
+            newMsg = await self.bot.send_message(msg.channel, ":warning: React to see message!")
+            if not self.messages:
+                self.messages = {}
+            self.messages[newMsg.id] = store
+            await self.settings.put("messages", self.messages)
 
     async def checkForReaction(self, reaction, user):
         # As per documentation, access the message via reaction.message.
+        msgId = reaction.message.id
+        if reaction.message.id in self.messages.keys():
+            msg = self.messages[reaction.message.id]
+            embed = discord.Embed()
+            userObj = discord.utils.get(user.server.members,
+                                       id=msg[KEY_AUTHOR_ID])
+            if userObj:
+                embed.set_author(name="{0.name}#{0.discriminator}".format(userObj),
+                                 icon_url=userObj.avatar_url)
+            else:
+                embed.set_author(name=msg[KEY_AUTHOR_NAME])
+            embed.description = msg[KEY_MESSAGE]
+            await self.bot.send_message(user, embed=embed)
         pass
 
 def setup(bot):
