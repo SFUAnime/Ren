@@ -7,12 +7,9 @@ import os
 import logging
 import discord
 from discord.ext import commands
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 from cogs.utils.dataIO import dataIO
 
-# Requires checks utility from:
-# https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from cogs.utils import config, checks
+from cogs.utils import config
 
 #Global variables
 KEY_MESSAGE = "message"
@@ -33,7 +30,7 @@ def checkFiles():
     """Used to initialize an empty database at first startup"""
     theFile = SAVE_FOLDER + SAVE_FILE
     if not dataIO.is_valid_json(theFile):
-        print("Creating default spoilers {}...".format(myFile))
+        print("Creating default spoilers settings.json")
         dataIO.save_json(theFile, {})
 
 class Spoilers: # pylint: disable=too-many-instance-attributes
@@ -105,7 +102,7 @@ def setup(bot):
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have settings!
     spoilersCog = Spoilers(bot)
-    global LOGGER
+    global LOGGER # pylint: disable=global-statement
     LOGGER = logging.getLogger("red.Spoilers")
     if LOGGER.level == 0:
         # Prevents the LOGGER from being loaded again in case of module reload.
