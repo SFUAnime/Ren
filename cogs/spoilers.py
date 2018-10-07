@@ -94,8 +94,8 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             embed.description = msg[KEY_MESSAGE]
             try:
                 await self.bot.send_message(user, embed=embed)
-            except discord.Exception:
-                LOGGER.error("Could not send DM to %s#%s (%s), DM issues.",
+            except discord.errors.Forbidden:
+                LOGGER.error("Could not send DM to %s#%s (%s).",
                              user.name,
                              user.discriminator,
                              user.id)
@@ -105,7 +105,8 @@ def setup(bot):
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have settings!
     spoilersCog = Spoilers(bot)
-    LOGGER = logging.getLogger("red.WordFilter")
+    global LOGGER
+    LOGGER = logging.getLogger("red.Spoilers")
     if LOGGER.level == 0:
         # Prevents the LOGGER from being loaded again in case of module reload.
         LOGGER.setLevel(logging.INFO)
