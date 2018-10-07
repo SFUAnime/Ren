@@ -48,29 +48,24 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
                                       cogname="lui-cogs/spoilers")
         self.messages = self.settings.get("messages") if not None else {}
 
-    async def checkForMessage(self, msg, newMsg=None):
-        """Message listener
-        CHecks to see if the message contains the prefix, and if it does, it saves it
+    @commands.command(name="spoiler", pass_context=True)
+    async def spoiler(self, ctx, *, msg):
+        """Create a message spoiler.
+        Checks to see if the message contains the prefix, and if it does, it saves it
         for later retrieval.
         """
-        if msg.author.bot or not msg.content:
-            return
-        split = msg.content.split()
-        if split[0] == PREFIX:
-            split.pop(0)
-            store = {}
-            store[KEY_MESSAGE] = " ".join(split)
-            store[KEY_AUTHOR_ID] = msg.author.id
-            store[KEY_AUTHOR_NAME] = "{}#{}".format(msg.author.name,
-                                                    msg.author.discriminator)
-            await self.bot.delete_message(msg)
-            newMsg = await self.bot.send_message(msg.channel,
-                                                 ":warning: {} created a spoiler!  React to see "
-                                                 "the message!".format(msg.author.mention))
-            if not self.messages:
-                self.messages = {}
-            self.messages[newMsg.id] = store
-            await self.settings.put("messages", self.messages)
+        store = {}
+        store[KEY_MESSAGE] = msg
+        store[KEY_AUTHOR_ID] = ctx.message.author.id
+        store[KEY_AUTHOR_NAME] = "{0.name}#{0.discriminator}".format(ctx.message.author)
+        await self.bot.delete_message(ctx.message)
+        newMsg = await self.bot.say(":warning: {} created a spoiler!  React to see "
+                                    "the message!".format(ctx.message.author.mention))
+        if not self.messages:
+            self.messages = {}
+        self.messages[newMsg.id] = store
+        await self.bot.add_reaction(newMsg, "\N{INFORMATION SOURCE}")
+        await self.settings.put("messages", self.messages)
 
     async def checkForReaction(self, reaction, user):
         """Reaction listener
@@ -80,6 +75,9 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         # As per documentation, access the message via reaction.message.
         msgId = reaction.message.id
         if msgId in self.messages.keys():
+            await self.bot.remove_reaction(reaction.message,
+                                           reaction.emoji,
+                                           user)
             msg = self.messages[msgId]
             embed = discord.Embed()
             userObj = discord.utils.get(user.server.members,
@@ -94,10 +92,8 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
 
 def setup(bot):
     """Add the cog to the bot."""
-    checkFolder()   #Make sure the data folder exists!
-    checkFiles()    #Make sure we have settings!
+    checkFolder()   # Make sure the data folder exists!
+    checkFiles()    # Make sure we have settings!
     spoilersCog = Spoilers(bot)
-    bot.add_listener(spoilersCog.checkForMessage, "on_message")
-    bot.add_listener(spoilersCog.checkForMessage, "on_message_edit")
     bot.add_listener(spoilersCog.checkForReaction, "on_reaction_add")
     bot.add_cog(spoilersCog)
