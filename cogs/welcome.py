@@ -3,6 +3,7 @@ Sends welcome DMs to users that join the server.
 """
 
 import os
+import logging
 import discord
 from discord.ext import commands
 from __main__ import send_cmd_help # pylint: disable=no-name-in-module
@@ -14,10 +15,11 @@ from cogs.utils import checks
 
 #Global variables
 
-SAVE_FOLDER = "data/lui-cogs/welcome/" #Path to save folder.
-SAVE_FILE = "settings.json"
 DEFAULT_MESSAGE = "Welcome to the server! Hope you enjoy your stay!"
 DEFAULT_TITLE = "Welcome!"
+LOGGER = None
+SAVE_FOLDER = "data/lui-cogs/welcome/" #Path to save folder.
+SAVE_FILE = "settings.json"
 
 def checkFolder():
     """Used to create the data folder at first startup"""
@@ -82,9 +84,9 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                 welcomeEmbed.set_image(url=imageUrl.replace(" ", "%20"))
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
-            print("Server Welcome: Could not send message, make sure the server has "
-                  "a title and message set!")
-            print(errorMsg)
+            LOGGER.error("Could not send message, make sure the server has a title "
+                         "and message set!")
+            LOGGER.error(errorMsg)
             if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
                 channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
@@ -100,8 +102,10 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                             ":o: ``Server Welcome:`` User {0.name}#"
                                             "{0.discriminator} ({0.id}) has joined. "
                                             "DM sent.".format(newUser))
-                print("Server Welcome: User {0.name}#{0.discriminator} ({0.id}) has "
-                      "joined.  DM sent.".format(newUser))
+                LOGGER.info("User %s#%s (%s) has joined.  DM sent.",
+                            newUser.name,
+                            newUser.discriminator,
+                            newUser.id)
 
     async def logServerLeave(self, leaveUser):
         """Logs the server leave to a channel, if enabled."""
@@ -112,8 +116,10 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                                         ":x: ``Server Leave  :`` User {0.name}#"
                                         "{0.discriminator} ({0.id}) has left the "
                                         "server.".format(leaveUser))
-            print("Server Leave  : User {0.name}#{0.discriminator} ({0.id}) has "
-                  "left the server.".format(leaveUser))
+            LOGGER.info("User %s#%s (%s) has left the server.",
+                        leaveUser.name,
+                        leaveUser.discriminator,
+                        leaveUser.id)
 
     ####################
     # MESSAGE COMMANDS #
@@ -163,6 +169,11 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         else:
             await self.bot.say("Message set to:")
             await self.bot.say("```" + message.content + "```")
+            LOGGER.info("Message changed by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
+            LOGGER.info(message.content)
 
     #[p]welcome toggledm
     @_welcome.command(pass_context=True, no_pm=False)
@@ -183,14 +194,22 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         self.saveSettings()
         if isSet:
             await self.bot.say(":white_check_mark: Server Welcome - DM: Enabled.")
+            LOGGER.info("Message toggle ENABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
         else:
             await self.bot.say(":negative_squared_cross_mark: Server Welcome - DM: "
                                "Disabled.")
+            LOGGER.info("Message toggle DISABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
 
     #[p]welcome togglelog
-    @_welcome.command(pass_context=True, no_pm=False)
+    @_welcome.command(pass_context=True, no_pm=False, name="togglelog")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def togglelog(self, ctx):
+    async def toggleLog(self, ctx):
         """Toggle sending logs to a channel."""
         self.loadSettings()
 
@@ -218,14 +237,22 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         if isSet:
             await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: "
                                "Enabled.")
+            LOGGER.info("Welcome channel logging ENABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
         else:
             await self.bot.say(":negative_squared_cross_mark: Server Welcome/Leave "
                                "- Logging: Disabled.")
+            LOGGER.info("Welcome channel logging DISABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
 
     #[p]welcome setlog
-    @_welcome.command(pass_context=True, no_pm=True)
+    @_welcome.command(pass_context=True, no_pm=True, name="setlog")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def setlog(self, ctx):
+    async def setLog(self, ctx):
         """Enables, and sets current channel as log channel."""
         self.loadSettings()
         serverId = ctx.message.author.server.id
@@ -242,7 +269,13 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             self.saveSettings()
             await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: "
                                "Enabled, and will be logged to this channel only.")
-
+            LOGGER.info("Welcome channel changed by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
+            LOGGER.info("Welcome channel set to #%s (%s)",
+                        ctx.message.channel.name,
+                        ctx.message.channel.id)
 
     #[p]welcome default
     @_welcome.command(pass_context=True, no_pm=False)
@@ -279,15 +312,19 @@ class Welcome: # pylint: disable=too-many-instance-attributes
                 print(errorMsg)
             else:
                 await self.bot.say(":white_check_mark: Default settings applied.")
+                LOGGER.info("Welcome cog set to its defaults by %s#%s (%s)",
+                            ctx.message.author.name,
+                            ctx.message.author.discriminator,
+                            ctx.message.author.id)
         else:
             await self.bot.say(":negative_squared_cross_mark: Not setting any "
                                "default settings.")
 
 
     #[p]welcome settitle
-    @_welcome.command(pass_context=True, no_pm=False)
+    @_welcome.command(pass_context=True, no_pm=False, name="settitle")
     @checks.serverowner() #Only allow server owner to execute the following command.
-    async def settitle(self, ctx):
+    async def setTitle(self, ctx):
         """Interactively configure the title for the welcome DM."""
 
         await self.bot.say("What would you like the welcome DM message to be?")
@@ -318,10 +355,15 @@ class Welcome: # pylint: disable=too-many-instance-attributes
         else:
             await self.bot.say("Title set to:")
             await self.bot.say("```" + title.content + "```")
+            LOGGER.info("Title changed by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author)
+            LOGGER.info(title.content)
 
     #[p]welcome setimage
     @_welcome.group(name="setimage", pass_context=True, no_pm=True)
-    async def _welcomeSetImage(self, ctx, imageUrl: str = None):
+    async def setImage(self, ctx, imageUrl: str = None):
         """Sets an image in the embed with a URL.  Empty URL results in no image."""
         if imageUrl == "":
             imageUrl = None
@@ -340,6 +382,12 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             print(errorMsg)
         else:
             await self.bot.say("Image set to `{}`. Be sure to test it!".format(imageUrl))
+            LOGGER.info("Image changed by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.id)
+            LOGGER.info("Image set to %s",
+                        imageUrl)
 
    #[p]welcome test
     @_welcome.command(pass_context=True, no_pm=False)
@@ -352,9 +400,20 @@ class Welcome: # pylint: disable=too-many-instance-attributes
 
 def setup(bot):
     """Add the cog to the bot."""
+    global LOGGER # pylint: disable=global-statement
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have settings!
     customCog = Welcome(bot)
+    LOGGER = logging.getLogger("red.Welcome")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     bot.add_listener(customCog.sendWelcomeMessage, 'on_member_join')
     bot.add_listener(customCog.logServerLeave, 'on_member_remove')
     bot.add_cog(customCog)
