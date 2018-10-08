@@ -3,22 +3,24 @@ Filters out messages that start with a certain prefix, and store them for
 later retrieval.
 """
 
-import os
+from datetime import datetime, timedelta
 import logging
+import os
 import discord
 from discord.ext import commands
 from cogs.utils.dataIO import dataIO
 
 from cogs.utils import config
 
-#Global variables
+# Global variables
 KEY_MESSAGE = "message"
 KEY_AUTHOR_ID = "authorid"
 KEY_AUTHOR_NAME = "author"
 LOGGER = None
 PREFIX = "spoiler"
-SAVE_FOLDER = "data/lui-cogs/spoilers/" #Path to save folder.
+SAVE_FOLDER = "data/lui-cogs/spoilers/" # Path to save folder.
 SAVE_FILE = "settings.json"
+COOLDOWN = 60
 
 def checkFolder():
     """Used to create the data folder at first startup"""
@@ -46,13 +48,11 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         self.settings = config.Config("settings.json",
                                       cogname="lui-cogs/spoilers")
         self.messages = self.settings.get("messages") if not None else {}
+        self.onCooldown = {}
 
     @commands.command(name="spoiler", pass_context=True)
     async def spoiler(self, ctx, *, msg):
-        """Create a message spoiler.
-        Checks to see if the message contains the prefix, and if it does, it saves it
-        for later retrieval.
-        """
+        """Create a message spoiler."""
         store = {}
         store[KEY_MESSAGE] = msg
         store[KEY_AUTHOR_ID] = ctx.message.author.id
@@ -63,6 +63,11 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         if not self.messages:
             self.messages = {}
         self.messages[newMsg.id] = store
+        LOGGER.info("%s#%s (%s) added a spoiler: %s",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    msg)
         await self.bot.add_reaction(newMsg, "\N{INFORMATION SOURCE}")
         await self.settings.put("messages", self.messages)
 
@@ -73,6 +78,8 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         """
         # As per documentation, access the message via reaction.message.
         if user.bot:
+            return
+        if user.id in self.onCooldown.keys() and self.onCooldown[user.id] > datetime.now():
             return
         msgId = reaction.message.id
         if msgId in self.messages.keys():
@@ -91,6 +98,7 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             embed.description = msg[KEY_MESSAGE]
             try:
                 await self.bot.send_message(user, embed=embed)
+                self.onCooldown[user.id] = datetime.now() + timedelta(seconds=COOLDOWN)
             except discord.errors.Forbidden:
                 LOGGER.error("Could not send DM to %s#%s (%s).",
                              user.name,
