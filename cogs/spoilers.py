@@ -54,6 +54,15 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
     @commands.command(name="spoiler", pass_context=True)
     async def spoiler(self, ctx, *, msg):
         """Create a message spoiler."""
+        wordFilter = self.bot.get_cog("WordFilter")
+        if not wordFilter:
+            await self.bot.say("This cog requires the word filter cog to be loaded. "
+                               "Please load the cog and try again")
+            return
+        if wordFilter.containsFilterableWords(ctx.message):
+            await self.bot.say("You have filtered words in your spoiler!  Please "
+                               "check it and try again!")
+            return
         store = {}
         store[KEY_MESSAGE] = msg
         store[KEY_AUTHOR_ID] = ctx.message.author.id
