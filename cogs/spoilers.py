@@ -16,6 +16,7 @@ from cogs.utils import config
 KEY_MESSAGE = "message"
 KEY_AUTHOR_ID = "authorid"
 KEY_AUTHOR_NAME = "author"
+KEY_TIMESTAMP = "timestamp"
 LOGGER = None
 PREFIX = "spoiler"
 SAVE_FOLDER = "data/lui-cogs/spoilers/" # Path to save folder.
@@ -57,6 +58,7 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         store[KEY_MESSAGE] = msg
         store[KEY_AUTHOR_ID] = ctx.message.author.id
         store[KEY_AUTHOR_NAME] = "{0.name}#{0.discriminator}".format(ctx.message.author)
+        store[KEY_TIMESTAMP] = ctx.message.timestamp.strftime("%s")
         await self.bot.delete_message(ctx.message)
         newMsg = await self.bot.say(":warning: {} created a spoiler!  React to see "
                                     "the message!".format(ctx.message.author.mention))
@@ -80,6 +82,9 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         if user.bot:
             return
         if user.id in self.onCooldown.keys() and self.onCooldown[user.id] > datetime.now():
+            await self.bot.remove_reaction(reaction.message,
+                                           reaction.emoji,
+                                           user)
             return
         msgId = reaction.message.id
         if msgId in self.messages.keys():
@@ -96,6 +101,7 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             else:
                 embed.set_author(name=msg[KEY_AUTHOR_NAME])
             embed.description = msg[KEY_MESSAGE]
+            embed.timestamp = datetime.fromtimestamp(int(msg[KEY_TIMESTAMP]))
             try:
                 await self.bot.send_message(user, embed=embed)
                 self.onCooldown[user.id] = datetime.now() + timedelta(seconds=COOLDOWN)
