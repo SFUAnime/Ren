@@ -81,16 +81,16 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         # As per documentation, access the message via reaction.message.
         if user.bot:
             return
-        if user.id in self.onCooldown.keys() and self.onCooldown[user.id] > datetime.now():
-            await self.bot.remove_reaction(reaction.message,
-                                           reaction.emoji,
-                                           user)
-            return
         msgId = reaction.message.id
         if msgId in self.messages.keys():
             await self.bot.remove_reaction(reaction.message,
                                            reaction.emoji,
                                            user)
+
+            if (msgId in self.onCooldown.keys() and
+                    user.id in self.onCooldown[msgId].keys() and
+                    self.onCooldown[msgId][user.id] > datetime.now):
+                return
             msg = self.messages[msgId]
             embed = discord.Embed()
             userObj = discord.utils.get(user.server.members,
@@ -104,7 +104,9 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
             embed.timestamp = datetime.fromtimestamp(int(msg[KEY_TIMESTAMP]))
             try:
                 await self.bot.send_message(user, embed=embed)
-                self.onCooldown[user.id] = datetime.now() + timedelta(seconds=COOLDOWN)
+                if msgId not in self.onCooldown.keys():
+                    self.onCooldown[msgId] = {}
+                self.onCooldown[msgId][user.id] = datetime.now() + timedelta(seconds=COOLDOWN)
             except discord.errors.Forbidden:
                 LOGGER.error("Could not send DM to %s#%s (%s).",
                              user.name,
