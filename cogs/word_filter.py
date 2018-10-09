@@ -28,7 +28,8 @@ def checkFileSystem():
             print("Word Filter: Creating folder: {} ...".format(folder))
             os.makedirs(folder)
 
-    files = ["data/word_filter/filter.json",
+    files = ["data/word_filter/command_blacklist",
+             "data/word_filter/filter.json",
              "data/word_filter/settings.json",
              "data/word_filter/whitelist.json"]
     for file in files:
@@ -45,6 +46,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         self.bot = bot
         self.lock = Lock()
         self.lockSettings = Lock()
+        self.commandBlacklist = dataIO.load_json("data/word_filter/"
+                                                 "command_blacklist.json")
         self.filters = dataIO.load_json("data/word_filter/filter.json")
         self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
         self.settings = dataIO.load_json("data/word_filter/settings.json")
@@ -62,6 +65,15 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         try:
             dataIO.save_json("data/word_filter/filter.json", newObj)
             self.filters = dataIO.load_json("data/word_filter/filter.json")
+        finally:
+            self.lock.release()
+
+    def _updateCommandBlacklist(self, newObj):
+        self.lock.acquire()
+        try:
+            dataIO.save_json("data/word_filter/command_blacklist.json", newObj)
+            self.commandBlacklist = dataIO.load_json("data/word_filter/"
+                                                     "command_blacklist.json")
         finally:
             self.lock.release()
 
