@@ -98,7 +98,7 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
 
             if (msgId in self.onCooldown.keys() and
                     user.id in self.onCooldown[msgId].keys() and
-                    self.onCooldown[msgId][user.id] > datetime.now):
+                    self.onCooldown[msgId][user.id] > datetime.now()):
                 return
             msg = self.messages[msgId]
             embed = discord.Embed()
