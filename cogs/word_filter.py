@@ -204,6 +204,51 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
 
         self._updateSettings(self.settings)
 
+    #########################################
+    # COMMANDS - COMMAND BLACKLIST SETTINGS #
+    #########################################
+    @wordFilter.group(name="command", pass_context=True, no_pm=True,
+                      aliases=["cmd"])
+    @checks.mod_or_permissions(manage_messages=True)
+    async def _command(self, ctx):
+        """Blacklist command settings. (help for more info)
+        Settings for controlling filtering on commands.
+        """
+        if str(ctx.invoked_subcommand).lower() == "word_filter command":
+            await send_cmd_help(ctx)
+
+    @_command.command(name="add", pass_context=True, no_pm=True)
+    async def _commandAdd(self, ctx):
+        """Add a command to the blacklist.
+        If the invoked command contains any filtered words, the entire message
+        is filtered and the contents of the message will be sent back to the
+        user via DM.
+        """
+        pass
+
+    @_command.command(name="del", pass_context=True, no_pm=True,
+                      aliases=["delete", "remove"])
+    @checks.mod_or_permissions(manage_messages=True)
+    async def _commandRemove(self, ctx, channelName: str):
+        """Remove a command from the blacklist.
+        The command that is removed from the list will be filtered as normal
+        messages.  That is, if the invoked command contains any filtered words,
+        only the filtered words will be censored and replaced (as opposed to the
+        entire message being deleted).
+        """
+        pass
+
+    @_command.command(name="list", pass_context=True, no_pm=True,
+                      aliases=["ls"])
+    @checks.mod_or_permissions(manage_messages=True)
+    async def _commandList(self, ctx):
+        """List blacklisted commands.
+        If the commands on this list are invoked with any filtered words, the
+        entire message is filtered and the contents of the message will be sent
+        back to the user via DM.
+        """
+        pass
+
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
     ############################################
