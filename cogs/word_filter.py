@@ -429,6 +429,9 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         if not self.checkMessageServerAndChannel(msg):
             return
 
+        # If message contains the blacklisted command, set a flag.
+        # Check this using split()
+
         guildId = msg.server.id
 
         filteredWords = self.filters[guildId]
@@ -453,6 +456,12 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
 
         if filteredMsg == originalMsg:
             return # no bad words, don't need to do anything else
+
+        # If the it contains a filtered word AND the blacklisted command flag was
+        # set above, then:
+        # - Delete the message,
+        # - Notify on the channel that the message was filtered without showing context
+        # - DM user with the filtered context as per what we see usually.
 
         if (filteredMsg != originalMsg and oneWord) or allFiltered:
             await self.bot.delete_message(msg) # delete message but don't show full message context
