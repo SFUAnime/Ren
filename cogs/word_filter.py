@@ -315,7 +315,6 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         else:
             await self.bot.say("Sorry, there are no blacklisted commands in "
                                "**{}**".format(guildName))
-        pass
 
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
@@ -486,7 +485,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             return False
         return True
 
-    async def checkWords(self, msg, newMsg=None): # pylint: disable=too-many-locals
+    async def checkWords(self, msg, newMsg=None): \
+        # pylint: disable=too-many-locals, too-many-branches
         """This method, given a message, will check to see if the message contains
         any filterable words, and if it does, deletes the original message and
         sends another message with the filterable words censored.
@@ -497,10 +497,8 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         if not self.checkMessageServerAndChannel(msg):
             return
 
-        # If message contains the blacklisted command, set a flag.
-        # Check this using split()
-
         guildId = msg.server.id
+        blacklistedCmd = False
 
         filteredWords = self.filters[guildId]
         if newMsg:
@@ -510,6 +508,12 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         originalMsg = checkMsg
         filteredMsg = originalMsg
         oneWord = _isOneWord(checkMsg)
+
+        if guildId in self.commandBlacklist:
+            for prefix in self.bot.command_prefix(self.bot, msg):
+                for cmd in self.commandBlacklist[guildId]:
+                    if checkMsg.startswith(prefix+cmd):
+                        blacklistedCmd = True
 
         for word in filteredWords:
             try:
@@ -525,20 +529,32 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         if filteredMsg == originalMsg:
             return # no bad words, don't need to do anything else
 
-        # If the it contains a filtered word AND the blacklisted command flag was
-        # set above, then:
-        # - Delete the message,
-        # - Notify on the channel that the message was filtered without showing context
-        # - DM user with the filtered context as per what we see usually.
-
-        if (filteredMsg != originalMsg and oneWord) or allFiltered:
-            await self.bot.delete_message(msg) # delete message but don't show full message context
+        await self.bot.delete_message(msg)
+        if blacklistedCmd:
+            # If the it contains a filtered word AND the blacklisted command flag was
+            # set above, then:
+            # - Delete the message,
+            # - Notify on the channel that the message was filtered without showing context
+            # - DM user with the filtered context as per what we see usually.
+            filterNotify = "{0.author.mention} was filtered!".format(msg)
+            notifyMsg = await self.bot.send_message(msg.channel, filterNotify)
+            filterNotify = "You were filtered! Your message was: \n"
+            embed = discord.Embed(colour=random.choice(self.colours),
+                                  description="{0.author.name}#{0.author.discriminator}: "
+                                  "{1}".format(msg, filteredMsg))
+            try:
+                await self.bot.send_message(msg.author, filterNotify, embed=embed)
+            except discord.errors.Forbidden as error:
+                LOGGER.error("Could not DM user, perhaps they have blocked DMs?")
+                LOGGER.error(error)
+            await asyncio.sleep(3)
+            await self.bot.delete_message(notifyMsg)
+        elif (filteredMsg != originalMsg and oneWord) or allFiltered:
             filterNotify = "{0.author.mention} was filtered!".format(msg)
             notifyMsg = await self.bot.send_message(msg.channel, filterNotify)
             await asyncio.sleep(3)
             await self.bot.delete_message(notifyMsg)
         else:
-            await self.bot.delete_message(msg)
             filterNotify = "{0.author.mention} was filtered! Message was: \n".format(msg)
             embed = discord.Embed(colour=random.choice(self.colours),
                                   description="{0.author.name}#{0.author.discriminator}: "
