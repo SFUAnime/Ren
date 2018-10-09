@@ -28,7 +28,7 @@ def checkFileSystem():
             print("Word Filter: Creating folder: {} ...".format(folder))
             os.makedirs(folder)
 
-    files = ["data/word_filter/command_blacklist",
+    files = ["data/word_filter/command_blacklist.json",
              "data/word_filter/filter.json",
              "data/word_filter/settings.json",
              "data/word_filter/whitelist.json"]
@@ -230,25 +230,59 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             await send_cmd_help(ctx)
 
     @_command.command(name="add", pass_context=True, no_pm=True)
-    async def _commandAdd(self, ctx):
-        """Add a command to the blacklist.
+    async def _commandAdd(self, ctx, cmd: str):
+        """Add a command (without prefix) to the blacklist.
         If the invoked command contains any filtered words, the entire message
         is filtered and the contents of the message will be sent back to the
         user via DM.
         """
-        pass
+        guildId = ctx.message.server.id
+
+        if guildId not in list(self.commandBlacklist):
+            myDict = {}
+            myDict[guildId] = []
+            self.commandBlacklist.update(myDict)
+            self._updateCommandBlacklist(self.commandBlacklist)
+
+        if cmd not in self.commandBlacklist[guildId]:
+            self.commandBlacklist[guildId].append(cmd)
+            self._updateCommandBlacklist(self.commandBlacklist)
+            await self.bot.say(":white_check_mark: Word Filter: Command `{0}` is now "
+                               "blacklisted.  It will have the entire message filtered "
+                               "if it contains any filterable words, and its contents "
+                               "DM'd back to the user.".format(cmd))
+        else:
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: Command "
+                               "`{0}` is already blacklisted.".format(cmd))
 
     @_command.command(name="del", pass_context=True, no_pm=True,
                       aliases=["delete", "remove"])
     @checks.mod_or_permissions(manage_messages=True)
-    async def _commandRemove(self, ctx, channelName: str):
+    async def _commandRemove(self, ctx, cmd: str):
         """Remove a command from the blacklist.
         The command that is removed from the list will be filtered as normal
         messages.  That is, if the invoked command contains any filtered words,
         only the filtered words will be censored and replaced (as opposed to the
         entire message being deleted).
         """
-        pass
+        guildId = ctx.message.server.id
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.commandBlacklist):
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: The "
+                               "guild **{}** does not have blacklisted commands, "
+                               "please add a command to the blacklist first, and "
+                               "try again.".format(guildName))
+            return
+
+        if not self.commandBlacklist[guildId] or cmd not in self.commandBlacklist[guildId]:
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: Command "
+                               "`{0}` wasn't on the blacklist.".format(cmd))
+        else:
+            self.commandBlacklist[guildId].remove(cmd)
+            self._updateCommandBlacklist(self.commandBlacklist)
+            await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from "
+                               "the command blacklist.".format(cmd))
 
     @_command.command(name="list", pass_context=True, no_pm=True,
                       aliases=["ls"])
@@ -259,6 +293,28 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         entire message is filtered and the contents of the message will be sent
         back to the user via DM.
         """
+        guildId = ctx.message.server.id
+        guildName = ctx.message.server.name
+
+        if guildId not in list(self.commandBlacklist):
+            await self.bot.say(":negative_squared_cross_mark: Word Filter: The "
+                               "guild **{}** does not have blacklisted commands, "
+                               "please add a command to the blacklist first, and "
+                               "try again.".format(guildName))
+            return
+
+        if self.commandBlacklist[guildId]:
+            display = []
+            for cmd in self.commandBlacklist[guildId]:
+                display.append("`{}`".format(cmd))
+
+            page = Pages(self.bot, message=ctx.message, entries=display)
+            page.embed.title = "Blacklisted commands for: **{}**".format(guildName)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
+        else:
+            await self.bot.say("Sorry, there are no blacklisted commands in "
+                               "**{}**".format(guildName))
         pass
 
     ############################################
