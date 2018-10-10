@@ -18,6 +18,11 @@ from cogs.utils.paginator import Pages
 
 COLOUR = discord.Colour
 LOGGER = None
+PATH = "data/word_filter/"
+PATH_BLACKLIST = PATH + "command_blacklist.json"
+PATH_FILTER = PATH + "filter.json"
+PATH_SETTINGS = PATH + "settings.json"
+PATH_WHITELIST = PATH + "whitelist.json"
 
 def checkFileSystem():
     """Check if the folders/files are created."""
@@ -28,10 +33,8 @@ def checkFileSystem():
             print("Word Filter: Creating folder: {} ...".format(folder))
             os.makedirs(folder)
 
-    files = ["data/word_filter/command_blacklist.json",
-             "data/word_filter/filter.json",
-             "data/word_filter/settings.json",
-             "data/word_filter/whitelist.json"]
+    files = [PATH_BLACKLIST, PATH_FILTER, PATH_SETTINGS, PATH_WHITELIST]
+
     for file in files:
         if not os.path.exists(file):
             #build a default filter.json
@@ -46,11 +49,10 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         self.bot = bot
         self.lock = Lock()
         self.lockSettings = Lock()
-        self.commandBlacklist = dataIO.load_json("data/word_filter/"
-                                                 "command_blacklist.json")
-        self.filters = dataIO.load_json("data/word_filter/filter.json")
-        self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
-        self.settings = dataIO.load_json("data/word_filter/settings.json")
+        self.commandBlacklist = dataIO.load_json(PATH_BLACKLIST)
+        self.filters = dataIO.load_json(PATH_FILTER)
+        self.whitelist = dataIO.load_json(PATH_WHITELIST)
+        self.settings = dataIO.load_json(PATH_SETTINGS)
         self.colours = [COLOUR.purple(),
                         COLOUR.red(),
                         COLOUR.blue(),
@@ -63,33 +65,32 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
     def _updateFilters(self, newObj):
         self.lock.acquire()
         try:
-            dataIO.save_json("data/word_filter/filter.json", newObj)
-            self.filters = dataIO.load_json("data/word_filter/filter.json")
+            dataIO.save_json(PATH_FILTER, newObj)
+            self.filters = dataIO.load_json(PATH_FILTER)
         finally:
             self.lock.release()
 
     def _updateCommandBlacklist(self, newObj):
         self.lock.acquire()
         try:
-            dataIO.save_json("data/word_filter/command_blacklist.json", newObj)
-            self.commandBlacklist = dataIO.load_json("data/word_filter/"
-                                                     "command_blacklist.json")
+            dataIO.save_json(PATH_BLACKLIST, newObj)
+            self.commandBlacklist = dataIO.load_json(PATH_BLACKLIST)
         finally:
             self.lock.release()
 
     def _updateWhitelist(self, newObj):
         self.lock.acquire()
         try:
-            dataIO.save_json("data/word_filter/whitelist.json", newObj)
-            self.whitelist = dataIO.load_json("data/word_filter/whitelist.json")
+            dataIO.save_json(PATH_WHITELIST, newObj)
+            self.whitelist = dataIO.load_json(PATH_WHITELIST)
         finally:
             self.lock.release()
 
     def _updateSettings(self, newObj):
         self.lockSettings.acquire()
         try:
-            dataIO.save_json("data/word_filter/settings.json", newObj)
-            self.settings = dataIO.load_json("data/word_filter/settings.json")
+            dataIO.save_json(PATH_SETTINGS, newObj)
+            self.settings = dataIO.load_json(PATH_SETTINGS)
         finally:
             self.lockSettings.release()
 
