@@ -62,34 +62,34 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
         #JSON keys for settings:
         self.keyToggleMod = "toggleMod"
 
-    def _updateFilters(self, newObj):
+    def _updateFilters(self):
         self.lock.acquire()
         try:
-            dataIO.save_json(PATH_FILTER, newObj)
+            dataIO.save_json(PATH_FILTER, self.filters)
             self.filters = dataIO.load_json(PATH_FILTER)
         finally:
             self.lock.release()
 
-    def _updateCommandBlacklist(self, newObj):
+    def _updateCommandBlacklist(self):
         self.lock.acquire()
         try:
-            dataIO.save_json(PATH_BLACKLIST, newObj)
+            dataIO.save_json(PATH_BLACKLIST, self.commandBlacklist)
             self.commandBlacklist = dataIO.load_json(PATH_BLACKLIST)
         finally:
             self.lock.release()
 
-    def _updateWhitelist(self, newObj):
+    def _updateWhitelist(self):
         self.lock.acquire()
         try:
-            dataIO.save_json(PATH_WHITELIST, newObj)
+            dataIO.save_json(PATH_WHITELIST, self.whitelist)
             self.whitelist = dataIO.load_json(PATH_WHITELIST)
         finally:
             self.lock.release()
 
-    def _updateSettings(self, newObj):
+    def _updateSettings(self):
         self.lockSettings.acquire()
         try:
-            dataIO.save_json(PATH_SETTINGS, newObj)
+            dataIO.save_json(PATH_SETTINGS, self.settings)
             self.settings = dataIO.load_json(PATH_SETTINGS)
         finally:
             self.lockSettings.release()
@@ -113,11 +113,11 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             myDict = {}
             myDict[guildId] = []
             self.filters.update(myDict)
-            self._updateFilters(self.filters)
+            self._updateFilters()
 
         if word not in self.filters[guildId]:
             self.filters[guildId].append(word)
-            self._updateFilters(self.filters)
+            self._updateFilters()
             await self.bot.send_message(user,
                                         "`Word Filter:` `{0}` was added to the filter "
                                         "in the guild **{1}**".format(word, guildName))
@@ -147,7 +147,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                         "filter for guild **{1}**".format(word, guildName))
         else:
             self.filters[guildId].remove(word)
-            self._updateFilters(self.filters)
+            self._updateFilters()
             await self.bot.send_message(user,
                                         "`Word Filter:` `{0}` removed from the filter "
                                         "in the guild **{1}**".format(word, guildName))
@@ -194,7 +194,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions(manage_messages=True)
     async def toggleMod(self, ctx):
         """Toggle global override of filters for server admins/mods."""
-        self._updateSettings(self.settings)
+        self._updateSettings()
         try:
             if self.settings[ctx.message.author.server.id][self.keyToggleMod] is True:
                 self.settings[ctx.message.author.server.id][self.keyToggleMod] = False
@@ -207,15 +207,13 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                 self.settings[ctx.message.author.server.id] = {}
             self.settings[ctx.message.author.server.id][self.keyToggleMod] = True
             isSet = True
-        self._updateSettings(self.settings)
+        self._updateSettings()
         if isSet:
             await self.bot.say(":white_check_mark: Word Filter: Moderators (and "
                                "higher) **will not be** filtered.")
         else:
             await self.bot.say(":negative_squared_cross_mark: Word Filter: Moderators "
                                "(and higher) **will be** filtered.")
-
-        self._updateSettings(self.settings)
 
     #########################################
     # COMMANDS - COMMAND BLACKLIST SETTINGS #
@@ -243,11 +241,11 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             myDict = {}
             myDict[guildId] = []
             self.commandBlacklist.update(myDict)
-            self._updateCommandBlacklist(self.commandBlacklist)
+            self._updateCommandBlacklist()
 
         if cmd not in self.commandBlacklist[guildId]:
             self.commandBlacklist[guildId].append(cmd)
-            self._updateCommandBlacklist(self.commandBlacklist)
+            self._updateCommandBlacklist()
             await self.bot.say(":white_check_mark: Word Filter: Command `{0}` is now "
                                "blacklisted.  It will have the entire message filtered "
                                "if it contains any filterable words, and its contents "
@@ -281,7 +279,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                "`{0}` wasn't on the blacklist.".format(cmd))
         else:
             self.commandBlacklist[guildId].remove(cmd)
-            self._updateCommandBlacklist(self.commandBlacklist)
+            self._updateCommandBlacklist()
             await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from "
                                "the command blacklist.".format(cmd))
 
@@ -340,11 +338,11 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             myDict = {}
             myDict[guildId] = []
             self.whitelist.update(myDict)
-            self._updateWhitelist(self.whitelist)
+            self._updateWhitelist()
 
         if channelName not in self.whitelist[guildId]:
             self.whitelist[guildId].append(channelName)
-            self._updateWhitelist(self.whitelist)
+            self._updateWhitelist()
             await self.bot.say(":white_check_mark: Word Filter: Channel with name "
                                "`{0}` will not be filtered.".format(channelName))
         else:
@@ -372,7 +370,7 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
                                "`{0}` was already not whitelisted.".format(channelName))
         else:
             self.whitelist[guildId].remove(channelName)
-            self._updateWhitelist(self.whitelist)
+            self._updateWhitelist()
             await self.bot.say(":white_check_mark: Word Filter: `{0}` removed from "
                                "the channel whitelist.".format(channelName))
 
