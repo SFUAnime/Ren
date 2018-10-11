@@ -18,7 +18,11 @@ Requirements:
     - sudo pip install bs4
     - sudo pip install feedparser
 """
-#---------------------------------------------------------------------------------------------#
+
+LOGGER = None
+RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
+             "1200px-Feed-icon.svg.png")
+
 def date2epoch(date):
     try:
         epoch = datetime.strptime(date,'%a, %d %b %Y %H:%M:%S %z').timestamp()
@@ -28,12 +32,10 @@ def date2epoch(date):
         
     return epoch
 
-#---------------------------------------------------------------------------------------------#
 def epoch2date(epoch):
     date = datetime.fromtimestamp(epoch).strftime('%a, %d %b %Y %I:%M%p')
     return date
  
-#---------------------------------------------------------------------------------------------#
 def check_filesystem():
 
     folders = ("data/rss")
@@ -64,7 +66,6 @@ def check_filesystem():
                 dict['check_interval'] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json",dict)
 
-#---------------------------------------------------------------------------------------------#                
 class RSSFeed(object):
     def __init__(self, bot):
         self.settings = dataIO.load_json("data/rss/config.json")
@@ -73,11 +74,9 @@ class RSSFeed(object):
         self.check_interval = self.settings['check_interval']
         self.channel_id = self.settings['post_channel']
         
-#---------------------------------------------------------------------------------------------#
     def _is_new_item(self,latest_post_time, item_post_time):
         return latest_post_time < item_post_time
         
-#---------------------------------------------------------------------------------------------#   
     def _get_latest_post_time(self, feed_items):
         published_times = []
         for item in feed_items:
@@ -87,19 +86,17 @@ class RSSFeed(object):
         else:
             return None #lets be explicit :)
 
-#---------------------------------------------------------------------------------------------#
     @commands.group(name="rss", pass_context=True, no_pm=True)
     async def _rss(self, ctx):
         """Utilities for the RSS cog"""
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-#---------------------------------------------------------------------------------------------#            
     @_rss.command(pass_context=True, no_pm=True)
     async def setinterval(self,ctx):
         """Set the interval for rss to scan for updates"""
         pass
-#---------------------------------------------------------------------------------------------#   
+
     def _get_feed(self, rss_url, channel, index=None): 
         
         if channel is None:
@@ -134,9 +131,9 @@ class RSSFeed(object):
                 news.append(dict)
                 
         if len(news) == 0:
-            print("RSS: no new items in feed {}".format(str(index)))
+            LOGGER.info("No new items in feed %s", str(index))
         else:
-            print("RSS: {} new items in feed {}".format(len(news), str(index)))
+            LOGGER.info("%s new items in feed %s", len(news), str(index))
         
         latest_post_time = self._get_latest_post_time(feed['items'])
         if latest_post_time is not None:
@@ -145,21 +142,18 @@ class RSSFeed(object):
         
         return news
         
-#---------------------------------------------------------------------------------------------#       
     async def rss(self):
         """ Checks for rss updates periodically and posts any new content to the specific channel"""
         
         while self == self.bot.get_cog("RSSFeed"):
-            print("------------------------------------")
-            print("RSS: scanning feed(s) for updates...")
-            print("------------------------------------")
+            LOGGER.info("Scanning feed(s) for updates...")
             
             post_channel = self.bot.get_channel(self.channel_id)
             updates = []
             idx = 0
             
             if post_channel is None:
-                print("RSS: Can't find channel, Bot is not yet logged in.")
+                LOGGER.error("Can't find channel: bot is not logged in yet.")
             
             for feed_url in self.rss_feed_urls:
                 feed_updates = self._get_feed(feed_url, post_channel, index=idx)
@@ -192,7 +186,7 @@ class RSSFeed(object):
                 embed.add_field(name="Summary", value=html2text, inline=False)
                 
                 footer_text = "This update is from {}".format(item['url'])
-                rss_image = "https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/1200px-Feed-icon.svg.png"
+                rss_image = RSS_IMAGE
                 embed.set_footer(text=footer_text, icon_url=rss_image)
                 
                 await self.bot.send_message(post_channel, embed=embed)
@@ -200,14 +194,23 @@ class RSSFeed(object):
             try:
                 await asyncio.sleep(self.check_interval)
             except asyncio.CancelledError as e:              
-                print("borked")                        
+                LOGGER.error("The asyncio sleep was cancelled!")
+                LOGGER.error(e)
                 raise e
             
-#---------------------------------------------------------------------------------------------# 
 def setup(bot):
     #check_filesystem()
+    global LOGGER # pylint: disable=global-statement
+    LOGGER = logging.getLogger("red.RSSFeed")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename="data/rss/info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     rss_obj = RSSFeed(bot)
     bot.add_cog(rss_obj)
     bot.loop.create_task(rss_obj.rss())
-
-#---------------------------------------------------------------------------------------------#
