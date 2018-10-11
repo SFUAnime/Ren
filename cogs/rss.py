@@ -1,24 +1,21 @@
-import discord
-from discord.ext import commands
-from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
-# DEBUG
-import os
-import logging
-os.environ['PYTHONASYNCIODEBUG'] = '1'
-# DEBUG
-import asyncio
-import aiohttp
-import feedparser
-from datetime import datetime
-from bs4 import BeautifulSoup
-
 """
 Cogs Purpose: To be able to hook up any RSS feed(s) to the bot and post it in a channel
 Requirements:
     - sudo pip install bs4
     - sudo pip install feedparser
 """
+import asyncio
+from datetime import datetime
+import logging
+import os
+
+import aiohttp
+import discord
+from discord.ext import commands
+import feedparser
+from bs4 import BeautifulSoup
+from cogs.utils.dataIO import dataIO
+from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 
 LOGGER = None
 RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
