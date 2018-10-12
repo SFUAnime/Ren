@@ -22,6 +22,7 @@ RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg
              "1200px-Feed-icon.svg.png")
 
 def date2epoch(date):
+    """Converts a datetime date into epoch for storage in JSON."""
     try:
         epoch = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z').timestamp()
     except ValueError:
@@ -31,11 +32,12 @@ def date2epoch(date):
     return epoch
 
 def epoch2date(epoch):
+    """Converts an epoch time into a datetime date from storage in JSON."""
     date = datetime.fromtimestamp(epoch).strftime('%a, %d %b %Y %I:%M%p')
     return date
 
 def check_filesystem():
-
+    """Check if the folders/files are created."""
     folders = ("data/rss")
     for folder in folders:
         if not os.path.exists(folder):
@@ -197,6 +199,7 @@ class RSSFeed(object):
                 raise e
 
 def setup(bot):
+    """Add the cog to the bot."""
     #check_filesystem()
     global LOGGER # pylint: disable=global-statement
     LOGGER = logging.getLogger("red.RSSFeed")
