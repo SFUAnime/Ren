@@ -36,7 +36,7 @@ def epoch2date(epoch):
     date = datetime.fromtimestamp(epoch).strftime('%a, %d %b %Y %I:%M%p')
     return date
 
-def check_filesystem():
+def checkFilesystem():
     """Check if the folders/files are created."""
     folders = ("data/rss")
     for folder in folders:
@@ -200,7 +200,7 @@ class RSSFeed(object):
 
 def setup(bot):
     """Add the cog to the bot."""
-    #check_filesystem()
+    #checkFilesystem()
     global LOGGER # pylint: disable=global-statement
     LOGGER = logging.getLogger("red.RSSFeed")
     if LOGGER.level == 0:
