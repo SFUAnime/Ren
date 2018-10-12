@@ -52,11 +52,11 @@ def checkFilesystem():
             if "feeds" in file:
                 #build a default feeds.json
                 dict = {}
-                default_feed = {}
-                default_feed['id'] = 0
-                default_feed['latest_post_time'] = 0
+                defaultFeed = {}
+                defaultFeed['id'] = 0
+                defaultFeed['latest_post_time'] = 0
                 dict['feeds'] = []
-                dict['feeds'].append(default_feed)
+                dict['feeds'].append(defaultFeed)
                 dataIO.save_json("data/rss/feeds.json", dict)
             elif "config" in file:
                 #build a default config.json
@@ -78,11 +78,11 @@ class RSSFeed(object):
         return latest_post_time < item_post_time
 
     def _get_latest_post_time(self, feed_items):
-        published_times = []
+        publishedTimes = []
         for item in feed_items:
-            published_times.append(date2epoch(item['published']))
-        if published_times:
-            return max(published_times)
+            publishedTimes.append(date2epoch(item['published']))
+        if publishedTimes:
+            return max(publishedTimes)
         else:
             return None #lets be explicit :)
 
@@ -106,7 +106,7 @@ class RSSFeed(object):
 
         #ensure every rss url has a specified id and most recent post epoch
         try:
-            latest_post_time = feeds['feeds'][index]['latest_post_time']
+            latestPostTime = feeds['feeds'][index]['latest_post_time']
         except IndexError:
             dict = {}
             dict['id'] = index
@@ -114,14 +114,14 @@ class RSSFeed(object):
             feeds['feeds'].append(dict)
             dataIO.save_json("data/rss/feeds.json", feeds)
             feeds = dataIO.load_json("data/rss/feeds.json")
-            latest_post_time = feeds['feeds'][index]['latest_post_time']
+            latestPostTime = feeds['feeds'][index]['latest_post_time']
 
         news = []
         feed = feedparser.parse(rss_url)
 
         for item in feed['items']:
-            item_post_time = date2epoch(item['published'])
-            if self._is_new_item(latest_post_time, item_post_time):
+            itemPostTime = date2epoch(item['published'])
+            if self._is_new_item(latestPostTime, itemPostTime):
                 dict = {}
                 dict['title'] = item['title']
                 dict['link'] = item['link']
@@ -135,9 +135,9 @@ class RSSFeed(object):
         else:
             LOGGER.info("%s new items in feed %s", len(news), str(index))
 
-        latest_post_time = self._get_latest_post_time(feed['items'])
-        if latest_post_time is not None:
-            feeds['feeds'][index]['latest_post_time'] = latest_post_time
+        latestPostTime = self._get_latest_post_time(feed['items'])
+        if latestPostTime:
+            feeds['feeds'][index]['latest_post_time'] = latestPostTime
         dataIO.save_json("data/rss/feeds.json", feeds)
 
         return news
@@ -148,16 +148,16 @@ class RSSFeed(object):
         while self == self.bot.get_cog("RSSFeed"):
             LOGGER.info("Scanning feed(s) for updates...")
 
-            post_channel = self.bot.get_channel(self.channelId)
+            postChannel = self.bot.get_channel(self.channelId)
             updates = []
             idx = 0
 
-            if post_channel is None:
+            if not postChannel:
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
 
-            for feed_url in self.rssFeedUrls:
-                feed_updates = self._get_feed(feed_url, post_channel, index=idx)
-                updates += feed_updates
+            for feedUrl in self.rssFeedUrls:
+                feedUpdates = self._get_feed(feedUrl, postChannel, index=idx)
+                updates += feedUpdates
                 idx += 1
 
             #reversed so updates display from latest to earliest, since they are appended earliest to latest
@@ -173,30 +173,30 @@ class RSSFeed(object):
 
                 soup = BeautifulSoup(page, "html.parser")
                 try:
-                    image_url = soup.find("meta", property="og:image")['content']
-                    embed.set_image(url=image_url)
+                    imageUrl = soup.find("meta", property="og:image")['content']
+                    embed.set_image(url=imageUrl)
                 except (KeyError, TypeError):
                     pass
 
                 #ugly, but want a nicer "human readable" date
-                formatted_date = epoch2date(date2epoch(item['published']))
-                embed.add_field(name="Date Published", value=formatted_date, inline=False)
+                formattedDate = epoch2date(date2epoch(item['published']))
+                embed.add_field(name="Date Published", value=formattedDate, inline=False)
 
                 html2text = BeautifulSoup(item['summary'], "html.parser").get_text()
                 embed.add_field(name="Summary", value=html2text, inline=False)
 
-                footer_text = "This update is from {}".format(item['url'])
-                rss_image = RSS_IMAGE
-                embed.set_footer(text=footer_text, icon_url=rss_image)
+                footerText = "This update is from {}".format(item['url'])
+                rssImage = RSS_IMAGE
+                embed.set_footer(text=footerText, icon_url=rssImage)
 
-                await self.bot.send_message(post_channel, embed=embed)
+                await self.bot.send_message(postChannel, embed=embed)
 
             try:
                 await asyncio.sleep(self.checkInterval)
-            except asyncio.CancelledError as e:
+            except asyncio.CancelledError as error:
                 LOGGER.error("The asyncio sleep was cancelled!")
-                LOGGER.error(e)
-                raise e
+                LOGGER.error(error)
+                raise error
 
 def setup(bot):
     """Add the cog to the bot."""
@@ -212,6 +212,6 @@ def setup(bot):
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
                                                datefmt="[%d/%m/%Y %H:%M:%S]"))
         LOGGER.addHandler(handler)
-    rss_obj = RSSFeed(bot)
-    bot.add_cog(rss_obj)
-    bot.loop.create_task(rss_obj.rss())
+    rssCog = RSSFeed(bot)
+    bot.add_cog(rssCog)
+    bot.loop.create_task(rssCog.rss())
