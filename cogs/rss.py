@@ -70,9 +70,9 @@ class RSSFeed(object):
     def __init__(self, bot):
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
-        self.rss_feed_urls = self.settings['rss_feed_urls']
-        self.check_interval = self.settings['check_interval']
-        self.channel_id = self.settings['post_channel']
+        self.rssFeedUrls = self.settings['rss_feed_urls']
+        self.checkInterval = self.settings['check_interval']
+        self.channelId = self.settings['post_channel']
 
     def _is_new_item(self, latest_post_time, item_post_time):
         return latest_post_time < item_post_time
@@ -148,14 +148,14 @@ class RSSFeed(object):
         while self == self.bot.get_cog("RSSFeed"):
             LOGGER.info("Scanning feed(s) for updates...")
 
-            post_channel = self.bot.get_channel(self.channel_id)
+            post_channel = self.bot.get_channel(self.channelId)
             updates = []
             idx = 0
 
             if post_channel is None:
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
 
-            for feed_url in self.rss_feed_urls:
+            for feed_url in self.rssFeedUrls:
                 feed_updates = self._get_feed(feed_url, post_channel, index=idx)
                 updates += feed_updates
                 idx += 1
@@ -192,7 +192,7 @@ class RSSFeed(object):
                 await self.bot.send_message(post_channel, embed=embed)
 
             try:
-                await asyncio.sleep(self.check_interval)
+                await asyncio.sleep(self.checkInterval)
             except asyncio.CancelledError as e:
                 LOGGER.error("The asyncio sleep was cancelled!")
                 LOGGER.error(e)
