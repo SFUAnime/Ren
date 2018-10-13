@@ -74,12 +74,12 @@ class RSSFeed(object):
         self.checkInterval = self.settings['check_interval']
         self.channelId = self.settings['post_channel']
 
-    def _is_new_item(self, latest_post_time, item_post_time):
-        return latest_post_time < item_post_time
+    def _is_new_item(self, latestPostTime, itemPostTime):
+        return latestPostTime < itemPostTime
 
-    def _get_latest_post_time(self, feed_items):
+    def _get_latest_post_time(self, feedItems):
         publishedTimes = []
-        for item in feed_items:
+        for item in feedItems:
             publishedTimes.append(date2epoch(item['published']))
         if publishedTimes:
             return max(publishedTimes)
@@ -97,7 +97,7 @@ class RSSFeed(object):
         """Set the interval for rss to scan for updates"""
         pass
 
-    def _get_feed(self, rss_url, channel, index=None):
+    def _get_feed(self, rssUrl, channel, index=None):
 
         if channel is None:
             return []
@@ -117,7 +117,7 @@ class RSSFeed(object):
             latestPostTime = feeds['feeds'][index]['latest_post_time']
 
         news = []
-        feed = feedparser.parse(rss_url)
+        feed = feedparser.parse(rssUrl)
 
         for item in feed['items']:
             itemPostTime = date2epoch(item['published'])
@@ -127,7 +127,7 @@ class RSSFeed(object):
                 dict['link'] = item['link']
                 dict['published'] = item['published']
                 dict['summary'] = item['summary']
-                dict['url'] = rss_url
+                dict['url'] = rssUrl
                 news.append(dict)
 
         if len(news) == 0:
