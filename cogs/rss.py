@@ -66,7 +66,7 @@ def checkFilesystem():
                 myDict['check_interval'] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", myDict)
 
-def _get_feed(rssUrl, channel, index=None):
+def _getFeed(rssUrl, channel, index=None):
 
     if channel is None:
         return []
@@ -90,7 +90,7 @@ def _get_feed(rssUrl, channel, index=None):
 
     for item in feed['items']:
         itemPostTime = date2epoch(item['published'])
-        if _is_new_item(latestPostTime, itemPostTime):
+        if _isNewItem(latestPostTime, itemPostTime):
             dict = {}
             dict['title'] = item['title']
             dict['link'] = item['link']
@@ -104,14 +104,14 @@ def _get_feed(rssUrl, channel, index=None):
     else:
         LOGGER.info("%s new items in feed %s", len(news), str(index))
 
-    latestPostTime = _get_latest_post_time(feed['items'])
+    latestPostTime = _getLatestPostTime(feed['items'])
     if latestPostTime:
         feeds['feeds'][index]['latest_post_time'] = latestPostTime
     dataIO.save_json("data/rss/feeds.json", feeds)
 
     return news
 
-def _get_latest_post_time(feedItems):
+def _getLatestPostTime(feedItems):
     publishedTimes = []
     for item in feedItems:
         publishedTimes.append(date2epoch(item['published']))
@@ -120,7 +120,7 @@ def _get_latest_post_time(feedItems):
     else:
         return None #lets be explicit :)
 
-def _is_new_item(latestPostTime, itemPostTime):
+def _isNewItem(latestPostTime, itemPostTime):
     return latestPostTime < itemPostTime
 
 class RSSFeed(object):
@@ -156,7 +156,7 @@ class RSSFeed(object):
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
 
             for feedUrl in self.rssFeedUrls:
-                feedUpdates = _get_feed(feedUrl, postChannel, index=idx)
+                feedUpdates = _getFeed(feedUrl, postChannel, index=idx)
                 updates += feedUpdates
                 idx += 1
 
