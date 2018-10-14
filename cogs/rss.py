@@ -51,20 +51,20 @@ def checkFilesystem():
 
             if "feeds" in file:
                 #build a default feeds.json
-                myDict = {}
-                defaultFeed = {}
-                defaultFeed['id'] = 0
-                defaultFeed['latest_post_time'] = 0
-                myDict['feeds'] = []
-                myDict['feeds'].append(defaultFeed)
-                dataIO.save_json("data/rss/feeds.json", myDict)
+                defaultDict = {}
+                defaultFeedItem = {}
+                defaultFeedItem['id'] = 0
+                defaultFeedItem['latest_post_time'] = 0
+                defaultDict['feeds'] = []
+                defaultDict['feeds'].append(defaultFeedItem)
+                dataIO.save_json("data/rss/feeds.json", defaultDict)
             elif "config" in file:
                 #build a default config.json
-                myDict = {}
-                myDict['post_channel'] = "change_me"
-                myDict['rss_feed_urls'] = ["change_me"]
-                myDict['check_interval'] = 3600 #default to checking every hour
-                dataIO.save_json("data/rss/config.json", myDict)
+                defaultDict = {}
+                defaultDict['post_channel'] = "change_me"
+                defaultDict['rss_feed_urls'] = ["change_me"]
+                defaultDict['check_interval'] = 3600 #default to checking every hour
+                dataIO.save_json("data/rss/config.json", defaultDict)
 
 def _getFeed(rssUrl, channel, index=None):
 
@@ -77,10 +77,10 @@ def _getFeed(rssUrl, channel, index=None):
     try:
         latestPostTime = feeds['feeds'][index]['latest_post_time']
     except IndexError:
-        myDict = {}
-        myDict['id'] = index
-        myDict['latest_post_time'] = 0
-        feeds['feeds'].append(myDict)
+        feedDict = {}
+        feedDict['id'] = index
+        feedDict['latest_post_time'] = 0
+        feeds['feeds'].append(feedDict)
         dataIO.save_json("data/rss/feeds.json", feeds)
         feeds = dataIO.load_json("data/rss/feeds.json")
         latestPostTime = feeds['feeds'][index]['latest_post_time']
@@ -91,13 +91,13 @@ def _getFeed(rssUrl, channel, index=None):
     for item in feed['items']:
         itemPostTime = date2epoch(item['published'])
         if _isNewItem(latestPostTime, itemPostTime):
-            myDict = {}
-            myDict['title'] = item['title']
-            myDict['link'] = item['link']
-            myDict['published'] = item['published']
-            myDict['summary'] = item['summary']
-            myDict['url'] = rssUrl
-            news.append(myDict)
+            rssItem = {}
+            rssItem['title'] = item['title']
+            rssItem['link'] = item['link']
+            rssItem['published'] = item['published']
+            rssItem['summary'] = item['summary']
+            rssItem['url'] = rssUrl
+            news.append(rssItem)
 
     if not news:
         LOGGER.info("No new items in feed %s", str(index))
