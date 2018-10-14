@@ -99,7 +99,7 @@ def _getFeed(rssUrl, channel, index=None):
             myDict['url'] = rssUrl
             news.append(myDict)
 
-    if len(news) == 0:
+    if not news:
         LOGGER.info("No new items in feed %s", str(index))
     else:
         LOGGER.info("%s new items in feed %s", len(news), str(index))
@@ -123,6 +123,7 @@ def _isNewItem(latestPostTime, itemPostTime):
     return latestPostTime < itemPostTime
 
 class RSSFeed():
+    """RSS cog"""
     def __init__(self, bot):
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
@@ -141,8 +142,11 @@ class RSSFeed():
         """Set the interval for rss to scan for updates"""
         pass
 
-    async def rss(self):
-        """ Checks for rss updates periodically and posts any new content to the specific channel"""
+    async def rss(self): # pylint: disable=too-many-locals
+        """RSS background checker.
+        Checks for rss updates periodically and posts any new content to the specific
+        channel.
+        """
 
         while self == self.bot.get_cog("RSSFeed"):
             LOGGER.info("Scanning feed(s) for updates...")
@@ -159,7 +163,8 @@ class RSSFeed():
                 updates += feedUpdates
                 idx += 1
 
-            #reversed so updates display from latest to earliest, since they are appended earliest to latest
+            # Reversed so updates display from latest to earliest, since they are
+            # appended earliest to latest.
             for item in reversed(updates):
                 embed = discord.Embed()
                 embed.colour = discord.Colour.orange()
