@@ -77,10 +77,10 @@ def _getFeed(rssUrl, channel, index=None):
     try:
         latestPostTime = feeds['feeds'][index]['latest_post_time']
     except IndexError:
-        dict = {}
-        dict['id'] = index
-        dict['latest_post_time'] = 0
-        feeds['feeds'].append(dict)
+        myDict = {}
+        myDict['id'] = index
+        myDict['latest_post_time'] = 0
+        feeds['feeds'].append(myDict)
         dataIO.save_json("data/rss/feeds.json", feeds)
         feeds = dataIO.load_json("data/rss/feeds.json")
         latestPostTime = feeds['feeds'][index]['latest_post_time']
@@ -91,13 +91,13 @@ def _getFeed(rssUrl, channel, index=None):
     for item in feed['items']:
         itemPostTime = date2epoch(item['published'])
         if _isNewItem(latestPostTime, itemPostTime):
-            dict = {}
-            dict['title'] = item['title']
-            dict['link'] = item['link']
-            dict['published'] = item['published']
-            dict['summary'] = item['summary']
-            dict['url'] = rssUrl
-            news.append(dict)
+            myDict = {}
+            myDict['title'] = item['title']
+            myDict['link'] = item['link']
+            myDict['published'] = item['published']
+            myDict['summary'] = item['summary']
+            myDict['url'] = rssUrl
+            news.append(myDict)
 
     if len(news) == 0:
         LOGGER.info("No new items in feed %s", str(index))
@@ -117,13 +117,12 @@ def _getLatestPostTime(feedItems):
         publishedTimes.append(date2epoch(item['published']))
     if publishedTimes:
         return max(publishedTimes)
-    else:
-        return None #lets be explicit :)
+    return None #lets be explicit :)
 
 def _isNewItem(latestPostTime, itemPostTime):
     return latestPostTime < itemPostTime
 
-class RSSFeed(object):
+class RSSFeed():
     def __init__(self, bot):
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
