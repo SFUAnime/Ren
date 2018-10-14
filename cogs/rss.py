@@ -51,20 +51,77 @@ def checkFilesystem():
 
             if "feeds" in file:
                 #build a default feeds.json
-                dict = {}
+                myDict = {}
                 defaultFeed = {}
                 defaultFeed['id'] = 0
                 defaultFeed['latest_post_time'] = 0
-                dict['feeds'] = []
-                dict['feeds'].append(defaultFeed)
-                dataIO.save_json("data/rss/feeds.json", dict)
+                myDict['feeds'] = []
+                myDict['feeds'].append(defaultFeed)
+                dataIO.save_json("data/rss/feeds.json", myDict)
             elif "config" in file:
                 #build a default config.json
-                dict = {}
-                dict['post_channel'] = "change_me"
-                dict['rss_feed_urls'] = ["change_me"]
-                dict['check_interval'] = 3600 #default to checking every hour
-                dataIO.save_json("data/rss/config.json", dict)
+                myDict = {}
+                myDict['post_channel'] = "change_me"
+                myDict['rss_feed_urls'] = ["change_me"]
+                myDict['check_interval'] = 3600 #default to checking every hour
+                dataIO.save_json("data/rss/config.json", myDict)
+
+def _get_feed(rssUrl, channel, index=None):
+
+    if channel is None:
+        return []
+
+    feeds = dataIO.load_json("data/rss/feeds.json")
+
+    #ensure every rss url has a specified id and most recent post epoch
+    try:
+        latestPostTime = feeds['feeds'][index]['latest_post_time']
+    except IndexError:
+        dict = {}
+        dict['id'] = index
+        dict['latest_post_time'] = 0
+        feeds['feeds'].append(dict)
+        dataIO.save_json("data/rss/feeds.json", feeds)
+        feeds = dataIO.load_json("data/rss/feeds.json")
+        latestPostTime = feeds['feeds'][index]['latest_post_time']
+
+    news = []
+    feed = feedparser.parse(rssUrl)
+
+    for item in feed['items']:
+        itemPostTime = date2epoch(item['published'])
+        if _is_new_item(latestPostTime, itemPostTime):
+            dict = {}
+            dict['title'] = item['title']
+            dict['link'] = item['link']
+            dict['published'] = item['published']
+            dict['summary'] = item['summary']
+            dict['url'] = rssUrl
+            news.append(dict)
+
+    if len(news) == 0:
+        LOGGER.info("No new items in feed %s", str(index))
+    else:
+        LOGGER.info("%s new items in feed %s", len(news), str(index))
+
+    latestPostTime = _get_latest_post_time(feed['items'])
+    if latestPostTime:
+        feeds['feeds'][index]['latest_post_time'] = latestPostTime
+    dataIO.save_json("data/rss/feeds.json", feeds)
+
+    return news
+
+def _get_latest_post_time(feedItems):
+    publishedTimes = []
+    for item in feedItems:
+        publishedTimes.append(date2epoch(item['published']))
+    if publishedTimes:
+        return max(publishedTimes)
+    else:
+        return None #lets be explicit :)
+
+def _is_new_item(latestPostTime, itemPostTime):
+    return latestPostTime < itemPostTime
 
 class RSSFeed(object):
     def __init__(self, bot):
@@ -73,18 +130,6 @@ class RSSFeed(object):
         self.rssFeedUrls = self.settings['rss_feed_urls']
         self.checkInterval = self.settings['check_interval']
         self.channelId = self.settings['post_channel']
-
-    def _is_new_item(self, latestPostTime, itemPostTime):
-        return latestPostTime < itemPostTime
-
-    def _get_latest_post_time(self, feedItems):
-        publishedTimes = []
-        for item in feedItems:
-            publishedTimes.append(date2epoch(item['published']))
-        if publishedTimes:
-            return max(publishedTimes)
-        else:
-            return None #lets be explicit :)
 
     @commands.group(name="rss", pass_context=True, no_pm=True)
     async def _rss(self, ctx):
@@ -96,51 +141,6 @@ class RSSFeed(object):
     async def setinterval(self, ctx):
         """Set the interval for rss to scan for updates"""
         pass
-
-    def _get_feed(self, rssUrl, channel, index=None):
-
-        if channel is None:
-            return []
-
-        feeds = dataIO.load_json("data/rss/feeds.json")
-
-        #ensure every rss url has a specified id and most recent post epoch
-        try:
-            latestPostTime = feeds['feeds'][index]['latest_post_time']
-        except IndexError:
-            dict = {}
-            dict['id'] = index
-            dict['latest_post_time'] = 0
-            feeds['feeds'].append(dict)
-            dataIO.save_json("data/rss/feeds.json", feeds)
-            feeds = dataIO.load_json("data/rss/feeds.json")
-            latestPostTime = feeds['feeds'][index]['latest_post_time']
-
-        news = []
-        feed = feedparser.parse(rssUrl)
-
-        for item in feed['items']:
-            itemPostTime = date2epoch(item['published'])
-            if self._is_new_item(latestPostTime, itemPostTime):
-                dict = {}
-                dict['title'] = item['title']
-                dict['link'] = item['link']
-                dict['published'] = item['published']
-                dict['summary'] = item['summary']
-                dict['url'] = rssUrl
-                news.append(dict)
-
-        if len(news) == 0:
-            LOGGER.info("No new items in feed %s", str(index))
-        else:
-            LOGGER.info("%s new items in feed %s", len(news), str(index))
-
-        latestPostTime = self._get_latest_post_time(feed['items'])
-        if latestPostTime:
-            feeds['feeds'][index]['latest_post_time'] = latestPostTime
-        dataIO.save_json("data/rss/feeds.json", feeds)
-
-        return news
 
     async def rss(self):
         """ Checks for rss updates periodically and posts any new content to the specific channel"""
@@ -156,7 +156,7 @@ class RSSFeed(object):
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
 
             for feedUrl in self.rssFeedUrls:
-                feedUpdates = self._get_feed(feedUrl, postChannel, index=idx)
+                feedUpdates = _get_feed(feedUrl, postChannel, index=idx)
                 updates += feedUpdates
                 idx += 1
 
