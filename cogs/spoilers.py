@@ -5,6 +5,7 @@ later retrieval.
 
 from datetime import datetime, timedelta
 import logging
+import json
 import os
 import discord
 from discord.ext import commands
@@ -82,45 +83,59 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
         await self.bot.add_reaction(newMsg, "\N{INFORMATION SOURCE}")
         await self.settings.put("messages", self.messages)
 
-    async def checkForReaction(self, reaction, user):
-        """Reaction listener
+    async def checkForReaction(self, data):
+        """Reaction listener (using socket data)
         Checks to see if a spoilered message is reacted, and if so, send a DM to the
         user that reacted.
         """
-        # As per documentation, access the message via reaction.message.
-        if user.bot:
+        # no binary frames
+        if isinstance(data, bytes):
             return
-        msgId = reaction.message.id
-        if msgId in self.messages.keys():
-            await self.bot.remove_reaction(reaction.message,
-                                           reaction.emoji,
-                                           user)
 
-            if (msgId in self.onCooldown.keys() and
-                    user.id in self.onCooldown[msgId].keys() and
-                    self.onCooldown[msgId][user.id] > datetime.now()):
-                return
-            msg = self.messages[msgId]
-            embed = discord.Embed()
-            userObj = discord.utils.get(user.server.members,
-                                        id=msg[KEY_AUTHOR_ID])
-            if userObj:
-                embed.set_author(name="{0.name}#{0.discriminator}".format(userObj),
-                                 icon_url=userObj.avatar_url)
-            else:
-                embed.set_author(name=msg[KEY_AUTHOR_NAME])
-            embed.description = msg[KEY_MESSAGE]
-            embed.timestamp = datetime.fromtimestamp(int(msg[KEY_TIMESTAMP]))
-            try:
-                await self.bot.send_message(user, embed=embed)
-                if msgId not in self.onCooldown.keys():
-                    self.onCooldown[msgId] = {}
-                self.onCooldown[msgId][user.id] = datetime.now() + timedelta(seconds=COOLDOWN)
-            except discord.errors.Forbidden:
-                LOGGER.error("Could not send DM to %s#%s (%s).",
-                             user.name,
-                             user.discriminator,
-                             user.id)
+        data = json.loads(data)
+        event = data.get("t")
+        payload = data.get("d")
+        if event not in ("MESSAGE_REACTION_ADD", "MESSAGE_REACTION_REMOVE",
+                         "MESSAGE_REACTION_REMOVE_ALL"):
+            return
+
+        isReaction = event == "MESSAGE_REACTION_ADD"
+
+        # make sure the reaction is proper
+        if isReaction:
+            msgId = payload["message_id"]
+            if msgId in self.messages.keys():
+                server = discord.utils.get(self.bot.servers,
+                                           id=payload["guild_id"])
+                reactedUser = discord.utils.get(server.members,
+                                                id=payload["user_id"])
+
+                if (msgId in self.onCooldown.keys() and
+                        reactedUser.id in self.onCooldown[msgId].keys() and
+                        self.onCooldown[msgId][reactedUser.id] > datetime.now()):
+                    return
+                msg = self.messages[msgId]
+                embed = discord.Embed()
+                userObj = discord.utils.get(server.members,
+                                            id=msg[KEY_AUTHOR_ID])
+                if userObj:
+                    embed.set_author(name="{0.name}#{0.discriminator}".format(userObj),
+                                     icon_url=userObj.avatar_url)
+                else:
+                    embed.set_author(name=msg[KEY_AUTHOR_NAME])
+                embed.description = msg[KEY_MESSAGE]
+                embed.timestamp = datetime.fromtimestamp(int(msg[KEY_TIMESTAMP]))
+                try:
+                    await self.bot.send_message(reactedUser, embed=embed)
+                    if msgId not in self.onCooldown.keys():
+                        self.onCooldown[msgId] = {}
+                    self.onCooldown[msgId][reactedUser.id] = (datetime.now() +
+                                                              timedelta(seconds=COOLDOWN))
+                except discord.errors.Forbidden:
+                    LOGGER.error("Could not send DM to %s#%s (%s).",
+                                 reactedUser.name,
+                                 reactedUser.discriminator,
+                                 reactedUser.id)
 
 def setup(bot):
     """Add the cog to the bot."""
@@ -138,5 +153,5 @@ def setup(bot):
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
                                                datefmt="[%d/%m/%Y %H:%M:%S]"))
         LOGGER.addHandler(handler)
-    bot.add_listener(spoilersCog.checkForReaction, "on_reaction_add")
+    bot.add_listener(spoilersCog.checkForReaction, "on_socket_raw_receive")
     bot.add_cog(spoilersCog)
