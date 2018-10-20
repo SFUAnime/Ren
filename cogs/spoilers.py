@@ -142,11 +142,12 @@ class Spoilers: # pylint: disable=too-many-instance-attributes
                         self.onCooldown[msgId] = {}
                     self.onCooldown[msgId][reactedUser.id] = (datetime.now() +
                                                               timedelta(seconds=COOLDOWN))
-                except discord.errors.Forbidden:
+                except (discord.errors.Forbidden, discord.errors.HTTPException) as error:
                     LOGGER.error("Could not send DM to %s#%s (%s).",
                                  reactedUser.name,
                                  reactedUser.discriminator,
                                  reactedUser.id)
+                    LOGGER.error(error)
 
 def setup(bot):
     """Add the cog to the bot."""
