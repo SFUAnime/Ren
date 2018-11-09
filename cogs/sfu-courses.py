@@ -218,7 +218,7 @@ class SFUCourses:
         self.bot = bot
             
     @commands.command(name="course", pass_context=True, no_pm=True)
-    async def _courselookup(self, ctx, department: str, number: str, year: str=None, semester: str=None, section: str=None):
+    async def _courselookup(self, ctx, department: str, number: str, semester: str=None, year: str=None, section: str=None):
         """Displays a course outline.  Defaults to current semester and year.
         
         Semester: spring, summer, fall
