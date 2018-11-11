@@ -106,7 +106,7 @@ class RoleAssigner:
             roles.append(roleObject)
 
         for index, user in enumerate(users):
-            anyRoles = [ i for i in user.roles if i in roles ]
+            anyRoles = [i for i in user.roles if i in roles]
             if not anyRoles:
                 await self.bot.add_roles(user, roles[index % numberOfRoles])
 
