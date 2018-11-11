@@ -4,6 +4,7 @@ Randomly assigns roles to users.
 """
 
 import os # Used to create folder path.
+import random
 import itertools
 import discord
 from discord.ext import commands
@@ -11,6 +12,7 @@ from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 from .utils import config, checks # pylint: disable=relative-beyond-top-level
 
 SAVE_FOLDER = "data/lui-cogs/roleAssigner"
+MAX_LENGTH = 2000 # For a message
 
 def checkFolder():
     """Used to create the data folder at first startup"""
@@ -144,11 +146,37 @@ class RoleAssigner:
     async def raRandom(self, ctx, fromRole: discord.Role, number: int,
                        assignRole: discord.Role):
         """Assign a role to some users from a certain role.
-        
+
         Pick `number` of users from fromRole at random, and assign assignRole to
         those users.
         """
-        pass
+        if number <= 0:
+            await self.bot.say(":negative_squared_cross_mark: **Role Assigner - "
+                               "Random:** Please enter a positive number!")
+            return
+
+        users = ctx.message.server.members
+        eligibleUsers = [user for user in users if fromRole in user.roles]
+
+        if number > len(eligibleUsers):
+            # Assign role to all eligible users.
+            picked = eligibleUsers
+        else:
+            # Randomize and select the first `number` users.
+            random.shuffle(eligibleUsers)
+            picked = eligibleUsers[0:number]
+
+        await self.bot.say(":white_check_mark: **Role Assigner - Random:** The "
+                           "following users were picked:")
+
+        msg = ""
+        for user in picked:
+            await self.bot.add_roles(user, assignRole)
+            if len(msg) > MAX_LENGTH:
+                await self.bot.say(msg)
+                msg = ""
+            msg += "{}\n".format(user.name)
+        await self.bot.say(msg)
 
 def setup(bot):
     """Add the cog to the bot."""
