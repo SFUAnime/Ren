@@ -178,19 +178,24 @@ class RoleAssigner:
                                "Random:** Nobody was eligible to be assigned!")
             return
 
-        await self.bot.say(":white_check_mark: **Role Assigner - Random:** The "
-                           "following users were picked from the **{}** role and "
-                           "assigned to the role **{}**:"
-                           .format(fromRole.name, assignRole.name))
+        status = await self.bot.say(":hourglass: **Role Assigner - Random:** Randomly "
+                                    "picking users from the role **{}** and assigning "
+                                    "them to the role **{}**.  Please wait...\n"
+                                    "Users being assigned:"
+                                    .format(fromRole.name, assignRole.name))
 
-        msg = ""
+        msg = "**|** "
         for user in picked:
             await self.bot.add_roles(user, assignRole)
             if len(msg) > MAX_LENGTH:
                 await self.bot.say(msg)
-                msg = ""
-            msg += "{}\n".format(user.name)
+                msg = "**|** "
+            msg += "{} **|** ".format(user.name)
         await self.bot.say(msg)
+        msg = (":white_check_mark: **Role Assigner - Random:** The following users "
+               "were picked from the **{}** role and assigned to the role **{}**:"
+               .format(fromRole.name, assignRole.name))
+        await self.bot.edit_message(status, msg)
 
 def setup(bot):
     """Add the cog to the bot."""
