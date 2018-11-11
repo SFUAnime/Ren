@@ -140,6 +140,16 @@ class RoleAssigner:
             msg += "."
         await self.bot.edit_message(msgId, msg)
 
+    @roleAssigner.command(name="random", pass_context=True)
+    async def raRandom(self, ctx, fromRole: discord.Role, number: int,
+                       assignRole: discord.Role):
+        """Assign a role to some users from a certain role.
+        
+        Pick `number` of users from fromRole at random, and assign assignRole to
+        those users.
+        """
+        pass
+
 def setup(bot):
     """Add the cog to the bot."""
     checkFolder()
