@@ -145,7 +145,7 @@ class RoleAssigner:
     @roleAssigner.command(name="random", pass_context=True)
     async def raRandom(self, ctx, fromRole: discord.Role, number: int,
                        assignRole: discord.Role,
-                       excludeFromRole: discord.Role=None):
+                       excludeFromRole: discord.Role = None):
         """Assign a role to some users from a certain role.
 
         Pick `number` of users from fromRole at random, and assign assignRole to
