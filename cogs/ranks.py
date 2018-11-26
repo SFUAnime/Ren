@@ -306,7 +306,7 @@ class Ranks:
 
         currentXP = 0
 
-        if fetch is not 0: # This user has past XP that we can add to.
+        if fetch != 0: # This user has past XP that we can add to.
             result = cursor.fetchall()
             currentXP = result[0][0] + pointsToAdd
         else: # New user
