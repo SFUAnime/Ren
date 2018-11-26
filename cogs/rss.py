@@ -143,7 +143,6 @@ class RSSFeed():
     @_rss.command(pass_context=True, no_pm=True)
     async def setinterval(self, ctx):
         """Set the interval for rss to scan for updates"""
-        pass
 
     async def rss(self): # pylint: disable=too-many-locals
         """RSS background checker.
