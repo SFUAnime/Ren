@@ -594,9 +594,6 @@ class Stars:
         try:
             startMsg = await self.bot.get_message(ctx.starboard, messageId)
         except (discord.errors.HTTPException, discord.errors.NotFound):
-            startMsg = None
-
-        if not startMsg:
             await self.bot.say("This message ID is invalid or could not be found, "
                                "please try again!")
             return
