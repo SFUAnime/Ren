@@ -77,7 +77,8 @@ class Birthday:
         assigned and removed by the bot by placing it in the correct hierarchy location.
         """
 
-        await self.bot.say(":white_check_mark: **Birthday - Role**: **{}** has been set as the birthday role!".format(role.name))
+        await self.bot.say(":white_check_mark: **Birthday - Role**: **{}** has been set "
+                           "as the birthday role!".format(role.name))
 
         # Acquire lock and save settings to file.
         self.settingsLock.acquire()
@@ -98,41 +99,53 @@ class Birthday:
     @checks.mod_or_permissions(administrator=True)
     async def _birthdayAdd(self, ctx, user: discord.Member):
         """Add a user to the birthday role"""
-        if ctx.message.server.id not in self.settings.keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This server is not configured, please set a role!")
+        sid = ctx.message.id
+        if sid not in self.settings.keys():
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This "
+                               "server is not configured, please set a role!")
             return
-        elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please set a role before adding a user!")
+        elif KEY_BDAY_ROLE not in self.settings[sid].keys():
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please "
+                               "set a role before adding a user!")
             return
-        elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please set a role before adding a user!")
+        elif self.settings[sid][KEY_BDAY_ROLE] is None:
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please "
+                               "set a role before adding a user!")
             return
 
         try:
             # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.server.roles, id=self.settings[ctx.message.server.id][KEY_BDAY_ROLE])
+            role = discord.utils.get(ctx.message.server.roles,
+                                     id=self.settings[sid][KEY_BDAY_ROLE])
 
             # Add the role to the user.
             await self.bot.add_roles(user, role)
         except discord.errors.Forbidden as e:
             print("Birthday Error:")
             print(e)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Could not add **{}** to the list, the bot does not have enough permissions to do so!".format(user.name))
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Could "
+                               "not add **{}** to the list, the bot does not have enough "
+                               "permissions to do so!".format(user.name))
             return
 
         # Save settings
         self.settingsLock.acquire()
         try:
             self.loadSettings()
-            if ctx.message.server.id not in self.settings.keys():
-                self.settings[ctx.message.server.id] = {}
-            if KEY_BDAY_USERS not in self.settings[ctx.message.server.id].keys():
-                self.settings[ctx.message.server.id][KEY_BDAY_USERS] = {}
-            if user.id not in self.settings[ctx.message.server.id][KEY_BDAY_USERS].keys():
-                self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id] = {}
-            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_IS_ASSIGNED] = True
-            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+
+            if sid not in self.settings.keys():
+                self.settings[sid] = {}
+            if KEY_BDAY_USERS not in self.settings[sid].keys():
+                self.settings[sid][KEY_BDAY_USERS] = {}
+            if user.id not in self.settings[sid][KEY_BDAY_USERS].keys():
+                self.settings[sid][KEY_BDAY_USERS][user.id] = {}
+            userConfig = self.settings[sid][KEY_BDAY_USERS][user.id]
+
+            userConfig[KEY_IS_ASSIGNED] = True
+            userConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+            userConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+
+            self.settings[sid][KEY_BDAY_USERS][user.id] = userConfig
 
             self.saveSettings()
         except Exception as e:
@@ -234,7 +247,7 @@ class Birthday:
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        p = Pages(self.bot,message=ctx.message,entries=display)
+        p = Pages(self.bot, message=ctx.message, entries=display)
         p.embed.title = "Birthdays in **{}**".format(serverName)
         p.embed.colour = discord.Colour.red()
         await p.paginate()
