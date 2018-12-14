@@ -40,8 +40,9 @@ def checkFiles():
 
 
 class Birthday:
-    """Adds a role to someone on their birthday, and automatically remove them from this role after the day is over."""
-
+    """Adds a role to someone on their birthday, and automatically remove them from
+    this role after the day is over.
+    """
 
     def loadSettings(self):
         """Loads settings from the JSON file"""
@@ -72,8 +73,9 @@ class Birthday:
     @_birthday.command(name="setrole", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
     async def _birthdayRole(self, ctx, role: discord.Role):
-        """Set the role to assign to a birthday user.  Make sure this role can be assigned
-        and removed by the bot by placing it in the correct hierarchy location."""
+        """Set the role to assign to a birthday user.  Make sure this role can be
+        assigned and removed by the bot by placing it in the correct hierarchy location.
+        """
 
         await self.bot.say(":white_check_mark: **Birthday - Role**: **{}** has been set as the birthday role!".format(role.name))
 
