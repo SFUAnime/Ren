@@ -14,26 +14,26 @@ from cogs.utils.dataIO import dataIO
 from cogs.utils import checks
 
 #Global variables
-keyBirthdayRole = "birthdayRole"
-keyBirthdayUsers = "birthdayUsers"
-keyBirthdateMonth = "birthdateMonth"
-keyBirthdateDay = "birthdateDay"
-keyIsAssigned = "isAssigned"
-keyDateAssignedMonth = "dateAssignedMonth"
-keyDateAssignedDay = "dateAssignedDay"
-saveFolder = "data/lui-cogs/birthday/" #Path to save folder.
-saveFile = "settings.json"
+KEY_BDAY_ROLE = "birthdayRole"
+KEY_BDAY_USERS = "birthdayUsers"
+KEY_BDAY_MONTH = "birthdateMonth"
+KEY_BDAY_DAY = "birthdateDay"
+KEY_IS_ASSIGNED = "isAssigned"
+KEY_DATE_SET_MONTH = "dateAssignedMonth"
+KEY_DATE_SET_DAY = "dateAssignedDay"
+SAVE_FOLDER = "data/lui-cogs/birthday/" #Path to save folder.
+SAVE_FILE = "settings.json"
 
 def checkFolder():
     """Used to create the data folder at first startup"""
-    if not os.path.exists(saveFolder):
-        print("Creating " + saveFolder + " folder...")
-        os.makedirs(saveFolder)
+    if not os.path.exists(SAVE_FOLDER):
+        print("Creating " + SAVE_FOLDER + " folder...")
+        os.makedirs(SAVE_FOLDER)
 
 def checkFiles():
     """Used to initialize an empty database at first startup"""
 
-    f = saveFolder + saveFile
+    f = SAVE_FOLDER + SAVE_FILE
     if not dataIO.is_valid_json(f):
         print("Creating default birthday settings.json...")
         dataIO.save_json(f, {})
@@ -45,11 +45,11 @@ class Birthday:
 
     def loadSettings(self):
         """Loads settings from the JSON file"""
-        self.settings = dataIO.load_json(saveFolder+saveFile)
+        self.settings = dataIO.load_json(SAVE_FOLDER+SAVE_FILE)
 
     def saveSettings(self):
         """Loads settings from the JSON file"""
-        dataIO.save_json(saveFolder+saveFile, self.settings)
+        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, self.settings)
 
     #Class constructor
     def __init__(self, bot):
@@ -83,7 +83,7 @@ class Birthday:
             self.loadSettings()
             if ctx.message.server.id not in self.settings:
                 self.settings[ctx.message.server.id] = {}
-            self.settings[ctx.message.server.id][keyBirthdayRole] = role.id
+            self.settings[ctx.message.server.id][KEY_BDAY_ROLE] = role.id
             self.saveSettings()
         except Exception as e:
             print("Birthday Error:")
@@ -99,16 +99,16 @@ class Birthday:
         if ctx.message.server.id not in self.settings.keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This server is not configured, please set a role!")
             return
-        elif keyBirthdayRole not in self.settings[ctx.message.server.id].keys():
+        elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please set a role before adding a user!")
             return
-        elif self.settings[ctx.message.server.id][keyBirthdayRole] is None:
+        elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please set a role before adding a user!")
             return
 
         try:
             # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.server.roles, id=self.settings[ctx.message.server.id][keyBirthdayRole])
+            role = discord.utils.get(ctx.message.server.roles, id=self.settings[ctx.message.server.id][KEY_BDAY_ROLE])
 
             # Add the role to the user.
             await self.bot.add_roles(user, role)
@@ -124,13 +124,13 @@ class Birthday:
             self.loadSettings()
             if ctx.message.server.id not in self.settings.keys():
                 self.settings[ctx.message.server.id] = {}
-            if keyBirthdayUsers not in self.settings[ctx.message.server.id].keys():
-                self.settings[ctx.message.server.id][keyBirthdayUsers] = {}
-            if user.id not in self.settings[ctx.message.server.id][keyBirthdayUsers].keys():
-                self.settings[ctx.message.server.id][keyBirthdayUsers][user.id] = {}
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyIsAssigned] = True
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyDateAssignedMonth] = int(time.strftime("%m"))
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyDateAssignedDay] = int(time.strftime("%d"))
+            if KEY_BDAY_USERS not in self.settings[ctx.message.server.id].keys():
+                self.settings[ctx.message.server.id][KEY_BDAY_USERS] = {}
+            if user.id not in self.settings[ctx.message.server.id][KEY_BDAY_USERS].keys():
+                self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id] = {}
+            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_IS_ASSIGNED] = True
+            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+            self.settings[ctx.message.server.id][KEY_BDAY_USERS][user.id][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
 
             self.saveSettings()
         except Exception as e:
@@ -161,10 +161,10 @@ class Birthday:
         if ctx.message.server.id not in self.settings.keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: This server is not configured, please set a role!")
             return
-        elif keyBirthdayRole not in self.settings[ctx.message.server.id].keys():
+        elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Please notify the server admin to set a role before continuing!")
             return
-        elif self.settings[ctx.message.server.id][keyBirthdayRole] is None:
+        elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Please notify the server admin to set a role before continuing!")
             return
 
@@ -174,12 +174,12 @@ class Birthday:
             self.loadSettings()
             if ctx.message.server.id not in self.settings.keys():
                 self.settings[ctx.message.server.id] = {}
-            if keyBirthdayUsers not in self.settings[ctx.message.server.id].keys():
-                self.settings[ctx.message.server.id][keyBirthdayUsers] = {}
-            if forUser.id not in self.settings[ctx.message.server.id][keyBirthdayUsers].keys():
-                self.settings[ctx.message.server.id][keyBirthdayUsers][forUser.id] = {}
-            self.settings[ctx.message.server.id][keyBirthdayUsers][forUser.id][keyBirthdateMonth] = month
-            self.settings[ctx.message.server.id][keyBirthdayUsers][forUser.id][keyBirthdateDay] = day
+            if KEY_BDAY_USERS not in self.settings[ctx.message.server.id].keys():
+                self.settings[ctx.message.server.id][KEY_BDAY_USERS] = {}
+            if forUser.id not in self.settings[ctx.message.server.id][KEY_BDAY_USERS].keys():
+                self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id] = {}
+            self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id][KEY_BDAY_MONTH] = month
+            self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id][KEY_BDAY_DAY] = day
 
             self.saveSettings()
         except Exception as e:
@@ -209,15 +209,15 @@ class Birthday:
         display = [] # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
-        for user, items in self.settings[serverID][keyBirthdayUsers].items():
+        for user, items in self.settings[serverID][KEY_BDAY_USERS].items():
             # Check if the birthdate keys exist, and they are not null.
             # If true, add an ID key and append to list.
-            if keyBirthdateDay in items.keys() and keyBirthdateMonth in items.keys() and keyBirthdateDay is not None and keyBirthdateMonth is not None:
+            if KEY_BDAY_DAY in items.keys() and KEY_BDAY_MONTH in items.keys() and KEY_BDAY_DAY is not None and KEY_BDAY_MONTH is not None:
                 items["ID"] = user
                 sortedList.append(items)
 
         # Sort by month, day.
-        sortedList.sort(key=lambda x: (x[keyBirthdateMonth], x[keyBirthdateDay]))
+        sortedList.sort(key=lambda x: (x[KEY_BDAY_MONTH], x[KEY_BDAY_DAY]))
 
         for user in sortedList:
             # Get the associated user Discord object.
@@ -228,7 +228,7 @@ class Birthday:
                 continue
 
             # The year below is just there to accommodate leap year.  Not used anywhere else.
-            userBirthday = datetime.datetime(2020, user[keyBirthdateMonth], user[keyBirthdateDay])
+            userBirthday = datetime.datetime(2020, user[KEY_BDAY_MONTH], user[KEY_BDAY_DAY])
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
@@ -246,11 +246,11 @@ class Birthday:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This "
                                "server is not configured, please set a role!")
             return
-        elif keyBirthdayRole not in self.settings[ctx.message.server.id].keys():
+        elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
                                "set a role before removing a user from the role!")
             return
-        elif self.settings[ctx.message.server.id][keyBirthdayRole] is None:
+        elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
                                "set a role before removing a user from the role!")
             return
@@ -259,11 +259,11 @@ class Birthday:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
                                "user is not on the list!")
             return
-        if keyBirthdayUsers not in self.settings[ctx.message.server.id].keys():
+        if KEY_BDAY_USERS not in self.settings[ctx.message.server.id].keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
                                "user is not on the list!")
             return
-        if user.id not in self.settings[ctx.message.server.id][keyBirthdayUsers].keys():
+        if user.id not in self.settings[ctx.message.server.id][KEY_BDAY_USERS].keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
                                "user is not on the list!")
             return
@@ -272,7 +272,7 @@ class Birthday:
         try:
             # Find the Role object to add to the user.
             role = discord.utils.get(ctx.message.server.roles,
-                                     id=self.settings[ctx.message.server.id][keyBirthdayRole])
+                                     id=self.settings[ctx.message.server.id][KEY_BDAY_ROLE])
 
             # Add the role to the user.
             await self.bot.remove_roles(user, role)
@@ -288,9 +288,9 @@ class Birthday:
         try:
             self.loadSettings()
             sid = ctx.message.server.id
-            self.settings[sid][keyBirthdayUsers][user.id][keyIsAssigned] = False
-            self.settings[sid][keyBirthdayUsers][user.id][keyDateAssignedMonth] = None
-            self.settings[sid][keyBirthdayUsers][user.id][keyDateAssignedDay] = None
+            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_IS_ASSIGNED] = False
+            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_DATE_SET_MONTH] = None
+            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_DATE_SET_DAY] = None
 
             self.saveSettings()
         except Exception as e:
@@ -326,13 +326,13 @@ class Birthday:
             # Check each server.
             for server in self.settings:
                 # Check to see if any users need to be removed.
-                for user in self.settings[server][keyBirthdayUsers]:
+                for user in self.settings[server][KEY_BDAY_USERS]:
                     # If assigned and the date is different than the date assigned, remove role.
                     try:
-                        if self.settings[server][keyBirthdayUsers][user][keyIsAssigned]:
-                            if self.settings[server][keyBirthdayUsers][user][keyDateAssignedMonth] != int(time.strftime("%m")) or self.settings[server][keyBirthdayUsers][user][keyDateAssignedDay] != int(time.strftime("%d")):
+                        if self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED]:
+                            if self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_DAY] != int(time.strftime("%d")):
                                 serverObject = discord.utils.get(self.bot.servers, id=server)
-                                roleObject = discord.utils.get(serverObject.roles, id=self.settings[server][keyBirthdayRole])
+                                roleObject = discord.utils.get(serverObject.roles, id=self.settings[server][KEY_BDAY_ROLE])
                                 userObject = discord.utils.get(serverObject.members, id=user)
 
                                 # Remove the role
@@ -344,12 +344,12 @@ class Birthday:
                                     print(e)
 
                                 # Update the list.
-                                self.settings[server][keyBirthdayUsers][user][keyIsAssigned] = False
+                                self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = False
                                 self.saveSettings()
                     except KeyError as e:
                         print("Birthday Error - Sweep Loop: Assigning key.")
                         print(e)
-                        self.settings[server][keyBirthdayUsers][user][keyIsAssigned] = False
+                        self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = False
                         self.saveSettings()
                     except Exception as e:
                         # This happens if the isAssigned key is non-existent.
@@ -370,20 +370,20 @@ class Birthday:
             # Check each server.
             for server in self.settings:
                 # Check to see if any users need to be removed.
-                for user in self.settings[server][keyBirthdayUsers]:
+                for user in self.settings[server][KEY_BDAY_USERS]:
                     # If today is the user's birthday, and the role is not assigned, assign the role.
                     # Get the current user, and make it a local variable to easily manipulate.
-                    currentUser = self.settings[server][keyBirthdayUsers][user]
+                    currentUser = self.settings[server][KEY_BDAY_USERS][user]
 
                     # Check if the keys for birthdate day and month exist, and that they're not null
-                    if keyBirthdateDay in currentUser.keys() and keyBirthdateMonth in currentUser.keys() and currentUser[keyBirthdateDay] is not None and currentUser[keyBirthdateMonth] is not None:
-                        birthdayDay = currentUser[keyBirthdateDay]
-                        birthdayMonth = currentUser[keyBirthdateMonth]
+                    if KEY_BDAY_DAY in currentUser.keys() and KEY_BDAY_MONTH in currentUser.keys() and currentUser[KEY_BDAY_DAY] is not None and currentUser[KEY_BDAY_MONTH] is not None:
+                        birthdayDay = currentUser[KEY_BDAY_DAY]
+                        birthdayMonth = currentUser[KEY_BDAY_MONTH]
 
                         if birthdayMonth == int(time.strftime("%m")) and birthdayDay == int(time.strftime("%d")):
                             # Get the necessary Discord objects.
                             serverObject = discord.utils.get(self.bot.servers, id=server)
-                            roleObject = discord.utils.get(serverObject.roles, id=self.settings[server][keyBirthdayRole])
+                            roleObject = discord.utils.get(serverObject.roles, id=self.settings[server][KEY_BDAY_ROLE])
                             userObject = discord.utils.get(serverObject.members, id=user)
 
                             # Skip if user is no longer in server.
@@ -391,14 +391,14 @@ class Birthday:
                                 continue
 
                             try:
-                                if not currentUser[keyIsAssigned] and userObject is not None:
+                                if not currentUser[KEY_IS_ASSIGNED] and userObject is not None:
                                     try:
                                         await self.bot.add_roles(userObject, roleObject)
                                         print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
                                         # Update the list.
-                                        self.settings[server][keyBirthdayUsers][user][keyIsAssigned] = True
-                                        self.settings[server][keyBirthdayUsers][user][keyDateAssignedMonth] = int(time.strftime("%m"))
-                                        self.settings[server][keyBirthdayUsers][user][keyDateAssignedDay] = int(time.strftime("%d"))
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = True
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
                                         self.saveSettings()
                                     except discord.errors.Forbidden as e:
                                         print("Birthday Error - Add Loop - Not Assigned If:")
@@ -409,9 +409,9 @@ class Birthday:
                                         await self.bot.add_roles(userObject, roleObject)
                                         print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
                                         # Update the list.
-                                        self.settings[server][keyBirthdayUsers][user][keyIsAssigned] = True
-                                        self.settings[server][keyBirthdayUsers][user][keyDateAssignedMonth] = int(time.strftime("%m"))
-                                        self.settings[server][keyBirthdayUsers][user][keyDateAssignedDay] = int(time.strftime("%d"))
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = True
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
                                         self.saveSettings()
                                     except discord.errors.Forbidden as e:
                                         print("Birthday Error - Add Loop - Non-existent isAssigned Key If:")
