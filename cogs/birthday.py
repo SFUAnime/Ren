@@ -302,7 +302,7 @@ class Birthday:
         finally:
             self.settingsLock.release()
         await self.bot.say(":white_check_mark: **Birthday - Delete**: Successfully removed "
-                            "**{}** from the list and removed the role.".format(user.name))
+                           "**{}** from the list and removed the role.".format(user.name))
 
         return
 
@@ -370,15 +370,17 @@ class Birthday:
             # Check each server.
             for server in self.settings:
                 # Check to see if any users need to be removed.
-                for user in self.settings[server][KEY_BDAY_USERS]:
+                for userId, userDetails in self.settings[server][KEY_BDAY_USERS].items():
                     # If today is the user's birthday, and the role is not assigned, assign the role.
                     # Get the current user, and make it a local variable to easily manipulate.
-                    currentUser = self.settings[server][KEY_BDAY_USERS][user]
 
                     # Check if the keys for birthdate day and month exist, and that they're not null
-                    if KEY_BDAY_DAY in currentUser.keys() and KEY_BDAY_MONTH in currentUser.keys() and currentUser[KEY_BDAY_DAY] is not None and currentUser[KEY_BDAY_MONTH] is not None:
-                        birthdayDay = currentUser[KEY_BDAY_DAY]
-                        birthdayMonth = currentUser[KEY_BDAY_MONTH]
+                    if KEY_BDAY_DAY in userDetails.keys() and \
+                            KEY_BDAY_MONTH in userDetails.keys() and \
+                            userDetails[KEY_BDAY_DAY] is not None and \
+                            userDetails[KEY_BDAY_MONTH] is not None:
+                        birthdayDay = userDetails[KEY_BDAY_DAY]
+                        birthdayMonth = userDetails[KEY_BDAY_MONTH]
 
                         if birthdayMonth == int(time.strftime("%m")) and birthdayDay == int(time.strftime("%d")):
                             # Get the necessary Discord objects.
@@ -396,9 +398,10 @@ class Birthday:
                                         await self.bot.add_roles(userObject, roleObject)
                                         print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
                                         # Update the list.
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = True
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                                        userDetails[KEY_IS_ASSIGNED] = True
+                                        userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+                                        userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                                        self.settings[server][KEY_BDAY_USERS][userId] = userDetails
                                         self.saveSettings()
                                     except discord.errors.Forbidden as e:
                                         print("Birthday Error - Add Loop - Not Assigned If:")
@@ -409,9 +412,10 @@ class Birthday:
                                         await self.bot.add_roles(userObject, roleObject)
                                         print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
                                         # Update the list.
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_IS_ASSIGNED] = True
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                        self.settings[server][KEY_BDAY_USERS][user][KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                                        userDetails[KEY_IS_ASSIGNED] = True
+                                        userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+                                        userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                                        self.settings[server][KEY_BDAY_USERS][userId] = userDetails
                                         self.saveSettings()
                                     except discord.errors.Forbidden as e:
                                         print("Birthday Error - Add Loop - Non-existent isAssigned Key If:")
