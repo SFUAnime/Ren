@@ -243,53 +243,66 @@ class Birthday:
     async def _birthdayDel(self, ctx, user: discord.Member):
         """Remove a user from the birthday role manually."""
         if ctx.message.server.id not in self.settings.keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This server is not configured, please set a role!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This "
+                               "server is not configured, please set a role!")
             return
         elif keyBirthdayRole not in self.settings[ctx.message.server.id].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please set a role before removing a user from the role!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
+                               "set a role before removing a user from the role!")
             return
         elif self.settings[ctx.message.server.id][keyBirthdayRole] is None:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please set a role before removing a user from the role!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
+                               "set a role before removing a user from the role!")
             return
 
         if ctx.message.server.id not in self.settings.keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The user is not on the list!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
+                               "user is not on the list!")
             return
         if keyBirthdayUsers not in self.settings[ctx.message.server.id].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The user is not on the list!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
+                               "user is not on the list!")
             return
         if user.id not in self.settings[ctx.message.server.id][keyBirthdayUsers].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The user is not on the list!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
+                               "user is not on the list!")
             return
 
 
         try:
             # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.server.roles, id=self.settings[ctx.message.server.id][keyBirthdayRole])
+            role = discord.utils.get(ctx.message.server.roles,
+                                     id=self.settings[ctx.message.server.id][keyBirthdayRole])
 
             # Add the role to the user.
             await self.bot.remove_roles(user, role)
         except discord.errors.Forbidden as e:
             print("Birthday Error:")
             print(e)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Could not remove **{}** from the role, the bot does not have enough permissions to do so!".format(user.name))
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: "
+                               "Could not remove **{}** from the role, the bot does not "
+                               "have enough permissions to do so!".format(user.name))
             return
 
         self.settingsLock.acquire()
         try:
             self.loadSettings()
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyIsAssigned] = False
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyDateAssignedMonth] = None
-            self.settings[ctx.message.server.id][keyBirthdayUsers][user.id][keyDateAssignedDay] = None
+            sid = ctx.message.server.id
+            self.settings[sid][keyBirthdayUsers][user.id][keyIsAssigned] = False
+            self.settings[sid][keyBirthdayUsers][user.id][keyDateAssignedMonth] = None
+            self.settings[sid][keyBirthdayUsers][user.id][keyDateAssignedDay] = None
 
             self.saveSettings()
         except Exception as e:
             print("Birthday Error:")
             print(e)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Could not remove **{}** from the list, but the role was removed!  Please try again.".format(user.name))
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: "
+                               "Could not remove **{}** from the list, but the role was "
+                               "removed!  Please try again.".format(user.name))
         finally:
             self.settingsLock.release()
-        await self.bot.say(":white_check_mark: **Birthday - Delete**: Successfully removed **{}** from the list and removed the role.".format(user.name))
+        await self.bot.say(":white_check_mark: **Birthday - Delete**: Successfully removed "
+                            "**{}** from the list and removed the role.".format(user.name))
 
         return
 
