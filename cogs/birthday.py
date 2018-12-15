@@ -384,26 +384,26 @@ class Birthday:
                                 # Remove the role
                                 try:
                                     await self.bot.remove_roles(userObject, roleObject)
-                                    print("Birthday: Removing role from {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
-                                except discord.errors.Forbidden as e:
-                                    print("Birthday Error - Sweep Loop - Removing Role:")
-                                    print(e)
+                                    LOGGER.info("Removed role from %s#%s (%s)",
+                                                userObject.name,
+                                                userObject.discriminator,
+                                                userObject.id)
+                                except discord.errors.Forbidden as error:
+                                    LOGGER.error("Could not remove role from %s#%s (%s)!",
+                                                 userObject.name,
+                                                 userObject.discriminator,
+                                                 userObject.id)
+                                    LOGGER.error(error)
 
                                 # Update the list.
                                 self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
                                 self.saveSettings()
-                    except KeyError as e:
-                        print("Birthday Error - Sweep Loop: Assigning key.")
-                        print(e)
+                    except KeyError as error:
+                        LOGGER.error(error)
                         self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
                         self.saveSettings()
-                    except Exception as e:
-                        # This happens if the isAssigned key is non-existent.
-                        print("Birthday Error - Sweep Loop:")
-                        print(e)
-        except Exception as e:
-            print("Birthday Error - Sweep Loop:")
-            print(e)
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error("Broad exception: %s", error)
         finally:
             self.settingsLock.release()
 
