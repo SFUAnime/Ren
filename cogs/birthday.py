@@ -108,7 +108,7 @@ class Birthday:
     @checks.mod_or_permissions(administrator=True)
     async def _birthdayAdd(self, ctx, user: discord.Member):
         """Add a user to the birthday role"""
-        sid = ctx.message.id
+        sid = ctx.message.server.id
         if sid not in self.settings.keys():
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This "
                                "server is not configured, please set a role!")
