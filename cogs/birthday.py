@@ -246,7 +246,10 @@ class Birthday:
         for user, items in self.settings[serverID][KEY_BDAY_USERS].items():
             # Check if the birthdate keys exist, and they are not null.
             # If true, add an ID key and append to list.
-            if KEY_BDAY_DAY in items.keys() and KEY_BDAY_MONTH in items.keys() and KEY_BDAY_DAY is not None and KEY_BDAY_MONTH is not None:
+            if KEY_BDAY_DAY in items.keys() and \
+                    KEY_BDAY_MONTH in items.keys() and \
+                    KEY_BDAY_DAY is not None and \
+                    KEY_BDAY_MONTH is not None:
                 items["ID"] = user
                 sortedList.append(items)
 
