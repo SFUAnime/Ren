@@ -240,7 +240,7 @@ class Birthday:
         await self.bot.edit_message(messageID,
                                     ":white_check_mark: **Birthday - Set**: Successfully "
                                     "set **{0}**'s birthday, and the role will be automatically "
-                                    "assigned on the day.".format(forUser.name, userBirthday))
+                                    "assigned on the day.".format(forUser.name))
 
         LOGGER.info("%s#%s (%s) set the birthday of %s#%s (%s) to %s",
                     ctx.message.author.name,
@@ -370,8 +370,8 @@ class Birthday:
     async def birthdayLoop(self):
         """The main event loop that will call the add and sweep methods"""
         while self == self.bot.get_cog("Birthday"):
-            if self._lastChecked.day != datetime.now().day:
-                self._lastChecked = datetime.now()
+            if self.lastChecked.day != datetime.now().day:
+                self.lastChecked = datetime.now()
                 await self._dailySweep()
                 await self._dailyAdd()
             await asyncio.sleep(60)
