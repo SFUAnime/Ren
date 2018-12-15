@@ -37,10 +37,10 @@ def checkFolder():
 def checkFiles():
     """Used to initialize an empty database at first startup"""
 
-    f = SAVE_FOLDER + SAVE_FILE
-    if not dataIO.is_valid_json(f):
+    myFile = SAVE_FOLDER + SAVE_FILE
+    if not dataIO.is_valid_json(myFile):
         print("Creating default birthday settings.json...")
-        dataIO.save_json(f, {})
+        dataIO.save_json(myFile, {})
 
 
 class Birthday:
@@ -68,12 +68,12 @@ class Birthday:
         self.loadSettings()
 
         # On cog load, we want the loop to run once.
-        self._lastChecked = datetime.now() - timedelta(days=1)
-        self._bgTask = self.bot.loop.create_task(self.birthdayLoop())
+        self.lastChecked = datetime.now() - timedelta(days=1)
+        self.bgTask = self.bot.loop.create_task(self.birthdayLoop())
 
     # Cancel the background task on cog unload.
-    def __unload(self):
-        self._bgTask.cancel()
+    def __unload(self): # pylint: disable=invalid-name
+        self.bgTask.cancel()
 
     @commands.group(name="birthday", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
@@ -297,10 +297,10 @@ class Birthday:
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        p = Pages(self.bot, message=ctx.message, entries=display)
-        p.embed.title = "Birthdays in **{}**".format(serverName)
-        p.embed.colour = discord.Colour.red()
-        await p.paginate()
+        page = Pages(self.bot, message=ctx.message, entries=display)
+        page.embed.title = "Birthdays in **{}**".format(serverName)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
 
 
     @_birthday.command(name="del", pass_context=True, no_pm=True)
@@ -531,4 +531,3 @@ def setup(bot):
         LOGGER.addHandler(handler)
     bot.add_cog(customCog)
     # bot.loop.create_task(customCog._dailyAdd())
-
