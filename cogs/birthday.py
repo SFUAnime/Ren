@@ -227,8 +227,8 @@ class Birthday:
 
             self.saveSettings()
         except Exception as error: # pylint: disable=broad-except
-            logger.error("could not save settings!")
-            logger.error(error)
+            LOGGER.error("could not save settings!")
+            LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Could not save the birthday for **{0}** to the list. "
                                "Please try again!".format(forUser.name))
@@ -462,39 +462,50 @@ class Birthday:
                                 if not currentUser[KEY_IS_ASSIGNED] and userObject is not None:
                                     try:
                                         await self.bot.add_roles(userObject, roleObject)
-                                        print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
+                                        LOGGER.info("Added birthday role to %s#%s (%s)",
+                                                    userObject.name,
+                                                    userObject.discriminator,
+                                                    userObject.id)
                                         # Update the list.
                                         userDetails[KEY_IS_ASSIGNED] = True
                                         userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
                                         userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
                                         self.settings[sid][KEY_BDAY_USERS][userId] = userDetails
                                         self.saveSettings()
-                                    except discord.errors.Forbidden as e:
-                                        print("Birthday Error - Add Loop - Not Assigned If:")
-                                        print(e)
-                            except: # This key error will happen if the isAssigned key does not exist.
+                                    except discord.errors.Forbidden as error:
+                                        LOGGER.error("Could not add role to %s#%s (%s)",
+                                                     userObject.name,
+                                                     userObject.discriminator,
+                                                     userObject.id)
+                                        LOGGER.error(error)
+                            except Exception: # pylint: disable=broad-except
+                                # This key error will happen if the isAssigned key does not exist.
                                 if userObject is not None:
                                     try:
                                         await self.bot.add_roles(userObject, roleObject)
-                                        print("Birthday: Adding role to {}#{} ({})".format(userObject.name, userObject.discriminator, userObject.id))
+                                        LOGGER.info("Added birthday role to %s#%s (%s)",
+                                                    userObject.name,
+                                                    userObject.discriminator,
+                                                    userObject.id)
                                         # Update the list.
                                         userDetails[KEY_IS_ASSIGNED] = True
                                         userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
                                         userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
                                         self.settings[sid][KEY_BDAY_USERS][userId] = userDetails
                                         self.saveSettings()
-                                    except discord.errors.Forbidden as e:
-                                        print("Birthday Error - Add Loop - Non-existent isAssigned Key If:")
-                                        print(e)
-
+                                    except discord.errors.Forbidden as error:
+                                        LOGGER.error("Could not add role to %s#%s (%s)",
+                                                     userObject.name,
+                                                     userObject.discriminator,
+                                                     userObject.id)
+                                        LOGGER.error(error)
                             # End try/except block for isAssigned key.
                         # End if to check if today is the user's birthday.
                     # End if to check for birthdateMonth and birthdateDay keys.
                 # End user loop.
             # End server loop.
-        except Exception as e:
-            print("Birthday Error - Add Loop:")
-            print(e)
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error(error)
         finally:
             self.settingsLock.release()
 
