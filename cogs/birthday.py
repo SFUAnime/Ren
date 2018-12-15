@@ -51,7 +51,7 @@ class Birthday:
         """Loads settings from the JSON file"""
         dataIO.save_json(SAVE_FOLDER+SAVE_FILE, self.settings)
 
-    #Class constructor
+    # Class constructor
     def __init__(self, bot):
         self.bot = bot
 
@@ -61,6 +61,11 @@ class Birthday:
         checkFolder()
         checkFiles()
         self.loadSettings()
+        self._bgTask = self.bot.loop.create_task(customCog.birthdayLoop())
+
+    # Cancel the background task on cog unload.
+    def __unload(self):
+        self._bgTask.cancel()
 
     @commands.group(name="birthday", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
@@ -481,6 +486,5 @@ def setup(bot):
     checkFiles()    #Make sure we have settings!
     customCog = Birthday(bot)
     bot.add_cog(customCog)
-    bot.loop.create_task(customCog.birthdayLoop())
     # bot.loop.create_task(customCog._dailyAdd())
 
