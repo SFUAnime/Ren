@@ -154,7 +154,7 @@ class General:
     @commands.command()
     async def lmgtfy(self, *, search_terms : str):
         """Creates a lmgtfy link"""
-        search_terms = escape_mass_mentions(search_terms.replace(" ", "+"))
+        search_terms = escape_mass_mentions(search_terms.replace("+","%2B").replace(" ", "+"))
         await self.bot.say("https://lmgtfy.com/?q={}".format(search_terms))
 
     @commands.command(no_pm=True, hidden=True)
@@ -240,8 +240,7 @@ class General:
         """Shows server's informations"""
         server = ctx.message.server
         online = len([m.status for m in server.members
-                      if m.status == discord.Status.online or
-                      m.status == discord.Status.idle])
+                      if m.status != discord.Status.offline])
         total_users = len(server.members)
         text_channels = len([x for x in server.channels
                              if x.type == discord.ChannelType.text])
@@ -278,11 +277,22 @@ class General:
             await self.bot.say("I need the `Embed links` permission "
                                "to send this")
 
-    @commands.command()
-    async def urban(self, *, search_terms : str, definition_number : int=1):
+    @commands.command(pass_context=True)
+    async def urban(self, ctx, *, search_terms : str, definition_number : int=1):
         """Urban Dictionary search
 
         Definition number must be between 1 and 10"""
+        word_filter = self.bot.get_cog("WordFilter")
+        if not word_filter:
+            await self.bot.say("Word Filter is not loaded.  Please load this "
+                               "cog and try again!")
+            return
+
+        if word_filter.containsFilterableWords(ctx.message):
+            await self.bot.say("You have filtered out words in your query. "
+                               "Please check your query and try again!")
+            return
+
         def encode(s):
             return quote_plus(s, encoding='utf-8', errors='replace')
 

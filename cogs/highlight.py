@@ -42,6 +42,7 @@ class Highlight(object):
         self.bot = bot
         self.lock = Lock()
         self.highlights = dataIO.load_json("data/highlight/words.json")
+        self.wordFilter = None
 
     def _update_highlights(self, new_obj):
         self.lock.acquire()
@@ -235,6 +236,12 @@ class Highlight(object):
         if user_obj.bot:
             return
 
+        # Don't send notification for filtered messages  
+        if not self.wordFilter:
+            self.wordFilter = self.bot.get_cog("WordFilter")
+        elif self.wordFilter.containsFilterableWords(msg):
+            return
+
         tasks = []
         # iterate through every users words on the server, and notify all highlights
         for user in self.highlights['guilds'][guild_idx][guild_id]['users']:
@@ -259,7 +266,11 @@ class Highlight(object):
         async for msg in self.bot.logs_from(message.channel,limit=6,around=message):
             msgs.append(msg)
         msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
-        notify_msg = "In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n".format(word,message)
+        msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
+                                                                   message.channel.id,
+                                                                   message.id)
+        notify_msg = ("In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n"
+                      "Jump: {2}".format(word, message, msgUrl))
         embed_msg = ""
         msg_still_there = False
         for msg in msg_ctx:

@@ -3,7 +3,7 @@ python:
   - "3.5.2"
 install:
   - pip install -r requirements.txt
-  - pip install pylint
+  - pip install pylint==2.2.0
   - pip install mysqlclient
 script:
   - python -m compileall ./red.py

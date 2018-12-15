@@ -50,10 +50,11 @@ ignore=alias.py,
        pokedex.py,
        punish.py,
        remindme.py,
-       rss.py,
        russianroulette.py,
+       say.py,
        scenery.py,
        serverquotes.py,
+       sfu-courses.py,
        smartreact.py,
        snacktime.py,
        stars.py,
@@ -63,10 +64,8 @@ ignore=alias.py,
        tempchannels.py,
        translated.py,
        trivia.py,
-       welcome.py,
        wikipedia.py,
        wolfram.py,
-       word_filter.py,
        zalgo.py,
    	   utils
 
@@ -278,7 +277,7 @@ ignore-docstrings=yes
 ignore-imports=no
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=5
 
 
 [FORMAT]
@@ -373,7 +372,7 @@ argument-naming-style=camelCase
 #argument-rgx=
 
 # Naming style matching correct attribute names.
-attr-naming-style=snake_case
+attr-naming-style=camelCase
 
 # Regular expression matching correct attribute names. Overrides attr-naming-
 # style.
@@ -548,7 +547,7 @@ valid-metaclass-classmethod-first-arg=cls
 [DESIGN]
 
 # Maximum number of arguments for function / method.
-max-args=5
+max-args=10
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=7
@@ -557,10 +556,10 @@ max-attributes=7
 max-bool-expr=5
 
 # Maximum number of branch for function / method body.
-max-branches=12
+max-branches=15
 
 # Maximum number of locals for function / method body.
-max-locals=15
+max-locals=20
 
 # Maximum number of parents for a class (see R0901).
 max-parents=7

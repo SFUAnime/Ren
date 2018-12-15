@@ -110,7 +110,7 @@ class Stars:
         try:
             ctx.db = self.stars[guild_id]
             ctx.starboard = self.bot.get_channel(ctx.db.get('channel'))
-            await self.clean_starboard(ctx, 100) # Leave stars that have over 100 stars
+            await self.clean_starboard(ctx, 1) # Leave stars that have over 1 star.
             await asyncio.sleep(ctx.db['janitor'])
         except KeyError:
             pass
@@ -158,10 +158,11 @@ class Stars:
         emoji = self.star_emoji(starrers)
         # base = '%s ID: %s' % (msg.channel.mention, msg.id)
 
+        msgUrl = "https://discordapp.com/channels/%s/%s/%s" % (msg.server.id, msg.channel.id, msg.id)
         if starrers > 1:
-            base = '%s **%s** %s ID: %s' % (emoji, starrers, msg.channel.mention, msg.id)
+            base = '%s **%s** %s ID: %s\nJump: %s' % (emoji, starrers, msg.channel.mention, msg.id, msgUrl)
         else:
-            base = '%s %s ID: %s' % (emoji, msg.channel.mention, msg.id)
+            base = '%s %s ID: %s\nJump: %s' % (emoji, msg.channel.mention, msg.id, msgUrl)
 
 
         content = msg.content
@@ -575,6 +576,55 @@ class Stars:
         stars = 1 if stars < 0 else stars
         await self.clean_starboard(ctx, stars)
         await self.bot.say('\N{PUT LITTER IN ITS PLACE SYMBOL}')
+
+    @star.command(name='purge', no_pm=True, pass_context=True, hidden=True)
+    @checks.admin_or_permissions(administrator=True)
+    @requires_starboard()
+    async def star_purge(self, ctx, messageId: str):
+        """Purges the starboard from a certain message. Prompts for confirmation.
+
+        messageId:
+            The ID of the message in which all messages that come before this
+            message are deleted.
+        """
+        listOfMsgs = []
+        batchCount = 0
+
+        # Delete all messages before this.
+        try:
+            startMsg = await self.bot.get_message(ctx.starboard, messageId)
+        except (discord.errors.HTTPException, discord.errors.NotFound):
+            await self.bot.say("This message ID is invalid or could not be found, "
+                               "please try again!")
+            return
+
+        confirm = ("Are you sure you want to purge everything before the message "
+                   "that you've provided in the {} channel? Type \"yes\", "
+                   "otherwise type something else.".format(ctx.starboard.mention))
+        await self.bot.say(confirm)
+
+        message = await self.bot.wait_for_message(timeout=30,
+                                                  author=ctx.message.author,
+                                                  channel=ctx.message.channel)
+
+        if not message:
+            await self.bot.say(":no_entry: No response received, aborting.")
+            return
+        elif message.content.lower() != "yes":
+            await self.bot.say(":no_entry: Purge aborted.")
+            return
+
+        progress = await self.bot.say(":hourglass: Purging {}...".format(
+                                      ctx.starboard.mention))
+        while len(listOfMsgs) != 0 or batchCount == 0:
+            batchCount += 1
+            listOfMsgs = []
+            async for msg in self.bot.logs_from(ctx.starboard, limit=100, before=startMsg):
+                listOfMsgs.append(msg)
+            for msg in listOfMsgs:
+                await self.bot.delete_message(msg)
+        done = ":white_check_mark: {} was successfully purged!".format(ctx.starboard.mention)
+        await self.bot.edit_message(progress, done)
 
     @star.command(name='update', no_pm=True, pass_context=True, hidden=True)
     @checks.admin_or_permissions(administrator=True)

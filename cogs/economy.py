@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 from cogs.utils.dataIO import dataIO
@@ -96,7 +97,7 @@ PAYOUTS = {
     },
     "2 symbols" : {
         "payout" : lambda x: x * 2 + x,
-        "phrase" : "Two consecutive symbols! Your bid has been multiplied!"
+        "phrase" : "Two consecutive symbols! Your bid has been multiplied * 2!"
     },
 }
 
@@ -454,11 +455,14 @@ class Economy:
     async def leaderboard(self, ctx):
         """Server / global leaderboard
 
-        Defaults to server"""
+        Defaults to \"server\" if not issued in DM"""
         if ctx.invoked_subcommand is None:
-            await ctx.invoke(self._server_leaderboard)
+            if ctx.message.server:
+                await ctx.invoke(self._server_leaderboard)
+            else:
+                await ctx.invoke(self._global_leaderboard)
 
-    @leaderboard.command(name="server", pass_context=True)
+    @leaderboard.command(name="server", pass_context=True, no_pm=True)
     async def _server_leaderboard(self, ctx, top: int=10):
         """Prints out the server's leaderboard
 
@@ -483,7 +487,11 @@ class Economy:
         if highscore != "":
             for page in pagify(highscore, shorten_by=12):
             #Adding info site.
-                await self.bot.say(box(page, lang="py") + "\nFull rankings at https://ren.injabie3.moe/economy")
+                siteInfo = "\nFull rankings at https://ren.injabie3.moe/economy"
+                sleepTime = 10
+                msgId = await self.bot.say(box(page, lang="py") + siteInfo)
+                await asyncio.sleep(sleepTime)
+                await self.bot.delete_message(msgId)
         else:
             await self.bot.say("There are no accounts in the bank.")
 
