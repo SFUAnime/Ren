@@ -5,7 +5,6 @@ import datetime
 from threading import Lock
 import discord
 from discord.ext import commands
-from __main__ import send_cmd_help
 from cogs.utils.paginator import Pages # For making pages, requires the util!
 from cogs.utils.dataIO import dataIO
 
@@ -68,7 +67,7 @@ class Birthday:
     async def _birthday(self, ctx):
         """Birthday role assignment settings"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
     @_birthday.command(name="setrole", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
