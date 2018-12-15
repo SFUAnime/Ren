@@ -1,7 +1,7 @@
 import os
 import time # To auto remove birthday role on the next day.
 import asyncio
-import datetime
+from datetime import datetime, timedelta
 from threading import Lock
 import discord
 from discord.ext import commands
@@ -61,7 +61,10 @@ class Birthday:
         checkFolder()
         checkFiles()
         self.loadSettings()
-        self._bgTask = self.bot.loop.create_task(customCog.birthdayLoop())
+
+        # On cog load, we want the loop to run once.
+        self._lastChecked = datetime.now() - timedelta(days=1)
+        self._bgTask = self.bot.loop.create_task(self.birthdayLoop())
 
     # Cancel the background task on cog unload.
     def __unload(self):
@@ -176,7 +179,7 @@ class Birthday:
 
         # Check inputs here.
         try:
-            userBirthday = datetime.datetime(2020, month, day)
+            userBirthday = datetime(2020, month, day)
         except Exception as e:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Please enter a valid birthday!")
@@ -270,7 +273,7 @@ class Birthday:
                 continue
 
             # The year below is just there to accommodate leap year.  Not used anywhere else.
-            userBirthday = datetime.datetime(2020, user[KEY_BDAY_MONTH], user[KEY_BDAY_DAY])
+            userBirthday = datetime(2020, user[KEY_BDAY_MONTH], user[KEY_BDAY_DAY])
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
@@ -353,14 +356,11 @@ class Birthday:
     ########################################
     async def birthdayLoop(self):
         while self == self.bot.get_cog("Birthday"):
-            await asyncio.sleep(7.5*60)
-            # print("Birthday: Performing daily sweep...")
-            await self._dailySweep()
-            # print("Birthday: Sleeping...")
-            await asyncio.sleep(7.5*60)
-            # print("Birthday: Performing daily add...")
-            await self._dailyAdd()
-            # print("Birthday: Sleeping...")
+            if self._lastChecked.day != datetime.now().day:
+                self._lastChecked = datetime.now()
+                await self._dailySweep()
+                await self._dailyAdd()
+            await asyncio.sleep(60)
 
     async def _dailySweep(self):
         self.settingsLock.acquire()
