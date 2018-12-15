@@ -1,4 +1,5 @@
 import os
+import logging
 import time # To auto remove birthday role on the next day.
 import asyncio
 from datetime import datetime, timedelta
@@ -20,6 +21,7 @@ KEY_BDAY_DAY = "birthdateDay"
 KEY_IS_ASSIGNED = "isAssigned"
 KEY_DATE_SET_MONTH = "dateAssignedMonth"
 KEY_DATE_SET_DAY = "dateAssignedDay"
+LOGGER = None
 SAVE_FOLDER = "data/lui-cogs/birthday/" #Path to save folder.
 SAVE_FILE = "settings.json"
 
@@ -482,9 +484,20 @@ class Birthday:
             self.settingsLock.release()
 
 def setup(bot):
+    global LOGGER # pylint: disable=global-statement
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have settings!
     customCog = Birthday(bot)
+    LOGGER = logging.getLogger("red.Birthday")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     bot.add_cog(customCog)
     # bot.loop.create_task(customCog._dailyAdd())
 
