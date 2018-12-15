@@ -115,11 +115,8 @@ class Birthday:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This "
                                "server is not configured, please set a role!")
             return
-        elif KEY_BDAY_ROLE not in self.settings[sid].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please "
-                               "set a role before adding a user!")
-            return
-        elif self.settings[sid][KEY_BDAY_ROLE] is None:
+        if KEY_BDAY_ROLE not in self.settings[sid].keys() or \
+                self.settings[sid][KEY_BDAY_ROLE] is None:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please "
                                "set a role before adding a user!")
             return
@@ -203,12 +200,8 @@ class Birthday:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "This server is not configured, please set a role!")
             return
-        elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
-                               "Please notify the server admin to set a role before "
-                               "continuing!")
-            return
-        elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
+        if KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys() or \
+                self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Please notify the server admin to set a role before "
                                "continuing!")
@@ -312,7 +305,7 @@ class Birthday:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This "
                                "server is not configured, please set a role!")
             return
-        elif KEY_BDAY_ROLE not in self.settings[sid].keys() or \
+        if KEY_BDAY_ROLE not in self.settings[sid].keys() or \
                 not self.settings[sid][KEY_BDAY_ROLE]:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
                                "set a role before removing a user from the role!")
@@ -463,7 +456,7 @@ class Birthday:
                                 continue
 
                             try:
-                                if not currentUser[KEY_IS_ASSIGNED] and userObject is not None:
+                                if not userDetails[KEY_IS_ASSIGNED] and userObject is not None:
                                     try:
                                         await self.bot.add_roles(userObject, roleObject)
                                         LOGGER.info("Added birthday role to %s#%s (%s)",
