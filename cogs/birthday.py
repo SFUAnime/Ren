@@ -150,17 +150,22 @@ class Birthday:
         except Exception as e:
             print("Birthday Error:")
             print(e)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Could not save **{}** to the list, but the role was assigned!  Please try again.".format(user.name))
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: "
+                               "Could not save **{}** to the list, but the role was "
+                               "assigned!  Please try again.".format(user.name))
         finally:
             self.settingsLock.release()
-        await self.bot.say(":white_check_mark: **Birthday - Add**: Successfully added **{}** to the list and assigned the role.".format(user.name))
+        await self.bot.say(":white_check_mark: **Birthday - Add**: Successfully added "
+                           "**{}** to the list and assigned the role.".format(user.name))
 
         return
 
     @_birthday.command(name="set", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
     async def _birthdaySet(self, ctx, month: int, day: int, forUser: discord.Member = None):
-        """Set a user's birth date.  Defaults to you.  On the day, the bot will automatically add the user to the birthday role."""
+        """Set a user's birth date.  Defaults to you.  On the day, the bot will
+        automatically add the user to the birthday role.
+        """
         if forUser is None:
             forUser = ctx.message.author
 
@@ -168,45 +173,60 @@ class Birthday:
         try:
             userBirthday = datetime.datetime(2020, month, day)
         except Exception as e:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Please enter a valid birthday!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
+                               "Please enter a valid birthday!")
             return
 
         # Check if server is initialized.
         if ctx.message.server.id not in self.settings.keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: This server is not configured, please set a role!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
+                               "This server is not configured, please set a role!")
             return
         elif KEY_BDAY_ROLE not in self.settings[ctx.message.server.id].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Please notify the server admin to set a role before continuing!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
+                               "Please notify the server admin to set a role before "
+                               "continuing!")
             return
         elif self.settings[ctx.message.server.id][KEY_BDAY_ROLE] is None:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Please notify the server admin to set a role before continuing!")
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
+                               "Please notify the server admin to set a role before "
+                               "continuing!")
             return
 
         # Save settings
         self.settingsLock.acquire()
         try:
             self.loadSettings()
-            if ctx.message.server.id not in self.settings.keys():
-                self.settings[ctx.message.server.id] = {}
-            if KEY_BDAY_USERS not in self.settings[ctx.message.server.id].keys():
-                self.settings[ctx.message.server.id][KEY_BDAY_USERS] = {}
-            if forUser.id not in self.settings[ctx.message.server.id][KEY_BDAY_USERS].keys():
-                self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id] = {}
-            self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id][KEY_BDAY_MONTH] = month
-            self.settings[ctx.message.server.id][KEY_BDAY_USERS][forUser.id][KEY_BDAY_DAY] = day
+            sid = ctx.message.server.id
+            if sid not in self.settings.keys():
+                self.settings[sid] = {}
+            if KEY_BDAY_USERS not in self.settings[sid].keys():
+                self.settings[sid][KEY_BDAY_USERS] = {}
+            if forUser.id not in self.settings[sid][KEY_BDAY_USERS].keys():
+                self.settings[sid][KEY_BDAY_USERS][forUser.id] = {}
+            self.settings[sid][KEY_BDAY_USERS][forUser.id][KEY_BDAY_MONTH] = month
+            self.settings[sid][KEY_BDAY_USERS][forUser.id][KEY_BDAY_DAY] = day
 
             self.saveSettings()
         except Exception as e:
             print("Birthday Error:")
             print(e)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: Could not save the birthday for **{0}** to the list.  Please try again!".format(forUser.name))
+            await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
+                               "Could not save the birthday for **{0}** to the list. "
+                               "Please try again!".format(forUser.name))
         finally:
             self.settingsLock.release()
-        messageID = await self.bot.say(":white_check_mark: **Birthday - Set**: Successfully set **{0}**'s birthday to **{1:%B} {1:%d}**.  The role will be assigned automatically on this day.".format(forUser.name,userBirthday))
+        messageID = await self.bot.say(":white_check_mark: **Birthday - Set**: Successfully "
+                                       "set **{0}**'s birthday to **{1:%B} {1:%d}**. "
+                                       "The role will be assigned automatically on this "
+                                       "day.".format(forUser.name, userBirthday))
 
         await asyncio.sleep(5)
 
-        await self.bot.edit_message(messageID, ":white_check_mark: **Birthday - Set**: Successfully set **{0}**'s birthday, and the role will be automatically assigned on the day.".format(forUser.name,userBirthday))
+        await self.bot.edit_message(messageID,
+                                    ":white_check_mark: **Birthday - Set**: Successfully "
+                                    "set **{0}**'s birthday, and the role will be automatically "
+                                    "assigned on the day.".format(forUser.name, userBirthday))
 
         return
 
