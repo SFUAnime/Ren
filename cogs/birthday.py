@@ -97,9 +97,8 @@ class Birthday:
                 self.settings[ctx.message.server.id] = {}
             self.settings[ctx.message.server.id][KEY_BDAY_ROLE] = role.id
             self.saveSettings()
-        except Exception as e:
-            print("Birthday Error:")
-            print(e)
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error(error)
         finally:
             self.settingsLock.release()
         return
@@ -129,9 +128,10 @@ class Birthday:
 
             # Add the role to the user.
             await self.bot.add_roles(user, role)
-        except discord.errors.Forbidden as e:
-            print("Birthday Error:")
-            print(e)
+        except discord.errors.Forbidden as error:
+            LOGGER.error("Could not add user to birthday role, does the bot "
+                         "have enough permissions?")
+            LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Could "
                                "not add **{}** to the list, the bot does not have enough "
                                "permissions to do so!".format(user.name))
@@ -157,9 +157,9 @@ class Birthday:
             self.settings[sid][KEY_BDAY_USERS][user.id] = userConfig
 
             self.saveSettings()
-        except Exception as e:
-            print("Birthday Error:")
-            print(e)
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error("Could not save settings!")
+            LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: "
                                "Could not save **{}** to the list, but the role was "
                                "assigned!  Please try again.".format(user.name))
@@ -168,6 +168,13 @@ class Birthday:
         await self.bot.say(":white_check_mark: **Birthday - Add**: Successfully added "
                            "**{}** to the list and assigned the role.".format(user.name))
 
+        LOGGER.info("%s#%s (%s) added %s#%s (%s) to the birthday role.",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    user.name,
+                    user.discriminator,
+                    user.id)
         return
 
     @_birthday.command(name="set", pass_context=True, no_pm=True)
@@ -182,7 +189,7 @@ class Birthday:
         # Check inputs here.
         try:
             userBirthday = datetime(2020, month, day)
-        except Exception as e:
+        except ValueError:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Please enter a valid birthday!")
             return
@@ -218,9 +225,9 @@ class Birthday:
             self.settings[sid][KEY_BDAY_USERS][forUser.id][KEY_BDAY_DAY] = day
 
             self.saveSettings()
-        except Exception as e:
-            print("Birthday Error:")
-            print(e)
+        except Exception as error: # pylint: disable=broad-except
+            LOGGER.error("Could not save settings!")
+            LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Could not save the birthday for **{0}** to the list. "
                                "Please try again!".format(forUser.name))
@@ -238,8 +245,15 @@ class Birthday:
                                     "set **{0}**'s birthday, and the role will be automatically "
                                     "assigned on the day.".format(forUser.name, userBirthday))
 
+        LOGGER.info("%s#%s (%s) set the birthday of %s#%s (%s) to %s",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    forUser.name,
+                    forUser.discriminator,
+                    forUser.id,
+                    userBirthday.strftime("%B %d"))
         return
-
 
     @_birthday.command(name="list", pass_context=True, no_pm=True)
     @checks.mod_or_permissions(administrator=True)
