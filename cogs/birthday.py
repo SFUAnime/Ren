@@ -378,7 +378,7 @@ class Birthday:
 
     async def _dailySweep(self):
         self.settingsLock.acquire()
-        try:
+        try: # pylint: disable=too-many-nested-blocks
             # Check each server.
             for sid in self.settings:
                 # Check to see if any users need to be removed.
@@ -422,9 +422,9 @@ class Birthday:
     ##################################################################
     # Event Loop - Check to see if we need to add people to the role #
     ##################################################################
-    async def _dailyAdd(self):
+    async def _dailyAdd(self): # pylint: disable=too-many-branches
         self.settingsLock.acquire()
-        try:
+        try: # pylint: disable=too-many-nested-blocks
             # Check each server.
             for sid in self.settings:
                 # Check to see if any users need to be removed.
