@@ -1,3 +1,6 @@
+"""Birthday cog
+Automatically add users to a specified birthday role on their birthday.
+"""
 import os
 import logging
 import time # To auto remove birthday role on the next day.
@@ -372,6 +375,7 @@ class Birthday:
     # Event loop - Try an absolute timeout #
     ########################################
     async def birthdayLoop(self):
+        """The main event loop that will call the add and sweep methods"""
         while self == self.bot.get_cog("Birthday"):
             if self._lastChecked.day != datetime.now().day:
                 self._lastChecked = datetime.now()
@@ -510,6 +514,7 @@ class Birthday:
             self.settingsLock.release()
 
 def setup(bot):
+    """Add the cog to the bot."""
     global LOGGER # pylint: disable=global-statement
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have settings!
