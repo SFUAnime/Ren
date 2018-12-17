@@ -13,7 +13,7 @@ KEY_TIME = "time"
 KEY_MSG = "msg"
 HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
-DEFAULT_CH_DICT = { KEY_MSG : None, KEY_TIME : None, KEY_USERS : [] }
+DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 TEXT_RESPECTS = "paid their respects"
 
@@ -26,8 +26,8 @@ class Respects:
         self.plusFLock = Lock()
         self.settingsLock = Lock()
         self.settings = {}
-    
-    @commands.command(name="f", pass_context=True, no_pm=True) 
+
+    @commands.command(name="f", pass_context=True, no_pm=True)
     async def plusF(self, ctx):
         """Pay your respects."""
         with self.plusFLock:
@@ -95,7 +95,7 @@ class Respects:
             if self.settings[sid][cid][KEY_MSG]:
                 try:
                     await self.bot.delete_message(self.settings[sid][cid][KEY_MSG])
-                except:
+                except: # pylint: disable=bare-except
                     pass
                 finally:
                     self.settings[sid][cid][KEY_MSG] = None
