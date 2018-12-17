@@ -4,14 +4,17 @@ A replica of +f seen in another bot, except smarter..
 import copy
 from datetime import datetime, timedelta
 from threading import Lock
+from random import choice
 import discord
 from discord.ext import commands
 
 KEY_USERS = "users"
 KEY_TIME = "time"
 KEY_MSG = "msg"
+HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
+          ":purple_heart:", ":blue_heart:"]
 DEFAULT_CH_DICT = { KEY_MSG : None, KEY_TIME : None, KEY_USERS : [] }
-TIME_BETWEEN = timedelta(seconds=5) # Time between paid respects.
+TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 TEXT_RESPECTS = "paid their respects"
 
 class Respects:
@@ -36,7 +39,8 @@ class Respects:
                 await self.payRespects(ctx)
             else:
                 # Respects already paid by user!
-                return
+                pass
+            await self.bot.delete_message(ctx.message)
 
     def checkLastRespectTime(self, ctx):
         """Check to see if respects have been paid already.
@@ -97,7 +101,8 @@ class Respects:
                     self.settings[sid][cid][KEY_MSG] = None
 
             if len(self.settings[sid][cid][KEY_USERS]) == 1:
-                message = "**{}** has paid their respects".format(ctx.message.author.name)
+                message = "**{}** has paid their respects {}".format(ctx.message.author.name,
+                                                                     choice(HEARTS))
             else:
                 first = True
                 users = ""
@@ -108,7 +113,7 @@ class Respects:
                         first = False
                     else:
                         users = "{}, {}".format(userObj.name, users)
-                message = "**{}** have paid their respects".format(users)
+                message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
 
             messageObj = await self.bot.say(message)
             self.settings[sid][cid][KEY_MSG] = messageObj
