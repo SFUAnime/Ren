@@ -103,6 +103,12 @@ class Respects:
             if len(self.settings[sid][cid][KEY_USERS]) == 1:
                 message = "**{}** has paid their respects {}".format(ctx.message.author.name,
                                                                      choice(HEARTS))
+            elif len(self.settings[sid][cid][KEY_USERS]) == 2: # 2 users, no comma.
+                user1 = ctx.message.author
+                uid2 = self.settings[sid][cid][KEY_USERS][0]
+                user2 = discord.utils.get(ctx.message.server.members, id=uid2)
+                users = "**{} and {}**".format(user1.name, user2.name)
+                message = "{} have paid their respects {}".format(users, choice(HEARTS))
             else:
                 first = True
                 users = ""
