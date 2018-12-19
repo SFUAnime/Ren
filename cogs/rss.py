@@ -14,9 +14,14 @@ import discord
 from discord.ext import commands
 import feedparser
 from bs4 import BeautifulSoup
+from cogs.utils import checks, config
 from cogs.utils.dataIO import dataIO
 
 LOGGER = None
+KEY_CHANNEL = "post_channel"
+KEY_INTERVAL = "check_interval"
+KEY_LAST_POST_TIME = "last_post_time"
+KEY_FEED_URLS = "rss_feed_urls"
 RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
              "1200px-Feed-icon.svg.png")
 
@@ -60,9 +65,9 @@ def checkFilesystem():
             elif "config" in file:
                 #build a default config.json
                 defaultDict = {}
-                defaultDict['post_channel'] = "change_me"
-                defaultDict['rss_feed_urls'] = ["change_me"]
-                defaultDict['check_interval'] = 3600 #default to checking every hour
+                defaultDict[KEY_CHANNEL] = "change_me"
+                defaultDict[KEY_FEED_URLS] = ["change_me"]
+                defaultDict[KEY_INTERVAL] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", defaultDict)
 
 def _getFeed(rssUrl, channel, index=None):
@@ -127,21 +132,39 @@ def _isNewItem(latestPostTime, itemPostTime):
 class RSSFeed():
     """RSS cog"""
     def __init__(self, bot):
+        self.config = config.Config("config.json",
+                                    cogname="rss")
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
-        self.rssFeedUrls = self.settings['rss_feed_urls']
-        self.checkInterval = self.settings['check_interval']
-        self.channelId = self.settings['post_channel']
+        self.rssFeedUrls = self.config.get(KEY_FEED_URLS)
+        self.checkInterval = self.config.get(KEY_INTERVAL)
+        self.channelId = self.config.get(KEY_CHANNEL)
 
+    @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="rss", pass_context=True, no_pm=True)
     async def _rss(self, ctx):
-        """Utilities for the RSS cog"""
+        """Configuration for the RSS cog"""
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
-    @_rss.command(pass_context=True, no_pm=True)
-    async def setinterval(self, ctx):
-        """Set the interval for rss to scan for updates"""
+    @_rss.command(name="interval", pass_context=False, no_pm=True)
+    async def setInterval(self, minutes: int):
+        """Set the interval for RSS to scan for updates.
+
+        Parameters:
+        -----------
+        minutes: int
+            The number of minutes between checks, between 1 and 180 inclusive.
+        """
+        if minutes < 1 or minutes > 180:
+            await self.bot.say(":negative_squared_cross_mark: The interval must be "
+                               "between 1 and 180 minutes!")
+            return
+
+        self.checkInterval = minutes * 60
+        await self.config.put(KEY_INTERVAL, self.checkInterval)
+
+        await self.bot.say(":white_check_mark: Interval set to {} minutes".format(minutes))
 
     async def rss(self): # pylint: disable=too-many-locals
         """RSS background checker.
@@ -180,8 +203,8 @@ class RSSFeed():
                 try:
                     imageUrl = soup.find("meta", property="og:image")['content']
                     embed.set_image(url=imageUrl)
-                except (KeyError, TypeError):
-                    pass
+                except (KeyError, TypeError) as error:
+                    LOGGER.error("Image URL error: %s", error)
 
                 #ugly, but want a nicer "human readable" date
                 formattedDate = epoch2date(date2epoch(item['published']))
