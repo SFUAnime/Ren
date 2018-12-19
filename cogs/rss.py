@@ -70,10 +70,21 @@ def checkFilesystem():
                 defaultDict[KEY_INTERVAL] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", defaultDict)
 
-def _getFeed(rssUrl, channel, index=None):
+def _getFeed(rssUrl, index=None):
+    """Gets news items from a given RSS URL
 
-    if channel is None:
-        return []
+    Parameters:
+    -----------
+    rssUrl: str
+        The URL of the RSS feed.
+    index: int
+        The index from feeds.json (to be removed).
+
+    Returns:
+    --------
+    news: [feedparser.FeedParserDict]
+        A list of news items obtained using the feedparser library.
+    """
 
     feeds = dataIO.load_json("data/rss/feeds.json")
 
@@ -92,23 +103,17 @@ def _getFeed(rssUrl, channel, index=None):
     news = []
     feed = feedparser.parse(rssUrl)
 
-    for item in feed['items']:
+    for item in feed.entries:
         itemPostTime = date2epoch(item['published'])
         if _isNewItem(latestPostTime, itemPostTime):
-            rssItem = {}
-            rssItem['title'] = item['title']
-            rssItem['link'] = item['link']
-            rssItem['published'] = item['published']
-            rssItem['summary'] = item['summary']
-            rssItem['url'] = rssUrl
-            news.append(rssItem)
+            news.append(item)
 
     if not news:
         LOGGER.info("No new items in feed %s", str(index))
     else:
         LOGGER.info("%s new items in feed %s", len(news), str(index))
 
-    latestPostTime = _getLatestPostTime(feed['items'])
+    latestPostTime = _getLatestPostTime(feed.entries)
     if latestPostTime:
         feeds['feeds'][index]['latest_post_time'] = latestPostTime
     dataIO.save_json("data/rss/feeds.json", feeds)
@@ -177,37 +182,37 @@ class RSSFeed():
 
             postChannel = self.bot.get_channel(self.channelId)
             updates = []
-            idx = 0
+            index = 0
 
             if not postChannel:
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
-
-            for feedUrl in self.rssFeedUrls:
-                feedUpdates = _getFeed(feedUrl, postChannel, index=idx)
-                updates += feedUpdates
-                idx += 1
+            else:
+                for feedUrl in self.rssFeedUrls:
+                    feedUpdates = _getFeed(feedUrl, index=index)
+                    updates += feedUpdates
+                    index += 1
 
             # Reversed so updates display from latest to earliest, since they are
             # appended earliest to latest.
             for item in reversed(updates):
                 embed = discord.Embed()
                 embed.colour = discord.Colour.orange()
-                embed.title = item['title']
-                embed.url = item['link']
+                embed.title = item.title
+                embed.url = item.link.replace(" ", "%20")
 
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(item['link'].replace(' ', '%20')) as resp:
+                    async with session.get(item.link.replace(' ', '%20')) as resp:
                         page = await resp.text()
 
                 soup = BeautifulSoup(page, "html.parser")
 
                 #ugly, but want a nicer "human readable" date
                 embed.add_field(name="Date Published",
-                                value=epoch2date(date2epoch(item["published"])),
+                                value=epoch2date(date2epoch(item.published)),
                                 inline=False)
 
                 embed.add_field(name="Summary",
-                                value=BeautifulSoup(item["summary"], "html.parser").get_text(),
+                                value=BeautifulSoup(item.summary, "html.parser").get_text(),
                                 inline=False)
 
                 try:
@@ -215,7 +220,8 @@ class RSSFeed():
                 except (KeyError, TypeError) as error:
                     LOGGER.error("Image URL error: %s", error)
 
-                embed.set_footer(text="This update is from {}".format(item["url"]),
+                embed.set_footer(text="This update is from "
+                                 "{}".format(item.title_detail.base),
                                  icon_url=RSS_IMAGE_URL)
 
                 # Keep this in a try block in case of Discord's explicit filter.
