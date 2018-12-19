@@ -22,8 +22,8 @@ KEY_CHANNEL = "post_channel"
 KEY_INTERVAL = "check_interval"
 KEY_LAST_POST_TIME = "last_post_time"
 KEY_FEED_URLS = "rss_feed_urls"
-RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
-             "1200px-Feed-icon.svg.png")
+RSS_IMAGE_URL = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
+                 "1200px-Feed-icon.svg.png")
 
 def date2epoch(date):
     """Converts a datetime date into epoch for storage in JSON."""
@@ -166,7 +166,7 @@ class RSSFeed():
 
         await self.bot.say(":white_check_mark: Interval set to {} minutes".format(minutes))
 
-    async def rss(self): # pylint: disable=too-many-locals
+    async def rss(self):
         """RSS background checker.
         Checks for rss updates periodically and posts any new content to the specific
         channel.
@@ -200,22 +200,23 @@ class RSSFeed():
                         page = await resp.text()
 
                 soup = BeautifulSoup(page, "html.parser")
+
+                #ugly, but want a nicer "human readable" date
+                embed.add_field(name="Date Published",
+                                value=epoch2date(date2epoch(item["published"])),
+                                inline=False)
+
+                embed.add_field(name="Summary",
+                                value=BeautifulSoup(item["summary"], "html.parser").get_text(),
+                                inline=False)
+
                 try:
-                    imageUrl = soup.find("meta", property="og:image")['content']
-                    embed.set_image(url=imageUrl)
+                    embed.set_image(url=soup.find("meta", property="og:image")["content"])
                 except (KeyError, TypeError) as error:
                     LOGGER.error("Image URL error: %s", error)
 
-                #ugly, but want a nicer "human readable" date
-                formattedDate = epoch2date(date2epoch(item['published']))
-                embed.add_field(name="Date Published", value=formattedDate, inline=False)
-
-                html2text = BeautifulSoup(item['summary'], "html.parser").get_text()
-                embed.add_field(name="Summary", value=html2text, inline=False)
-
-                footerText = "This update is from {}".format(item['url'])
-                rssImage = RSS_IMAGE
-                embed.set_footer(text=footerText, icon_url=rssImage)
+                embed.set_footer(text="This update is from {}".format(item["url"]),
+                                 icon_url=RSS_IMAGE_URL)
 
                 # Keep this in a try block in case of Discord's explicit filter.
                 try:
