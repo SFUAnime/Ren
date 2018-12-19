@@ -12,16 +12,35 @@ from discord.ext import commands
 import discord
 import datetime
 from .utils import checks, config
+from cogs.utils.dataIO import dataIO
 import json
 import copy
 import random
 import asyncio
 import logging
 import weakref
+import os
 from collections import Counter
 
 log = logging.getLogger(__name__)
 
+def check_filesystem():
+    folders = ["data/stars"]
+    for folder in folders:
+        if not os.path.exists(folder):
+            print("Stars: Creating folder: {} ...".format(folder))
+            os.makedirs(folder)
+            
+    files = ["data/stars/stars.json"]
+    for file in files:
+        if not os.path.exists(file):
+            if "stars" in file:
+                # build a default stars.json
+                dict = {}
+                dataIO.save_json("data/stars/stars.json", dict)
+                
+            print("Stars: Creating file: {} ...".format(file))
+            
 class StarError(commands.CommandError):
     pass
 
@@ -747,6 +766,15 @@ class Stars:
         members = filter(None, map(server.get_member, starrers))
         await self.bot.say(', '.join(map(str, members)))
 
+    @star.command(name='top', pass_context=True, no_pm=True)
+    @requires_starboard()
+    async def star_top(self, ctx):
+        """Shows the most starred message"""
+        starred_msgs = [(msg_id, info[1]) for msg_id, info in ctx.db.items() if isinstance(info, list)]
+        top_starred = max(starred_msgs, key=lambda t: len(t[1]))
+        top_id = top_starred[0]
+        await self.show_message(ctx, top_id, ctx.db[top_id])
+	
     @star.command(pass_context=True, no_pm=True, name='stats')
     @requires_starboard()
     async def star_stats(self, ctx):
@@ -754,11 +782,10 @@ class Stars:
         e = discord.Embed()
         e.timestamp = ctx.starboard.created_at
         e.set_footer(text='Adding stars since')
-
-        all_starrers = [(v[1], k) for k, v in ctx.db.items() if isinstance(v, list)]
+        all_starrers = [(v[1], k) for k, v in ctx.db.items() if isinstance(v, list)] #v[0] is message in highlights channel id
+        print(all_starrers) #list of (list of starrers, starred message) tuples
         e.add_field(name='Messages Starred', value=str(len(all_starrers)))
         e.add_field(name='Stars Given', value=str(sum(len(x) for x, _ in all_starrers)))
-
         most_stars = max(all_starrers, key=lambda t: len(t[0]))
         e.add_field(name='Most Stars Given', value='{} stars\nID: {}'.format(len(most_stars[0]), most_stars[1]))
 
@@ -818,5 +845,6 @@ class Stars:
         await self.bot.say('Starboard is now unlocked.')
 
 def setup(bot):
+    check_filesystem()
     bot.add_cog(Stars(bot))
     
