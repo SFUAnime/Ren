@@ -15,7 +15,6 @@ from discord.ext import commands
 import feedparser
 from bs4 import BeautifulSoup
 from cogs.utils.dataIO import dataIO
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 
 LOGGER = None
 RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
@@ -138,7 +137,7 @@ class RSSFeed():
     async def _rss(self, ctx):
         """Utilities for the RSS cog"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
     @_rss.command(pass_context=True, no_pm=True)
     async def setinterval(self, ctx):
