@@ -15,6 +15,7 @@ HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
 DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
+MESSAGES = 20 # The number of messages in between
 TEXT_RESPECTS = "paid their respects"
 
 class Respects:
@@ -31,7 +32,7 @@ class Respects:
     async def plusF(self, ctx):
         """Pay your respects."""
         with self.plusFLock:
-            if not self.checkLastRespectTime(ctx):
+            if not await self.checkLastRespect(ctx):
                 # New respects to be paid
                 await self.payRespects(ctx)
             elif not self.checkIfUserPaidRespect(ctx):
@@ -42,10 +43,17 @@ class Respects:
                 pass
             await self.bot.delete_message(ctx.message)
 
-    def checkLastRespectTime(self, ctx):
+    async def checkLastRespect(self, ctx):
         """Check to see if respects have been paid already.
 
-        This method only checks the time portion.
+        This method only checks the time portion and previous messages.
+
+        This method returns False if:
+        - No respects have been paid in this channel before, or
+        - The time exceeds the threshold AND the last respect in the channel was more
+          than a certain number of messages.
+
+        Otherwise, this method returns True.
         """
         with self.settingsLock:
             sid = ctx.message.server.id
@@ -60,7 +68,16 @@ class Respects:
                 self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
                 return False
 
-            if datetime.now() - self.settings[sid][cid][KEY_TIME] > TIME_BETWEEN:
+            prevMsgs = []
+            async for msg in self.bot.logs_from(ctx.message.channel,
+                                                limit=MESSAGES,
+                                                before=ctx.message):
+                prevMsgs.append(msg.id)
+
+            exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
+            exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > TIME_BETWEEN
+
+            if exceedMessages and exceedTime:
                 self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
                 return False
 
