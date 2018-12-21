@@ -2,6 +2,7 @@
 A replica of +f seen in another bot, except smarter..
 """
 import copy
+import logging
 import os
 from datetime import datetime, timedelta
 from threading import Lock
@@ -20,6 +21,7 @@ HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
 DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
+LOGGER = None
 SAVE_FOLDER = "data/lui-cogs/respects"
 TEXT_RESPECTS = "paid their respects"
 
@@ -68,8 +70,8 @@ class Respects:
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
-    @setf.command(name="messages", pass_context=False, no_pm=True)
-    async def setfMessages(self, messages: int):
+    @setf.command(name="messages", pass_context=True, no_pm=True)
+    async def setfMessages(self, ctx, messages: int):
         """Set the number of messages that must appear before a new respect is paid.
 
         Parameters:
@@ -86,6 +88,11 @@ class Respects:
         await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
                            "created after **{}** messages and **{}** seconds have passed "
                            "since the previous one.".format(self.msgsBetween, self.timeBetween))
+        LOGGER.info("%s#%s (%s) changed the messages between respects to %s messages",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    messages)
 
     @setf.command(name="show", pass_context=False, no_pm=True)
     async def setfShow(self):
@@ -96,8 +103,8 @@ class Respects:
         msg += "- **{}** messages have been passed since the last respect."
         await self.bot.say(msg.format(self.timeBetween, self.msgsBetween))
 
-    @setf.command(name="time", pass_context=False, no_pm=True)
-    async def setfTime(self, seconds: int):
+    @setf.command(name="time", pass_context=True, no_pm=True)
+    async def setfTime(self, ctx, seconds: int):
         """Set the number of seconds that must pass before a new respect is paid.
 
         Parameters:
@@ -114,6 +121,11 @@ class Respects:
         await self.bot.say(":white_check_mark: **Respects - Time**: A new respect will be "
                            "created after **{}** messages and **{}** seconds have passed "
                            "since the previous one.".format(self.msgsBetween, self.timeBetween))
+        LOGGER.info("%s#%s (%s) changed the time between respects to %s seconds",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    seconds)
 
 
     async def checkLastRespect(self, ctx):
@@ -216,6 +228,17 @@ class Respects:
 
 def setup(bot):
     """Add the cog to the bot."""
+    global LOGGER # pylint: disable=global-statement
     checkFolder()
+    LOGGER = logging.getLogger("red.Respects")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     customCog = Respects(bot)
     bot.add_cog(customCog)
