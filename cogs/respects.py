@@ -7,16 +7,19 @@ from threading import Lock
 from random import choice
 import discord
 from discord.ext import commands
-from cogs.utils import config
+from cogs.utils import checks, config
 
 KEY_USERS = "users"
 KEY_TIME = "time"
 KEY_MSG = "msg"
+KEY_TIME_BETWEEN = "timeSinceLastRespect"
+KEY_MSGS_BETWEEN = "msgsSinceLastRespect"
 HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
 DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
-TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
-MESSAGES = 20 # The number of messages in between
+DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
+DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
+
 TEXT_RESPECTS = "paid their respects"
 
 class Respects:
@@ -29,6 +32,12 @@ class Respects:
         self.settingsLock = Lock()
         self.settings = {}
         self.config = config.Config("settings.json", cogname="lui-cogs/respects")
+
+        timeBetween = self.config.get(KEY_TIME_BETWEEN)
+        self.timeBetween = timeBetween if timeBetween else DEFAULT_TIME_BETWEEN
+
+        msgsBetween = self.config.get(KEY_MSGS_BETWEEN)
+        self.msgsBetween = timedelta(seconds=msgsBetween) if msgsBetween else DEFAULT_MSGS_BETWEEN
 
     @commands.command(name="f", pass_context=True, no_pm=True)
     async def plusF(self, ctx):
@@ -44,6 +53,52 @@ class Respects:
                 # Respects already paid by user!
                 pass
             await self.bot.delete_message(ctx.message)
+
+    @checks.mod_or_permissions(manage_messages=True)
+    @commands.group(name="setf", pass_context=True, no_pm=True)
+    async def setf(self, ctx):
+        """Respect settings."""
+        if ctx.invoked_subcommand is None:
+            await self.bot.send_cmd_help(ctx)
+
+    @setf.command(name="messages", pass_context=False, no_pm=True)
+    async def setfMessages(self, messages: int):
+        """Set the number of messages that must appear before a new respect is paid.
+
+        Parameters:
+        -----------
+        messages: int
+            The number of messages between messages.  Should be between 1 and 100
+        """
+        if messages < 1 or messages > 100:
+            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
+                               "between 1 and 100!")
+            return
+        self.msgsBetween = messages
+        await self.config.put(KEY_MSGS_BETWEEN, self.msgsBetween)
+        await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
+                           "created after **{}** messages and **{}** seconds have passed "
+                           "since the previous one.".format(self.msgsBetween, self.timeBetween))
+
+    @setf.command(name="time", pass_context=False, no_pm=True)
+    async def setfTime(self, seconds: int):
+        """Set the number of seconds that must pass before a new respect is paid.
+
+        Parameters:
+        -----------
+        seconds: int
+            The number of seconds that must pass.  Should be between 1 and 100
+        """
+        if seconds < 1 or seconds > 100:
+            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
+                               "between 1 and 100!")
+            return
+        self.timeBetween = seconds
+        await self.config.put(KEY_TIME_BETWEEN, self.timeBetween)
+        await self.bot.say(":white_check_mark: **Respects - Time**: A new respect will be "
+                           "created after **{}** messages and **{}** seconds have passed "
+                           "since the previous one.".format(self.msgsBetween, self.timeBetween))
+
 
     async def checkLastRespect(self, ctx):
         """Check to see if respects have been paid already.
@@ -72,12 +127,12 @@ class Respects:
 
             prevMsgs = []
             async for msg in self.bot.logs_from(ctx.message.channel,
-                                                limit=MESSAGES,
+                                                limit=self.msgsBetween,
                                                 before=ctx.message):
                 prevMsgs.append(msg.id)
 
             exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
-            exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > TIME_BETWEEN
+            exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > self.timeBetween
 
             if exceedMessages and exceedTime:
                 self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
