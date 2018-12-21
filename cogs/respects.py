@@ -7,6 +7,7 @@ from threading import Lock
 from random import choice
 import discord
 from discord.ext import commands
+from cogs.utils import config
 
 KEY_USERS = "users"
 KEY_TIME = "time"
@@ -27,6 +28,7 @@ class Respects:
         self.plusFLock = Lock()
         self.settingsLock = Lock()
         self.settings = {}
+        self.config = config.Config("settings.json", cogname="lui-cogs/respects")
 
     @commands.command(name="f", pass_context=True, no_pm=True)
     async def plusF(self, ctx):
