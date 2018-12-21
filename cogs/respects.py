@@ -2,6 +2,7 @@
 A replica of +f seen in another bot, except smarter..
 """
 import copy
+import os
 from datetime import datetime, timedelta
 from threading import Lock
 from random import choice
@@ -19,8 +20,14 @@ HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
 DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
-
+SAVE_FOLDER = "data/lui-cogs/respects"
 TEXT_RESPECTS = "paid their respects"
+
+def checkFolder():
+    """Used to create the data folder at first startup"""
+    if not os.path.exists(SAVE_FOLDER):
+        print("Creating " + SAVE_FOLDER + " folder...")
+        os.makedirs(SAVE_FOLDER)
 
 class Respects:
     """Pay your respects."""
@@ -79,6 +86,15 @@ class Respects:
         await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
                            "created after **{}** messages and **{}** seconds have passed "
                            "since the previous one.".format(self.msgsBetween, self.timeBetween))
+
+    @setf.command(name="show", pass_context=False, no_pm=True)
+    async def setfShow(self):
+        """Show the current settings."""
+        msg = ":information_source: **Respects - Current Settings:**\n"
+        msg += "A new respect will be made if a previous respect does not exist, or:\n"
+        msg += "- **{}** seconds have passed since the last respect, **and**\n"
+        msg += "- **{}** messages have been passed since the last respect."
+        await self.bot.say(msg.format(self.timeBetween, self.msgsBetween))
 
     @setf.command(name="time", pass_context=False, no_pm=True)
     async def setfTime(self, seconds: int):
@@ -200,5 +216,6 @@ class Respects:
 
 def setup(bot):
     """Add the cog to the bot."""
+    checkFolder()
     customCog = Respects(bot)
     bot.add_cog(customCog)
