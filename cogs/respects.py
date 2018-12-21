@@ -22,7 +22,7 @@ DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
 LOGGER = None
-SAVE_FOLDER = "data/lui-cogs/respects"
+SAVE_FOLDER = "data/lui-cogs/respects/"
 TEXT_RESPECTS = "paid their respects"
 
 def checkFolder():
@@ -43,10 +43,10 @@ class Respects:
         self.config = config.Config("settings.json", cogname="lui-cogs/respects")
 
         timeBetween = self.config.get(KEY_TIME_BETWEEN)
-        self.timeBetween = timeBetween if timeBetween else DEFAULT_TIME_BETWEEN
+        self.timeBetween = timedelta(seconds=timeBetween) if timeBetween else DEFAULT_TIME_BETWEEN
 
         msgsBetween = self.config.get(KEY_MSGS_BETWEEN)
-        self.msgsBetween = timedelta(seconds=msgsBetween) if msgsBetween else DEFAULT_MSGS_BETWEEN
+        self.msgsBetween = msgsBetween if msgsBetween else DEFAULT_MSGS_BETWEEN
 
     @commands.command(name="f", pass_context=True, no_pm=True)
     async def plusF(self, ctx):
@@ -87,7 +87,8 @@ class Respects:
         await self.config.put(KEY_MSGS_BETWEEN, self.msgsBetween)
         await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
                            "created after **{}** messages and **{}** seconds have passed "
-                           "since the previous one.".format(self.msgsBetween, self.timeBetween))
+                           "since the previous one.".format(self.msgsBetween,
+                                                            self.timeBetween.seconds))
         LOGGER.info("%s#%s (%s) changed the messages between respects to %s messages",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
@@ -101,7 +102,7 @@ class Respects:
         msg += "A new respect will be made if a previous respect does not exist, or:\n"
         msg += "- **{}** seconds have passed since the last respect, **and**\n"
         msg += "- **{}** messages have been passed since the last respect."
-        await self.bot.say(msg.format(self.timeBetween, self.msgsBetween))
+        await self.bot.say(msg.format(self.timeBetween.seconds, self.msgsBetween))
 
     @setf.command(name="time", pass_context=True, no_pm=True)
     async def setfTime(self, ctx, seconds: int):
@@ -116,11 +117,12 @@ class Respects:
             await self.bot.say(":negative_squared_cross_mark: Please enter a number "
                                "between 1 and 100!")
             return
-        self.timeBetween = seconds
-        await self.config.put(KEY_TIME_BETWEEN, self.timeBetween)
+        self.timeBetween = timedelta(seconds=seconds)
+        await self.config.put(KEY_TIME_BETWEEN, seconds)
         await self.bot.say(":white_check_mark: **Respects - Time**: A new respect will be "
                            "created after **{}** messages and **{}** seconds have passed "
-                           "since the previous one.".format(self.msgsBetween, self.timeBetween))
+                           "since the previous one.".format(self.msgsBetween,
+                                                            self.timeBetween.seconds))
         LOGGER.info("%s#%s (%s) changed the time between respects to %s seconds",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
