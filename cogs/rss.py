@@ -21,7 +21,7 @@ LOGGER = None
 KEY_CHANNEL = "post_channel"
 KEY_INTERVAL = "check_interval"
 KEY_LAST_POST_TIME = "last_post_time"
-KEY_FEED_URLS = "rss_feed_urls"
+KEY_FEEDS = "rss_feeds"
 RSS_IMAGE_URL = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
                  "1200px-Feed-icon.svg.png")
 
@@ -45,13 +45,13 @@ def checkFilesystem():
     folders = ("data/rss")
     for folder in folders:
         if not os.path.exists(folder):
-            print("RSS: Creating folder: {} ...".format(folder))
+            LOGGER.info("Creating folder: %s ...", folder)
             os.makedirs(folder)
 
     files = ("data/rss/config.json", "data/rss/feeds.json")
     for file in files:
         if not os.path.exists(file):
-            print("RSS: Creating file: {} ...".format(file))
+            LOGGER.info("Creating file: %s...", file)
 
             if "feeds" in file:
                 #build a default feeds.json
@@ -141,7 +141,7 @@ class RSSFeed():
                                     cogname="rss")
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
-        self.rssFeedUrls = self.config.get(KEY_FEED_URLS)
+        self.rssFeeds = self.config.get(KEY_FEEDS)
         self.checkInterval = self.config.get(KEY_INTERVAL)
         self.channelId = self.config.get(KEY_CHANNEL)
 
