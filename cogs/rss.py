@@ -162,14 +162,15 @@ class RSSFeed():
             The number of minutes between checks, between 1 and 180 inclusive.
         """
         if minutes < 1 or minutes > 180:
-            await self.bot.say(":negative_squared_cross_mark: The interval must be "
-                               "between 1 and 180 minutes!")
+            await self.bot.say(":negative_squared_cross_mark: **RSS - Check Interval:** "
+                               "The interval must be between 1 and 180 minutes!")
             return
 
         self.checkInterval = minutes * 60
         await self.config.put(KEY_INTERVAL, self.checkInterval)
 
-        await self.bot.say(":white_check_mark: Interval set to {} minutes".format(minutes))
+        await self.bot.say(":white_check_mark: **RSS - Check Interval:** Interval set to "
+                           "**{}** minutes".format(minutes))
 
     async def rss(self):
         """RSS background checker.
