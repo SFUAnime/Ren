@@ -2,20 +2,34 @@
 A replica of +f seen in another bot, except smarter..
 """
 import copy
+import logging
+import os
 from datetime import datetime, timedelta
 from threading import Lock
 from random import choice
 import discord
 from discord.ext import commands
+from cogs.utils import checks, config
 
 KEY_USERS = "users"
 KEY_TIME = "time"
 KEY_MSG = "msg"
+KEY_TIME_BETWEEN = "timeSinceLastRespect"
+KEY_MSGS_BETWEEN = "msgsSinceLastRespect"
 HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
 DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
-TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
+DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
+DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
+LOGGER = None
+SAVE_FOLDER = "data/lui-cogs/respects/"
 TEXT_RESPECTS = "paid their respects"
+
+def checkFolder():
+    """Used to create the data folder at first startup"""
+    if not os.path.exists(SAVE_FOLDER):
+        print("Creating " + SAVE_FOLDER + " folder...")
+        os.makedirs(SAVE_FOLDER)
 
 class Respects:
     """Pay your respects."""
@@ -26,12 +40,19 @@ class Respects:
         self.plusFLock = Lock()
         self.settingsLock = Lock()
         self.settings = {}
+        self.config = config.Config("settings.json", cogname="lui-cogs/respects")
+
+        timeBetween = self.config.get(KEY_TIME_BETWEEN)
+        self.timeBetween = timedelta(seconds=timeBetween) if timeBetween else DEFAULT_TIME_BETWEEN
+
+        msgsBetween = self.config.get(KEY_MSGS_BETWEEN)
+        self.msgsBetween = msgsBetween if msgsBetween else DEFAULT_MSGS_BETWEEN
 
     @commands.command(name="f", pass_context=True, no_pm=True)
     async def plusF(self, ctx):
         """Pay your respects."""
         with self.plusFLock:
-            if not self.checkLastRespectTime(ctx):
+            if not await self.checkLastRespect(ctx):
                 # New respects to be paid
                 await self.payRespects(ctx)
             elif not self.checkIfUserPaidRespect(ctx):
@@ -42,10 +63,84 @@ class Respects:
                 pass
             await self.bot.delete_message(ctx.message)
 
-    def checkLastRespectTime(self, ctx):
+    @checks.mod_or_permissions(manage_messages=True)
+    @commands.group(name="setf", pass_context=True, no_pm=True)
+    async def setf(self, ctx):
+        """Respect settings."""
+        if ctx.invoked_subcommand is None:
+            await self.bot.send_cmd_help(ctx)
+
+    @setf.command(name="messages", pass_context=True, no_pm=True)
+    async def setfMessages(self, ctx, messages: int):
+        """Set the number of messages that must appear before a new respect is paid.
+
+        Parameters:
+        -----------
+        messages: int
+            The number of messages between messages.  Should be between 1 and 100
+        """
+        if messages < 1 or messages > 100:
+            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
+                               "between 1 and 100!")
+            return
+        self.msgsBetween = messages
+        await self.config.put(KEY_MSGS_BETWEEN, self.msgsBetween)
+        await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
+                           "created after **{}** messages and **{}** seconds have passed "
+                           "since the previous one.".format(self.msgsBetween,
+                                                            self.timeBetween.seconds))
+        LOGGER.info("%s#%s (%s) changed the messages between respects to %s messages",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    messages)
+
+    @setf.command(name="show", pass_context=False, no_pm=True)
+    async def setfShow(self):
+        """Show the current settings."""
+        msg = ":information_source: **Respects - Current Settings:**\n"
+        msg += "A new respect will be made if a previous respect does not exist, or:\n"
+        msg += "- **{}** seconds have passed since the last respect, **and**\n"
+        msg += "- **{}** messages have been passed since the last respect."
+        await self.bot.say(msg.format(self.timeBetween.seconds, self.msgsBetween))
+
+    @setf.command(name="time", pass_context=True, no_pm=True)
+    async def setfTime(self, ctx, seconds: int):
+        """Set the number of seconds that must pass before a new respect is paid.
+
+        Parameters:
+        -----------
+        seconds: int
+            The number of seconds that must pass.  Should be between 1 and 100
+        """
+        if seconds < 1 or seconds > 100:
+            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
+                               "between 1 and 100!")
+            return
+        self.timeBetween = timedelta(seconds=seconds)
+        await self.config.put(KEY_TIME_BETWEEN, seconds)
+        await self.bot.say(":white_check_mark: **Respects - Time**: A new respect will be "
+                           "created after **{}** messages and **{}** seconds have passed "
+                           "since the previous one.".format(self.msgsBetween,
+                                                            self.timeBetween.seconds))
+        LOGGER.info("%s#%s (%s) changed the time between respects to %s seconds",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    seconds)
+
+
+    async def checkLastRespect(self, ctx):
         """Check to see if respects have been paid already.
 
-        This method only checks the time portion.
+        This method only checks the time portion and previous messages.
+
+        This method returns False if:
+        - No respects have been paid in this channel before, or
+        - The time exceeds the threshold AND the last respect in the channel was more
+          than a certain number of messages.
+
+        Otherwise, this method returns True.
         """
         with self.settingsLock:
             sid = ctx.message.server.id
@@ -60,7 +155,16 @@ class Respects:
                 self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
                 return False
 
-            if datetime.now() - self.settings[sid][cid][KEY_TIME] > TIME_BETWEEN:
+            prevMsgs = []
+            async for msg in self.bot.logs_from(ctx.message.channel,
+                                                limit=self.msgsBetween,
+                                                before=ctx.message):
+                prevMsgs.append(msg.id)
+
+            exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
+            exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > self.timeBetween
+
+            if exceedMessages and exceedTime:
                 self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
                 return False
 
@@ -126,5 +230,17 @@ class Respects:
 
 def setup(bot):
     """Add the cog to the bot."""
+    global LOGGER # pylint: disable=global-statement
+    checkFolder()
+    LOGGER = logging.getLogger("red.Respects")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     customCog = Respects(bot)
     bot.add_cog(customCog)
