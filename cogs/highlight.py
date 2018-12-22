@@ -261,7 +261,6 @@ class Highlight(object):
         await asyncio.gather(*tasks)
 
     async def _notify_user(self, user, message, word):
-        await asyncio.sleep(3) # possibly pick up messages after trigger that will help with the context
         msgs = []
         async for msg in self.bot.logs_from(message.channel,limit=6,around=message):
             msgs.append(msg)
