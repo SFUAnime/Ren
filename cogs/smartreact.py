@@ -52,12 +52,7 @@ class SmartReact:
     async def reload(self, ctx):
         """Reloads auto reactions with new emojis by name"""
         server = ctx.message.server
-        try:
-            code = await self.update_emojis(server)
-        except Exception as e:
-            print("SmartReact error: ")
-            print(e)
-            await self.bot.say("Error reloading emojis.")
+        code = await self.update_emojis(server)
         await self.bot.say("Reload success.")
 
     @reacts.command(name="list", no_pm=True, pass_context=True)
@@ -110,42 +105,43 @@ class SmartReact:
                 return True
         return False
 
+    # Helper function that matches the name of the emoji and gets the updated custom emoji ID
+    # Will raise ValueError if the comparison emoji is not in the names_list
+    def get_updated_emoji(self, names_list, compare_emoji, server):
+        locv = names_list.index(compare_emoji.split(':')[1])
+        return str(server.emojis[locv])
+        
+
     async def update_emojis(self, server):
-        try:
-            settings = copy.deepcopy(self.settings[server.id])
-            for emoji in self.settings[server.id].keys():
-                names_list = [x.name for x in server.emojis]
+        names_list = [x.name for x in server.emojis]
+        settings = copy.deepcopy(self.settings[server.id])
 
-                # Update any emojis in the trigger words
-                for idx, w in enumerate(self.settings[server.id][emoji]):
-                    if ':' in w: # Hackishly makes sure it's a custom emoji
-                        try:
-                            locv = names_list.index(w.split(':')[1])
-                        except ValueError:
-                            continue # Don't care if doesn't exist
-                        if w != str(server.emojis[locv]):
-                            settings[emoji][idx] = str(server.emojis[locv])
-
-                if not ':' in emoji:
+        for emoji in self.settings[server.id].keys():
+            # Update any emojis in the trigger words
+            for idx, w in enumerate(self.settings[server.id][emoji]):
+                if not ':' in w: # Hackishly makes sure it's a custom emoji
                     continue
-                # Looks for the location of the emoji name in server's list
+
                 try:
-                    loc = names_list.index(emoji.split(':')[1])
+                    updated_emoji = self.get_updated_emoji(names_list, w, server)
                 except ValueError:
                     continue # Don't care if doesn't exist
-                if emoji != str(server.emojis[loc]):
+                if w != updated_emoji:
+                    settings[emoji][idx] = updated_emoji
 
-                    # Update to the new emoji string
-                    settings[str(server.emojis[loc])] = settings[emoji]
-                    del settings[emoji]
-            self.settings[server.id] = settings
+            if not ':' in emoji:
+                continue
 
-            dataIO.save_json(self.settings_path, self.settings)
+            # Update the emoji key
+            try:
+                new_emoji_key = self.get_updated_emoji(names_list, emoji, server)
+            except ValueError:
+                continue # Don't care if doesn't exist
+            if emoji != new_emoji_key:
+                settings[new_emoji_key] = settings.pop(emoji)
+        self.settings[server.id] = settings
 
-        except ValueError as e:
-            raise
-        except Exception as e:
-            raise
+        dataIO.save_json(self.settings_path, self.settings)
 
     async def create_smart_reaction(self, server, word, emoji, message):
         try:
