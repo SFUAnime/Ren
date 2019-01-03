@@ -170,6 +170,19 @@ class Ranks:
         if str(ctx.invoked_subcommand).lower() == "ranks settings":
             await send_cmd_help(ctx)
 
+    # [p]ranks settings default
+    @_settings.command(name="default", pass_context=True, no_pm=True)
+    async def _settingsDefault(self, ctx):
+        """Set default for max points and cooldown."""
+        sid = ctx.message.server.id
+
+        self.settings[sid] = {}
+        self.settings[sid]["cooldown"] = 0
+        self.settings[sid]["maxPoints"] = 25
+
+        await self.bot.say(":information_source: **Ranks - Default:** Defaults set, run "
+                           "`{}rank settings show` to verify the settings.".format(ctx.prefix))
+
     # [p]ranks settings show
     @_settings.command(name="show", pass_context=True, no_pm=True)
     async def _settingsShow(self, ctx):
