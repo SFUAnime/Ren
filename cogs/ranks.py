@@ -241,7 +241,7 @@ class Ranks:
 
     #[p]rank settings maxpoints
     @_settings.command(name="maxpoints", pass_context=True)
-    async def _settingsMaxpoints(self, ctx, maxpoints: int=25):
+    async def _settingsMaxpoints(self, ctx, maxpoints: int = 25):
         """Set max points per eligible message.  Defaults to 25 points."""
         sid = ctx.message.server.id
 
@@ -382,7 +382,7 @@ class Ranks:
             if timestamp - self.lastspoke[sid][uid]["timestamp"] <= self.settings[sid]["cooldown"]:
                 return
             # Update last spoke time with new message time.
-        except KeyError as error:
+        except KeyError:
             # Most likely key error, so create the key, then update
             # last spoke time with new message time.
             try:
@@ -395,7 +395,6 @@ class Ranks:
                          message.author.name,
                          message.author.discriminator,
                          uid)
-            # LOGGER.exception("Actual error")
 
         self.lastspoke[sid][uid]["timestamp"] = timestamp
         self.addPoints(message.server.id, message.author.id)
