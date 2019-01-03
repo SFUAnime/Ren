@@ -2,6 +2,7 @@
 Keep track of active members on the server.
 """
 
+import logging
 import os
 import random
 import MySQLdb # The use of MySQL is debatable, but will use it to incorporate CMPT 354 stuff.
@@ -15,6 +16,7 @@ from .utils.dataIO import dataIO # pylint: disable=relative-beyond-top-level
 from .utils import checks # pylint: disable=relative-beyond-top-level
 
 # Global variables
+LOGGER = None
 SAVE_FOLDER = "data/lui-cogs/ranks/" # Path to save folder.
 
 def checkFolder():
@@ -366,9 +368,19 @@ class Ranks:
 
 def setup(bot):
     """Add the cog to the bot"""
-
+    global LOGGER # pylint: disable=global-statement
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have a local database!
+    LOGGER = logging.getLogger("red.Welcome")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     rankingSystem = Ranks(bot)
     bot.add_cog(rankingSystem)
     bot.add_listener(rankingSystem.checkFlood, 'on_message')
