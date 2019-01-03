@@ -128,9 +128,10 @@ class Ranks:
             currentXP = data[4]
             totalXP = data[5]
             currentLevelXP = currentXP - totalXP
-        except IndexError:
+        except IndexError as error:
             await self.bot.say("Something went wrong when checking your level.  "
                                "Please notify the admin!")
+            LOGGER.error(error)
             database.close()
             return
 
@@ -214,8 +215,13 @@ class Ranks:
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
         await self.bot.say(":white_check_mark: Ranks - Cooldown: Set to {0} "
-                           "seconds.".format(
-                               self.settings[ctx.message.server.id]["cooldown"]))
+                           "seconds.".format(seconds))
+        LOGGER.info("Cooldown changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info("Cooldown set to %s seconds",
+                    seconds)
 
     #[p]rank settings maxpoints
     @_settings.command(name="maxpoints", pass_context=True)
@@ -240,8 +246,13 @@ class Ranks:
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
         await self.bot.say(":white_check_mark: Ranks - Max Points: Users can gain "
-                           "up to {0} points per eligible message.".format(
-                               self.settings[ctx.message.server.id]["maxPoints"]))
+                           "up to {0} points per eligible message.".format(maxpoints))
+        LOGGER.info("Maximum points changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info("Maximum points per message set to %s.",
+                    maxpoints)
 
     #[p]rank settings dbsetup
     @_settings.command(name="dbsetup", pass_context=True)
@@ -286,6 +297,10 @@ class Ranks:
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
         await self.bot.say("Settings saved.")
+        LOGGER.info("Database connection changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
 
     ####################
     # HELPER FUNCTIONS #
@@ -346,24 +361,30 @@ class Ranks:
         if message.channel.is_private:
             return
 
+        sid = message.server.id
+        uid = message.author.id
+
         try:
             # If the time does not exceed COOLDOWN, return and do nothing.
-            if timestamp - self.lastspoke[message.server.id][message.author.id] \
-                    ["timestamp"] <= self.settings[message.server.id]["cooldown"]:
+            if timestamp - self.lastspoke[sid][uid]["timestamp"] <= self.settings[sid]["cooldown"]:
                 return
             # Update last spoke time with new message time.
-            self.lastspoke[message.server.id][message.author.id]["timestamp"] = timestamp
         except KeyError as error:
             # Most likely key error, so create the key, then update
             # last spoke time with new message time.
             try:
-                self.lastspoke[message.server.id][message.author.id] = {}
+                self.lastspoke[sid][uid] = {}
             except KeyError:
-                self.lastspoke[message.server.id] = {}
-                self.lastspoke[message.server.id][message.author.id] = {}
-            self.lastspoke[message.server.id][message.author.id]["timestamp"] = timestamp
-            print(error)
+                self.lastspoke[sid] = {}
+                self.lastspoke[sid][uid] = {}
+            LOGGER.error("%s#%s (%s) has not spoken since last restart, adding new "
+                         "timestamp",
+                         message.author.name,
+                         message.author.discriminator,
+                         uid)
+            # LOGGER.exception("Actual error")
 
+        self.lastspoke[sid][uid]["timestamp"] = timestamp
         self.addPoints(message.server.id, message.author.id)
 
 def setup(bot):
@@ -371,7 +392,7 @@ def setup(bot):
     global LOGGER # pylint: disable=global-statement
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have a local database!
-    LOGGER = logging.getLogger("red.Welcome")
+    LOGGER = logging.getLogger("red.Ranks")
     if LOGGER.level == 0:
         # Prevents the LOGGER from being loaded again in case of module reload.
         LOGGER.setLevel(logging.INFO)
