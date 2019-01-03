@@ -120,7 +120,7 @@ class Ranks:
         data = cursor.fetchone() # Data from the database.
 
         try:
-            print(data)
+            LOGGER.info(data)
             rank = data[0]
             userID = data[1]
             level = data[2]
