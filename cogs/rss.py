@@ -66,7 +66,7 @@ def checkFilesystem():
                 #build a default config.json
                 defaultDict = {}
                 defaultDict[KEY_CHANNEL] = "change_me"
-                defaultDict[KEY_FEED_URLS] = ["change_me"]
+                defaultDict[KEY_FEED_URLS] = {}
                 defaultDict[KEY_INTERVAL] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", defaultDict)
 
@@ -172,6 +172,54 @@ class RSSFeed():
         await self.bot.say(":white_check_mark: **RSS - Check Interval:** Interval set to "
                            "**{}** minutes".format(minutes))
 
+
+    async def getFeed(self, rssUrl):
+        """Gets news items from a given RSS URL
+
+        Parameters:
+        -----------
+        rssUrl: str
+            The URL of the RSS feed.
+
+        Returns:
+        --------
+        news: [feedparser.FeedParserDict]
+            A list of news items obtained using the feedparser library.
+
+        Also updates the latest post time for the URL given within the settings
+        dict if there is at least one news item.
+        """
+
+        try:
+            latestPostTime = self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME]
+        except KeyError:
+            self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME] = 0
+            latestPostTime = 0
+
+        news = []
+        feed = feedparser.parse(rssUrl)
+
+        for item in feed.entries:
+            itemPostTime = date2epoch(item['published'])
+            if _isNewItem(latestPostTime, itemPostTime):
+                news.append(item)
+
+        if not news:
+            LOGGER.info("No new items from %s", rssUrl)
+        else:
+            LOGGER.info("%s new items from %s", len(news), rssUrl)
+
+        latestPostTime = _getLatestPostTime(feed.entries)
+        if latestPostTime:
+            self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME] = latestPostTime
+
+        await self.config.put(KEY_FEEDS, self.rssFeedUrls)
+
+        # Heartbeat
+        dataIO.save_json("data/rss/timestamp.json", "{}")
+
+        return news
+
     async def rss(self):
         """RSS background checker.
         Checks for rss updates periodically and posts any new content to the specific
@@ -183,15 +231,13 @@ class RSSFeed():
 
             postChannel = self.bot.get_channel(self.channelId)
             updates = []
-            index = 0
 
             if not postChannel:
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
             else:
-                for feedUrl in self.rssFeedUrls:
-                    feedUpdates = _getFeed(feedUrl, index=index)
+                for feedUrl in self.rssFeedUrls.keys():
+                    feedUpdates = await self.getFeed(feedUrl)
                     updates += feedUpdates
-                    index += 1
 
             # Reversed so updates display from latest to earliest, since they are
             # appended earliest to latest.
