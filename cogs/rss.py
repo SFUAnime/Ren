@@ -126,7 +126,7 @@ class RSSFeed():
                     minutes)
 
     @_rss.command(name="channel", pass_context=True, no_pm=True)
-    async def setInterval(self, ctx, channel: discord.Channel):
+    async def setChannel(self, ctx, channel: discord.Channel):
         """Set the channel to post new RSS news items.
 
         Parameters:
