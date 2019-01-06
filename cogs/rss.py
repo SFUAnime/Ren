@@ -21,7 +21,7 @@ LOGGER = None
 KEY_CHANNEL = "post_channel"
 KEY_INTERVAL = "check_interval"
 KEY_LAST_POST_TIME = "last_post_time"
-KEY_FEEDS = "rss_feeds"
+KEY_FEEDS = "rss_feed_urls"
 RSS_IMAGE_URL = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
                  "1200px-Feed-icon.svg.png")
 
@@ -141,7 +141,7 @@ class RSSFeed():
                                     cogname="rss")
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
-        self.rssFeeds = self.config.get(KEY_FEEDS)
+        self.rssFeedUrls = self.config.get(KEY_FEEDS)
         self.checkInterval = self.config.get(KEY_INTERVAL)
         self.channelId = self.config.get(KEY_CHANNEL)
 
