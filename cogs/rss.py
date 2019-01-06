@@ -99,8 +99,8 @@ class RSSFeed():
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
-    @_rss.command(name="interval", pass_context=False, no_pm=True)
-    async def setInterval(self, minutes: int):
+    @_rss.command(name="interval", pass_context=True, no_pm=True)
+    async def setInterval(self, ctx, minutes: int):
         """Set the interval for RSS to scan for updates.
 
         Parameters:
@@ -119,6 +119,45 @@ class RSSFeed():
         await self.bot.say(":white_check_mark: **RSS - Check Interval:** Interval set to "
                            "**{}** minutes".format(minutes))
 
+        LOGGER.info("%s#%s (%s) changed the RSS check interval to %s minutes",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    minutes)
+
+    @_rss.command(name="channel", pass_context=True, no_pm=True)
+    async def setInterval(self, ctx, channel: discord.Channel):
+        """Set the channel to post new RSS news items.
+
+        Parameters:
+        -----------
+        channel: discord.Channel
+            The channel to post new RSS news items to.
+        """
+        self.channelId = channel.id
+        await self.bot.say(":white_check_mark: **RSS - Channel**: New updates will now "
+                           "be posted to {}".format(channel.mention))
+        LOGGER.info("%s#%s (%s) changed the RSS post channel to %s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    channel.name,
+                    channel.id)
+
+    @_rss.command(name="show", pass_context=False, no_pm=True)
+    async def showSettings(self):
+        """Show the current RSS configuration."""
+        msg = ":information_source: **RSS - Current Settings**:\n```"
+
+        channel = self.bot.get_channel(self.channelId)
+        if not channel:
+            await self.bot.say("Invalid channel, please set a channel and try again!")
+            return
+        msg += "Posting Channel: #{}\n".format(channel.name)
+        msg += "Check Interval:  {} minutes\n".format(self.checkInterval/60)
+        msg += "```"
+
+        await self.bot.say(msg)
 
     async def getFeed(self, rssUrl):
         """Gets news items from a given RSS URL
