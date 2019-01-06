@@ -2,6 +2,7 @@
 Keep track of active members on the server.
 """
 
+import logging
 import os
 import random
 import MySQLdb # The use of MySQL is debatable, but will use it to incorporate CMPT 354 stuff.
@@ -15,6 +16,7 @@ from .utils.dataIO import dataIO # pylint: disable=relative-beyond-top-level
 from .utils import checks # pylint: disable=relative-beyond-top-level
 
 # Global variables
+LOGGER = None
 SAVE_FOLDER = "data/lui-cogs/ranks/" # Path to save folder.
 
 def checkFolder():
@@ -118,7 +120,7 @@ class Ranks:
         data = cursor.fetchone() # Data from the database.
 
         try:
-            print(data)
+            LOGGER.info(data)
             rank = data[0]
             userID = data[1]
             level = data[2]
@@ -126,9 +128,10 @@ class Ranks:
             currentXP = data[4]
             totalXP = data[5]
             currentLevelXP = currentXP - totalXP
-        except IndexError:
+        except IndexError as error:
             await self.bot.say("Something went wrong when checking your level.  "
                                "Please notify the admin!")
+            LOGGER.error(error)
             database.close()
             return
 
@@ -167,21 +170,35 @@ class Ranks:
         if str(ctx.invoked_subcommand).lower() == "ranks settings":
             await send_cmd_help(ctx)
 
+    # [p]ranks settings default
+    @_settings.command(name="default", pass_context=True, no_pm=True)
+    async def _settingsDefault(self, ctx):
+        """Set default for max points and cooldown."""
+        sid = ctx.message.server.id
+
+        self.settings[sid] = {}
+        self.settings[sid]["cooldown"] = 0
+        self.settings[sid]["maxPoints"] = 25
+
+        await self.bot.say(":information_source: **Ranks - Default:** Defaults set, run "
+                           "`{}rank settings show` to verify the settings.".format(ctx.prefix))
+
     # [p]ranks settings show
     @_settings.command(name="show", pass_context=True, no_pm=True)
     async def _settingsShow(self, ctx):
         """Show current settings."""
+        sid = ctx.message.server.id
+
         try:
-            cooldown = self.settings[ctx.message.server.id]["cooldown"]
+            cooldown = self.settings[sid]["cooldown"]
+            maxPoints = self.settings[sid]["maxPoints"]
         except KeyError:
             # Not set.
-            cooldown = 0
-        try:
-            maxPoints = self.settings[ctx.message.server.id]["maxPoints"]
-        except KeyError:
-            # Not set.
-            maxPoints = 25
-        msg = ":information_source: Ranks - Current Settings\n```"
+            await self.bot.say(":warning: **Ranks - Current Settings**: The server is "
+                               "not configured!  Please run `{}rank settings default` "
+                               "first and try again.".format(ctx.prefix))
+            return
+        msg = ":information_source: **Ranks - Current Settings**:\n```"
         msg += "Cooldown time:  {0} seconds.\n".format(cooldown)
         msg += "Maximum points: {0} points per eligible message```".format(maxPoints)
 
@@ -189,15 +206,17 @@ class Ranks:
 
     # [p]rank settings cooldown
     @_settings.command(name="cooldown", pass_context=True)
-    async def _settingsCcooldown(self, ctx, seconds: int):
+    async def _settingsCooldown(self, ctx, seconds: int):
         """Set the cooldown required between XP gains (in seconds)"""
+        sid = ctx.message.server.id
+
         if seconds is None:
-            await self.bot.say(":negative_squared_cross_mark: Ranks - Cooldown: "
+            await self.bot.say(":negative_squared_cross_mark: **Ranks - Cooldown**: "
                                "Please enter a time in seconds!")
             return
 
         if seconds < 0:
-            await self.bot.say(":negative_squared_cross_mark: Ranks - Cooldown: "
+            await self.bot.say(":negative_squared_cross_mark: **Ranks - Cooldown**: "
                                "Please enter a valid time in seconds!")
             return
 
@@ -205,41 +224,48 @@ class Ranks:
         self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
 
         # Make sure the server id key exists.
-        if ctx.message.server.id not in self.settings.keys():
-            self.settings[ctx.message.server.id] = {}
+        if sid not in self.settings.keys():
+            self.settings[sid] = {}
 
-        self.settings[ctx.message.server.id]["cooldown"] = seconds
+        self.settings[sid]["cooldown"] = seconds
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
-        await self.bot.say(":white_check_mark: Ranks - Cooldown: Set to {0} "
-                           "seconds.".format(
-                               self.settings[ctx.message.server.id]["cooldown"]))
+        await self.bot.say(":white_check_mark: **Ranks - Cooldown**: Set to {0} "
+                           "seconds.".format(seconds))
+        LOGGER.info("Cooldown changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info("Cooldown set to %s seconds",
+                    seconds)
 
     #[p]rank settings maxpoints
     @_settings.command(name="maxpoints", pass_context=True)
-    async def _settingsMaxpoints(self, ctx, maxpoints: int):
-        """Set the max points you can gain for every eligible message. Defaults to 25 points."""
-        if maxpoints is None:
-            await self.bot.say(":white_check_mark: Ranks - Max Points: Setting "
-                               "default (up to 25 points per eligible message).")
-            return
+    async def _settingsMaxpoints(self, ctx, maxpoints: int = 25):
+        """Set max points per eligible message.  Defaults to 25 points."""
+        sid = ctx.message.server.id
 
         if maxpoints < 0:
-            await self.bot.say(":negative_squared_cross_mark: Ranks - Max Points: "
+            await self.bot.say(":negative_squared_cross_mark: **Ranks - Max Points**: "
                                "Please enter a positive number.")
             return
 
         # Save settings
         self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
         # Make sure the server id key exists.
-        if ctx.message.server.id not in self.settings.keys():
-            self.settings[ctx.message.server.id] = {}
-        self.settings[ctx.message.server.id]["maxPoints"] = maxpoints
+        if sid not in self.settings.keys():
+            self.settings[sid] = {}
+        self.settings[sid]["maxPoints"] = maxpoints
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
-        await self.bot.say(":white_check_mark: Ranks - Max Points: Users can gain "
-                           "up to {0} points per eligible message.".format(
-                               self.settings[ctx.message.server.id]["maxPoints"]))
+        await self.bot.say(":white_check_mark: **Ranks - Max Points**: Users can gain "
+                           "up to {0} points per eligible message.".format(maxpoints))
+        LOGGER.info("Maximum points changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info("Maximum points per message set to %s.",
+                    maxpoints)
 
     #[p]rank settings dbsetup
     @_settings.command(name="dbsetup", pass_context=True)
@@ -284,6 +310,10 @@ class Ranks:
         dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
 
         await self.bot.say("Settings saved.")
+        LOGGER.info("Database connection changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
 
     ####################
     # HELPER FUNCTIONS #
@@ -344,31 +374,46 @@ class Ranks:
         if message.channel.is_private:
             return
 
+        sid = message.server.id
+        uid = message.author.id
+
         try:
             # If the time does not exceed COOLDOWN, return and do nothing.
-            if timestamp - self.lastspoke[message.server.id][message.author.id] \
-                    ["timestamp"] <= self.settings[message.server.id]["cooldown"]:
+            if timestamp - self.lastspoke[sid][uid]["timestamp"] <= self.settings[sid]["cooldown"]:
                 return
             # Update last spoke time with new message time.
-            self.lastspoke[message.server.id][message.author.id]["timestamp"] = timestamp
-        except KeyError as error:
+        except KeyError:
             # Most likely key error, so create the key, then update
             # last spoke time with new message time.
             try:
-                self.lastspoke[message.server.id][message.author.id] = {}
+                self.lastspoke[sid][uid] = {}
             except KeyError:
-                self.lastspoke[message.server.id] = {}
-                self.lastspoke[message.server.id][message.author.id] = {}
-            self.lastspoke[message.server.id][message.author.id]["timestamp"] = timestamp
-            print(error)
+                self.lastspoke[sid] = {}
+                self.lastspoke[sid][uid] = {}
+            LOGGER.error("%s#%s (%s) has not spoken since last restart, adding new "
+                         "timestamp",
+                         message.author.name,
+                         message.author.discriminator,
+                         uid)
 
+        self.lastspoke[sid][uid]["timestamp"] = timestamp
         self.addPoints(message.server.id, message.author.id)
 
 def setup(bot):
     """Add the cog to the bot"""
-
+    global LOGGER # pylint: disable=global-statement
     checkFolder()   # Make sure the data folder exists!
     checkFiles()    # Make sure we have a local database!
+    LOGGER = logging.getLogger("red.Ranks")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     rankingSystem = Ranks(bot)
     bot.add_cog(rankingSystem)
     bot.add_listener(rankingSystem.checkFlood, 'on_message')
