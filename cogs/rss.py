@@ -66,62 +66,9 @@ def checkFilesystem():
                 #build a default config.json
                 defaultDict = {}
                 defaultDict[KEY_CHANNEL] = "change_me"
-                defaultDict[KEY_FEED_URLS] = {}
+                defaultDict[KEY_FEEDS] = {}
                 defaultDict[KEY_INTERVAL] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", defaultDict)
-
-def _getFeed(rssUrl, index=None):
-    """Gets news items from a given RSS URL
-
-    Parameters:
-    -----------
-    rssUrl: str
-        The URL of the RSS feed.
-    index: int
-        The index from feeds.json (to be removed).
-
-    Returns:
-    --------
-    news: [feedparser.FeedParserDict]
-        A list of news items obtained using the feedparser library.
-    """
-
-    feeds = dataIO.load_json("data/rss/feeds.json")
-
-    #ensure every rss url has a specified id and most recent post epoch
-    try:
-        latestPostTime = feeds['feeds'][index]['latest_post_time']
-    except IndexError:
-        feedDict = {}
-        feedDict['id'] = index
-        feedDict['latest_post_time'] = 0
-        feeds['feeds'].append(feedDict)
-        dataIO.save_json("data/rss/feeds.json", feeds)
-        feeds = dataIO.load_json("data/rss/feeds.json")
-        latestPostTime = feeds['feeds'][index]['latest_post_time']
-
-    news = []
-    feed = feedparser.parse(rssUrl)
-
-    for item in feed.entries:
-        itemPostTime = date2epoch(item['published'])
-        if _isNewItem(latestPostTime, itemPostTime):
-            news.append(item)
-
-    if not news:
-        LOGGER.info("No new items in feed %s", str(index))
-    else:
-        LOGGER.info("%s new items in feed %s", len(news), str(index))
-
-    latestPostTime = _getLatestPostTime(feed.entries)
-    if latestPostTime:
-        feeds['feeds'][index]['latest_post_time'] = latestPostTime
-    dataIO.save_json("data/rss/feeds.json", feeds)
-
-    # Heartbeat
-    dataIO.save_json("data/rss/timestamp.json", "{}")
-
-    return news
 
 def _getLatestPostTime(feedItems):
     publishedTimes = []
