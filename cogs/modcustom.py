@@ -5,6 +5,7 @@ from .utils import checks
 from __main__ import send_cmd_help, settings
 from collections import deque, defaultdict
 from cogs.utils.chat_formatting import escape_mass_mentions, box
+from cogs.utils.paginator import Pages # For making pages, requires the util!
 import os
 import re
 import logging
@@ -68,7 +69,23 @@ class ModCustom(object):
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @plonked.command(name="adduser")
+    # [p]plonked users
+    @plonked.group(name="users", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def user_settings(self, ctx):
+        """Category: change settings for users."""
+        if str(ctx.invoked_subcommand).lower() == "plonked users":
+            await send_cmd_help(ctx)
+
+    # [p]plonked roles
+    @plonked.group(name="roles", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def role_settings(self, ctx):
+        """Category: change settings for roles."""
+        if str(ctx.invoked_subcommand).lower() == "plonked roles":
+            await send_cmd_help(ctx)
+
+    @user_settings.command(name="add")
     async def _blacklist_adduser(self, user: discord.Member):
         """Adds user to bot's blacklist"""
         if user.id not in self.plonked_perms["users"]:
@@ -78,7 +95,7 @@ class ModCustom(object):
         else:
             await self.bot.say("User is already blacklisted.")
 
-    @plonked.command(name="addrole")
+    @role_settings.command(name="add")
     async def _blacklist_addrole(self, role: str):
         """Adds role to bot's blacklist"""
         if role not in self.plonked_perms["roles"]:
@@ -88,7 +105,7 @@ class ModCustom(object):
         else:
             await self.bot.say("Role is already blacklisted.")
 
-    @plonked.command(name="removeuser")
+    @user_settings.command(name="del", aliases=["remove", "delete", "rm"])
     async def _blacklist_removeuser(self, user: discord.Member):
         """Removes user from bot's blacklist"""
         if user.id in self.plonked_perms["users"]:
@@ -98,15 +115,46 @@ class ModCustom(object):
         else:
             await self.bot.say("User is not in blacklist.")
 
-    @plonked.command(name="removerole")
+    @role_settings.command(name="del", aliases=["delete", "remove", "rm"])
     async def _blacklist_removerole(self, role: str):
-        """Removes role to bot's blacklist"""
+        """Removes role from bot's blacklist"""
         if role in self.plonked_perms["roles"]:
             self.plonked_perms["roles"].remove(role)
             dataIO.save_json("data/modcustom/plonked_perms.json", self.plonked_perms)
             await self.bot.say("Role has been removed from blacklist.")
         else:
             await self.bot.say("Role is not in blacklist.")
+
+    @user_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _blacklist_listusers(self, ctx):
+        """List users on the bot's blacklist"""
+        if not self.plonked_perms["users"]:
+            await self.bot.say("No users are on the blacklist.")
+            return
+
+        users = []
+        for uid in self.plonked_perms["users"]:
+            user_obj = ctx.message.server.get_member(uid)
+            if not user_obj:
+                continue
+            users.append(user_obj.mention)
+
+        page = Pages(self.bot, message=ctx.message, entries=users)
+        page.embed.title = "Blacklisted users in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
+
+    @role_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _blacklist_listroles(self, ctx):
+        """List roles on the bot's blacklist"""
+        if not self.plonked_perms["roles"]:
+            await self.bot.say("No roles are on the blacklist.")
+            return
+
+        page = Pages(self.bot, message=ctx.message, entries=self.plonked_perms["roles"])
+        page.embed.title = "Blacklisted roles in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
 
     @plonked.command(name="clear")
     async def _blacklist_clear(self):
