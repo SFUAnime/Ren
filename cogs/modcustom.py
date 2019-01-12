@@ -234,6 +234,37 @@ class ModCustom(object):
         else:
             await self.bot.say("Role is not in whitelist.")
 
+    @overridden_user_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _whitelist_listusers(self, ctx):
+        """List users on the bot's whitelist"""
+        if not self.override_perms["users"]:
+            await self.bot.say("No users are on the whitelist.")
+            return
+
+        users = []
+        for uid in self.override_perms["users"]:
+            user_obj = ctx.message.server.get_member(uid)
+            if not user_obj:
+                continue
+            users.append(user_obj.mention)
+
+        page = Pages(self.bot, message=ctx.message, entries=users)
+        page.embed.title = "Whitelisted users in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
+
+    @overridden_role_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _whitelist_listroles(self, ctx):
+        """List roles on the bot's whitelist"""
+        if not self.override_perms["roles"]:
+            await self.bot.say("No roles are on the whitelist.")
+            return
+
+        page = Pages(self.bot, message=ctx.message, entries=self.override_perms["roles"])
+        page.embed.title = "Whitelisted roles in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
+
     @overridden.command(name="clear")
     async def _whitelist_clear(self):
         """Clears the whitelist"""
