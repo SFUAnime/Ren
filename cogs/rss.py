@@ -14,12 +14,16 @@ import discord
 from discord.ext import commands
 import feedparser
 from bs4 import BeautifulSoup
+from cogs.utils import checks, config
 from cogs.utils.dataIO import dataIO
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
 
 LOGGER = None
-RSS_IMAGE = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
-             "1200px-Feed-icon.svg.png")
+KEY_CHANNEL = "post_channel"
+KEY_INTERVAL = "check_interval"
+KEY_LAST_POST_TIME = "last_post_time"
+KEY_FEEDS = "rss_feed_urls"
+RSS_IMAGE_URL = ("https://upload.wikimedia.org/wikipedia/en/thumb/4/43/Feed-icon.svg/"
+                 "1200px-Feed-icon.svg.png")
 
 def date2epoch(date):
     """Converts a datetime date into epoch for storage in JSON."""
@@ -41,13 +45,13 @@ def checkFilesystem():
     folders = ("data/rss")
     for folder in folders:
         if not os.path.exists(folder):
-            print("RSS: Creating folder: {} ...".format(folder))
+            LOGGER.info("Creating folder: %s ...", folder)
             os.makedirs(folder)
 
     files = ("data/rss/config.json", "data/rss/feeds.json")
     for file in files:
         if not os.path.exists(file):
-            print("RSS: Creating file: {} ...".format(file))
+            LOGGER.info("Creating file: %s...", file)
 
             if "feeds" in file:
                 #build a default feeds.json
@@ -61,58 +65,10 @@ def checkFilesystem():
             elif "config" in file:
                 #build a default config.json
                 defaultDict = {}
-                defaultDict['post_channel'] = "change_me"
-                defaultDict['rss_feed_urls'] = ["change_me"]
-                defaultDict['check_interval'] = 3600 #default to checking every hour
+                defaultDict[KEY_CHANNEL] = "change_me"
+                defaultDict[KEY_FEEDS] = {}
+                defaultDict[KEY_INTERVAL] = 3600 #default to checking every hour
                 dataIO.save_json("data/rss/config.json", defaultDict)
-
-def _getFeed(rssUrl, channel, index=None):
-
-    if channel is None:
-        return []
-
-    feeds = dataIO.load_json("data/rss/feeds.json")
-
-    #ensure every rss url has a specified id and most recent post epoch
-    try:
-        latestPostTime = feeds['feeds'][index]['latest_post_time']
-    except IndexError:
-        feedDict = {}
-        feedDict['id'] = index
-        feedDict['latest_post_time'] = 0
-        feeds['feeds'].append(feedDict)
-        dataIO.save_json("data/rss/feeds.json", feeds)
-        feeds = dataIO.load_json("data/rss/feeds.json")
-        latestPostTime = feeds['feeds'][index]['latest_post_time']
-
-    news = []
-    feed = feedparser.parse(rssUrl)
-
-    for item in feed['items']:
-        itemPostTime = date2epoch(item['published'])
-        if _isNewItem(latestPostTime, itemPostTime):
-            rssItem = {}
-            rssItem['title'] = item['title']
-            rssItem['link'] = item['link']
-            rssItem['published'] = item['published']
-            rssItem['summary'] = item['summary']
-            rssItem['url'] = rssUrl
-            news.append(rssItem)
-
-    if not news:
-        LOGGER.info("No new items in feed %s", str(index))
-    else:
-        LOGGER.info("%s new items in feed %s", len(news), str(index))
-
-    latestPostTime = _getLatestPostTime(feed['items'])
-    if latestPostTime:
-        feeds['feeds'][index]['latest_post_time'] = latestPostTime
-    dataIO.save_json("data/rss/feeds.json", feeds)
-
-    # Heartbeat
-    dataIO.save_json("data/rss/timestamp.json", "{}")
-
-    return news
 
 def _getLatestPostTime(feedItems):
     publishedTimes = []
@@ -128,23 +84,129 @@ def _isNewItem(latestPostTime, itemPostTime):
 class RSSFeed():
     """RSS cog"""
     def __init__(self, bot):
+        self.config = config.Config("config.json",
+                                    cogname="rss")
         self.settings = dataIO.load_json("data/rss/config.json")
         self.bot = bot
-        self.rssFeedUrls = self.settings['rss_feed_urls']
-        self.checkInterval = self.settings['check_interval']
-        self.channelId = self.settings['post_channel']
+        self.rssFeedUrls = self.config.get(KEY_FEEDS)
+        self.checkInterval = self.config.get(KEY_INTERVAL)
+        self.channelId = self.config.get(KEY_CHANNEL)
 
+    @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="rss", pass_context=True, no_pm=True)
     async def _rss(self, ctx):
-        """Utilities for the RSS cog"""
+        """Configuration for the RSS cog"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
-    @_rss.command(pass_context=True, no_pm=True)
-    async def setinterval(self, ctx):
-        """Set the interval for rss to scan for updates"""
+    @_rss.command(name="interval", pass_context=True, no_pm=True)
+    async def setInterval(self, ctx, minutes: int):
+        """Set the interval for RSS to scan for updates.
 
-    async def rss(self): # pylint: disable=too-many-locals
+        Parameters:
+        -----------
+        minutes: int
+            The number of minutes between checks, between 1 and 180 inclusive.
+        """
+        if minutes < 1 or minutes > 180:
+            await self.bot.say(":negative_squared_cross_mark: **RSS - Check Interval:** "
+                               "The interval must be between 1 and 180 minutes!")
+            return
+
+        self.checkInterval = minutes * 60
+        await self.config.put(KEY_INTERVAL, self.checkInterval)
+
+        await self.bot.say(":white_check_mark: **RSS - Check Interval:** Interval set to "
+                           "**{}** minutes".format(minutes))
+
+        LOGGER.info("%s#%s (%s) changed the RSS check interval to %s minutes",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    minutes)
+
+    @_rss.command(name="channel", pass_context=True, no_pm=True)
+    async def setChannel(self, ctx, channel: discord.Channel):
+        """Set the channel to post new RSS news items.
+
+        Parameters:
+        -----------
+        channel: discord.Channel
+            The channel to post new RSS news items to.
+        """
+        self.channelId = channel.id
+        await self.bot.say(":white_check_mark: **RSS - Channel**: New updates will now "
+                           "be posted to {}".format(channel.mention))
+        LOGGER.info("%s#%s (%s) changed the RSS post channel to %s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id,
+                    channel.name,
+                    channel.id)
+
+    @_rss.command(name="show", pass_context=False, no_pm=True)
+    async def showSettings(self):
+        """Show the current RSS configuration."""
+        msg = ":information_source: **RSS - Current Settings**:\n```"
+
+        channel = self.bot.get_channel(self.channelId)
+        if not channel:
+            await self.bot.say("Invalid channel, please set a channel and try again!")
+            return
+        msg += "Posting Channel: #{}\n".format(channel.name)
+        msg += "Check Interval:  {} minutes\n".format(self.checkInterval/60)
+        msg += "```"
+
+        await self.bot.say(msg)
+
+    async def getFeed(self, rssUrl):
+        """Gets news items from a given RSS URL
+
+        Parameters:
+        -----------
+        rssUrl: str
+            The URL of the RSS feed.
+
+        Returns:
+        --------
+        news: [feedparser.FeedParserDict]
+            A list of news items obtained using the feedparser library.
+
+        Also updates the latest post time for the URL given within the settings
+        dict if there is at least one news item.
+        """
+
+        try:
+            latestPostTime = self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME]
+        except KeyError:
+            self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME] = 0
+            latestPostTime = 0
+
+        news = []
+        feed = feedparser.parse(rssUrl)
+
+        for item in feed.entries:
+            itemPostTime = date2epoch(item['published'])
+            if _isNewItem(latestPostTime, itemPostTime):
+                news.append(item)
+
+        if not news:
+            LOGGER.info("No new items from %s", rssUrl)
+        else:
+            LOGGER.info("%s new items from %s", len(news), rssUrl)
+
+        latestPostTime = _getLatestPostTime(feed.entries)
+        if latestPostTime:
+            self.rssFeedUrls[rssUrl][KEY_LAST_POST_TIME] = latestPostTime
+
+        await self.config.put(KEY_FEEDS, self.rssFeedUrls)
+
+        # Heartbeat
+        dataIO.save_json("data/rss/timestamp.json", "{}")
+
+        return news
+
+    async def rss(self):
         """RSS background checker.
         Checks for rss updates periodically and posts any new content to the specific
         channel.
@@ -155,45 +217,45 @@ class RSSFeed():
 
             postChannel = self.bot.get_channel(self.channelId)
             updates = []
-            idx = 0
 
             if not postChannel:
                 LOGGER.error("Can't find channel: bot is not logged in yet.")
-
-            for feedUrl in self.rssFeedUrls:
-                feedUpdates = _getFeed(feedUrl, postChannel, index=idx)
-                updates += feedUpdates
-                idx += 1
+            else:
+                for feedUrl in self.rssFeedUrls.keys():
+                    feedUpdates = await self.getFeed(feedUrl)
+                    updates += feedUpdates
 
             # Reversed so updates display from latest to earliest, since they are
             # appended earliest to latest.
             for item in reversed(updates):
                 embed = discord.Embed()
                 embed.colour = discord.Colour.orange()
-                embed.title = item['title']
-                embed.url = item['link']
+                embed.title = item.title
+                embed.url = item.link.replace(" ", "%20")
 
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(item['link'].replace(' ', '%20')) as resp:
+                    async with session.get(item.link.replace(' ', '%20')) as resp:
                         page = await resp.text()
 
                 soup = BeautifulSoup(page, "html.parser")
-                try:
-                    imageUrl = soup.find("meta", property="og:image")['content']
-                    embed.set_image(url=imageUrl)
-                except (KeyError, TypeError):
-                    pass
 
                 #ugly, but want a nicer "human readable" date
-                formattedDate = epoch2date(date2epoch(item['published']))
-                embed.add_field(name="Date Published", value=formattedDate, inline=False)
+                embed.add_field(name="Date Published",
+                                value=epoch2date(date2epoch(item.published)),
+                                inline=False)
 
-                html2text = BeautifulSoup(item['summary'], "html.parser").get_text()
-                embed.add_field(name="Summary", value=html2text, inline=False)
+                embed.add_field(name="Summary",
+                                value=BeautifulSoup(item.summary, "html.parser").get_text(),
+                                inline=False)
 
-                footerText = "This update is from {}".format(item['url'])
-                rssImage = RSS_IMAGE
-                embed.set_footer(text=footerText, icon_url=rssImage)
+                try:
+                    embed.set_image(url=soup.find("meta", property="og:image")["content"])
+                except (KeyError, TypeError) as error:
+                    LOGGER.error("Image URL error: %s", error)
+
+                embed.set_footer(text="This update is from "
+                                 "{}".format(item.title_detail.base),
+                                 icon_url=RSS_IMAGE_URL)
 
                 # Keep this in a try block in case of Discord's explicit filter.
                 try:
