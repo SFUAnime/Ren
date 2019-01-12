@@ -4,3 +4,5 @@ youtube_dl
 imgurpython
 bs4
 feedparser
+mysqlclient
+Pillow
