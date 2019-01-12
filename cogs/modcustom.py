@@ -65,7 +65,12 @@ class ModCustom(object):
     @commands.group(pass_context=True)
     @checks.mod_or_permissions(administrator=True)
     async def plonked(self, ctx):
-        """Bans user from using the bot"""
+        """Bans users/roles from using the bot.
+
+        Any users/roles that are on a blacklist here will be UNABLE to use certain
+        features of the bot, UNLESS they are on an override list as set using the
+        [p]overridden command.
+        """
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
@@ -166,7 +171,11 @@ class ModCustom(object):
     @commands.group(pass_context=True)
     @checks.is_owner_or_permissions(administrator=True)
     async def overridden(self, ctx):
-        """Users who will be able to use the bot"""
+        """Allow certain users/roles to use the bot.
+
+        Any users/roles that are on a whitelist here will be ABLE to use certain
+        features of the bot, regardless of their status in the [p]plonked command.
+        """
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
