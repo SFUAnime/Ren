@@ -186,7 +186,7 @@ class ModCustom(object):
         if str(ctx.invoked_subcommand).lower() == "overridden roles":
             await send_cmd_help(ctx)
 
-    @overridden.command(name="adduser")
+    @overridden_user_settings.command(name="add")
     async def _whitelist_adduser(self, user: discord.Member):
         """Adds user to bot's whitelist"""
         if user.id not in self.override_perms["users"]:
@@ -200,7 +200,7 @@ class ModCustom(object):
         else:
             await self.bot.say("User is already whitelisted.")
 
-    @overridden.command(name="addrole")
+    @overridden_role_settings.command(name="add")
     async def _whitelist_addrole(self, role: str):
         """Adds role to bot's whitelist"""
         if role not in self.override_perms["roles"]:
@@ -214,7 +214,7 @@ class ModCustom(object):
         else:
             await self.bot.say("Role is already whitelisted.")
 
-    @overridden.command(name="removeuser")
+    @overridden_user_settings.command(name="delete", aliases=["remove", "del", "rm"])
     async def _whitelist_removeuser(self, user: discord.Member):
         """Removes user from bot's whitelist"""
         if user.id in self.override_perms["users"]:
@@ -224,7 +224,7 @@ class ModCustom(object):
         else:
             await self.bot.say("User is not in whitelist.")
 
-    @overridden.command(name="removerole")
+    @overridden_role_settings.command(name="delete", aliases=["remove", "del", "rm"])
     async def _whitelist_removerole(self, role: str):
         """Adds role to bot's whitelist"""
         if role in self.override_perms["roles"]:
