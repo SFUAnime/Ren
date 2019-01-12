@@ -33,6 +33,7 @@ class Triggered: # pylint: disable=too-few-public-methods
         await self.bot.send_typing(ctx.message.channel)
         savePath = await self._createTrigger(user)
         if not savePath:
+            await self.bot.say("This user doesn't have an avatar.")
             return
         await self.bot.send_file(ctx.message.channel, savePath)
 
@@ -57,6 +58,8 @@ class Triggered: # pylint: disable=too-few-public-methods
             url = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
             urllib.request.urlretrieve(url.format(user), path)
         except urllib.request.ContentTooShortError:
+            return None
+        except urllib.error.HTTPError:
             return None
 
         avatar = Image.open(path)
