@@ -170,6 +170,22 @@ class ModCustom(object):
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
+    # [p]overridden users
+    @overridden.group(name="users", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def overridden_user_settings(self, ctx):
+        """Category: change settings for users."""
+        if str(ctx.invoked_subcommand).lower() == "overridden users":
+            await send_cmd_help(ctx)
+
+    # [p]overridden roles
+    @overridden.group(name="roles", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def overridden_role_settings(self, ctx):
+        """Category: change settings for roles."""
+        if str(ctx.invoked_subcommand).lower() == "overridden roles":
+            await send_cmd_help(ctx)
+
     @overridden.command(name="adduser")
     async def _whitelist_adduser(self, user: discord.Member):
         """Adds user to bot's whitelist"""
