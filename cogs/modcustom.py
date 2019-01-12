@@ -65,7 +65,12 @@ class ModCustom(object):
     @commands.group(pass_context=True)
     @checks.mod_or_permissions(administrator=True)
     async def plonked(self, ctx):
-        """Bans user from using the bot"""
+        """Bans users/roles from using the bot.
+
+        Any users/roles that are on a blacklist here will be UNABLE to use certain
+        features of the bot, UNLESS they are on an override list as set using the
+        [p]overridden command.
+        """
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
@@ -166,11 +171,31 @@ class ModCustom(object):
     @commands.group(pass_context=True)
     @checks.is_owner_or_permissions(administrator=True)
     async def overridden(self, ctx):
-        """Users who will be able to use the bot"""
+        """Allow certain users/roles to use the bot.
+
+        Any users/roles that are on a whitelist here will be ABLE to use certain
+        features of the bot, regardless of their status in the [p]plonked command.
+        """
         if ctx.invoked_subcommand is None:
             await send_cmd_help(ctx)
 
-    @overridden.command(name="adduser")
+    # [p]overridden users
+    @overridden.group(name="users", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def overridden_user_settings(self, ctx):
+        """Category: change settings for users."""
+        if str(ctx.invoked_subcommand).lower() == "overridden users":
+            await send_cmd_help(ctx)
+
+    # [p]overridden roles
+    @overridden.group(name="roles", pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def overridden_role_settings(self, ctx):
+        """Category: change settings for roles."""
+        if str(ctx.invoked_subcommand).lower() == "overridden roles":
+            await send_cmd_help(ctx)
+
+    @overridden_user_settings.command(name="add")
     async def _whitelist_adduser(self, user: discord.Member):
         """Adds user to bot's whitelist"""
         if user.id not in self.override_perms["users"]:
@@ -184,7 +209,7 @@ class ModCustom(object):
         else:
             await self.bot.say("User is already whitelisted.")
 
-    @overridden.command(name="addrole")
+    @overridden_role_settings.command(name="add")
     async def _whitelist_addrole(self, role: str):
         """Adds role to bot's whitelist"""
         if role not in self.override_perms["roles"]:
@@ -198,7 +223,7 @@ class ModCustom(object):
         else:
             await self.bot.say("Role is already whitelisted.")
 
-    @overridden.command(name="removeuser")
+    @overridden_user_settings.command(name="delete", aliases=["remove", "del", "rm"])
     async def _whitelist_removeuser(self, user: discord.Member):
         """Removes user from bot's whitelist"""
         if user.id in self.override_perms["users"]:
@@ -208,7 +233,7 @@ class ModCustom(object):
         else:
             await self.bot.say("User is not in whitelist.")
 
-    @overridden.command(name="removerole")
+    @overridden_role_settings.command(name="delete", aliases=["remove", "del", "rm"])
     async def _whitelist_removerole(self, role: str):
         """Adds role to bot's whitelist"""
         if role in self.override_perms["roles"]:
@@ -217,6 +242,37 @@ class ModCustom(object):
             await self.bot.say("Role has been removed from whitelist.")
         else:
             await self.bot.say("Role is not in whitelist.")
+
+    @overridden_user_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _whitelist_listusers(self, ctx):
+        """List users on the bot's whitelist"""
+        if not self.override_perms["users"]:
+            await self.bot.say("No users are on the whitelist.")
+            return
+
+        users = []
+        for uid in self.override_perms["users"]:
+            user_obj = ctx.message.server.get_member(uid)
+            if not user_obj:
+                continue
+            users.append(user_obj.mention)
+
+        page = Pages(self.bot, message=ctx.message, entries=users)
+        page.embed.title = "Whitelisted users in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
+
+    @overridden_role_settings.command(name="list", aliases=["ls"], pass_context=True)
+    async def _whitelist_listroles(self, ctx):
+        """List roles on the bot's whitelist"""
+        if not self.override_perms["roles"]:
+            await self.bot.say("No roles are on the whitelist.")
+            return
+
+        page = Pages(self.bot, message=ctx.message, entries=self.override_perms["roles"])
+        page.embed.title = "Whitelisted roles in **{}**".format(ctx.message.server.name)
+        page.embed.colour = discord.Colour.red()
+        await page.paginate()
 
     @overridden.command(name="clear")
     async def _whitelist_clear(self):
