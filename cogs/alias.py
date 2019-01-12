@@ -2,7 +2,6 @@ from discord.ext import commands
 from .utils.chat_formatting import box
 from .utils.dataIO import dataIO
 from .utils import checks
-from __main__ import user_allowed, send_cmd_help
 from copy import copy
 import os
 import discord
@@ -19,7 +18,7 @@ class Alias:
     async def alias(self, ctx):
         """Manage per-server aliases for commands"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
     async def add_alias(self, server, command, to_execute):
         """
@@ -135,7 +134,7 @@ class Alias:
         if not prefix:
             return
 
-        if server.id in self.aliases and user_allowed(message):
+        if server.id in self.aliases and self.bot.user_allowed(message):
             alias = self.first_word(msg[len(prefix):]).lower()
             if alias in self.aliases[server.id]:
                 new_command = self.aliases[server.id][alias]
