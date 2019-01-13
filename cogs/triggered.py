@@ -33,7 +33,7 @@ class Triggered: # pylint: disable=too-few-public-methods
         await self.bot.send_typing(ctx.message.channel)
         savePath = await self._createTrigger(user)
         if not savePath:
-            await self.bot.say("This user doesn't have an avatar.")
+            await self.bot.say("Something went wrong, try again.")
             return
         await self.bot.send_file(ctx.message.channel, savePath)
 
@@ -50,17 +50,20 @@ class Triggered: # pylint: disable=too-few-public-methods
         """
         path = "{}{}.png".format(SAVE_FOLDER, user.id)
         savePath = "{}{}-trig.gif".format(SAVE_FOLDER, user.id)
+
+        opener = urllib.request.build_opener()
+        # We need a custom header or else we get a HTTP 403 Unauthorized
+        opener.addheaders = [("User-agent", "Mozilla/5.0")]
+        urllib.request.install_opener(opener)
+
         try:
-            opener = urllib.request.build_opener()
-            # We need a custom header or else we get a HTTP 403 Unauthorized
-            opener.addheaders = [("User-agent", "Mozilla/5.0")]
-            urllib.request.install_opener(opener)
             url = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
             urllib.request.urlretrieve(url.format(user), path)
         except urllib.request.ContentTooShortError:
             return None
         except urllib.error.HTTPError:
-            return None
+            # Use the default.
+            urllib.request.urlretrieve(user.default_avatar_url, path)
 
         avatar = Image.open(path)
 
