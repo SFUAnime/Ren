@@ -111,8 +111,12 @@ class Catgirl:
         self.refreshDatabase()
 
     #[p]catgirl
-    @commands.command(name="catgirl", pass_context=False)
-    async def _catgirl(self):
+    @commands.command(name="catgirl", pass_context=True)
+    async def _catgirl(self, ctx):
+        """Displays a random, cute catgirl :3"""
+        await self.catgirlCmd(ctx)
+
+    async def catgirlCmd(self, ctx):
         """Displays a random, cute catgirl :3"""
         # Send typing indicator, useful when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
@@ -125,9 +129,7 @@ class Catgirl:
             # No permission to send, ignore.
             pass
 
-    #[p]catboy
-    @commands.command(name="catboy", pass_context=False)
-    async def _catboy(self):
+    async def catboyCmd(self, ctx):
         """This command says it all (database still WIP)"""
         # Send typing indicator, useful when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
@@ -139,6 +141,18 @@ class Catgirl:
         except discord.errors.Forbidden:
             # No permission to send, ignore.
             pass
+
+    #[p]catgirl
+    @commands.command(name="catgirl", pass_context=True)
+    async def _catgirl(self, ctx):
+        """Displays a random, cute catgirl :3"""
+        await self.catgirlCmd(ctx)
+
+    #[p]catboy
+    @commands.command(name="catboy", pass_context=True)
+    async def _catboy(self, ctx):
+        """This command says it all (database still WIP)"""
+        await self.catboyCmd(ctx)
 
     @commands.group(name="nyaa", pass_context=True, no_pm=False)
     async def _nyaa(self, ctx):
@@ -164,36 +178,7 @@ class Catgirl:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def catgirl(self, ctx):
         """Displays a random, cute catgirl :3"""
-        #Send typing indicator, useful for when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
-
-        randCatgirl = random.choice(self.catgirls)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Catgirl"
-        embed.url = randCatgirl[KEY_IMAGE_URL]
-        if KEY_ISPIXIV in randCatgirl and randCatgirl[KEY_ISPIXIV]:
-            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        if KEY_ISSEIGA in randCatgirl and randCatgirl[KEY_ISSEIGA]:
-            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[KEY_SEIGA_ID])
-            embed.add_field(name="Nico Nico Seiga",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_SEIGA_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatgirl:
-            embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
-        try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(randCatgirl)
-            print(e)
-            print("==========")
+        await self.catgirlCmd(ctx)
 
     #[p]nyaa numbers
     @_nyaa.command(pass_context=True, no_pm=False)
@@ -271,30 +256,7 @@ class Catgirl:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def catboy(self, ctx):
         """Displays a random, cute catboy :3"""
-        #Send typing indicator, useful for when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
-
-        randCatboy = random.choice(self.catboys)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Catboy"
-        embed.url = randCatboy[KEY_IMAGE_URL]
-        if randCatboy[KEY_ISPIXIV]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatboy[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatboy:
-            embed.add_field(name="Info",value=randCatboy["character"], inline=False)
-        embed.set_image(url=randCatboy[KEY_IMAGE_URL])
-        try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(e)
-            print("==========")
+        await self.catboyCmd(ctx)
 
     #[p] nyaa debug
     @_nyaa.command(pass_context=True, no_pm=False)
