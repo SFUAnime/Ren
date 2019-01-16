@@ -13,6 +13,8 @@ KEY_ISPIXIV = "is_pixiv" # Key that specifies if image is from pixiv.
 KEY_ISSEIGA = "is_seiga"
 KEY_PIXIV_ID = "id" # Key for Pixiv ID, used to create URL to pixiv image page, if applicable.
 KEY_SEIGA_ID = "id"
+PREFIX_PIXIV = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id={}"
+PREFIX_SEIGA = "http://seiga.nicovideo.jp/seiga/im{}"
 SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
 
 BASE = \
@@ -109,69 +111,34 @@ class Catgirl:
         self.refreshDatabase()
 
     #[p]catgirl
-    @commands.command(name="catgirl", pass_context=True)
-    async def _catgirl(self, ctx):
+    @commands.command(name="catgirl", pass_context=False)
+    async def _catgirl(self):
         """Displays a random, cute catgirl :3"""
-        #Send typing indicator, useful for when Discord explicit filter is on.
+        # Send typing indicator, useful when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatgirl = random.choice(self.catgirls)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Catgirl"
-        embed.url = randCatgirl[KEY_IMAGE_URL]
-        if KEY_ISPIXIV in randCatgirl and randCatgirl[KEY_ISPIXIV]:
-            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        if KEY_ISSEIGA in randCatgirl and randCatgirl[KEY_ISSEIGA]:
-            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[KEY_SEIGA_ID])
-            embed.add_field(name="Nico Nico Seiga",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_SEIGA_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatgirl:
-            embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
+        embed = getImage(self.catgirls, "Catgirl")
+
         try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(randCatgirl)
-            print(e)
-            print("==========")
+            await self.bot.say("", embed=embed)
+        except discord.errors.Forbidden:
+            # No permission to send, ignore.
+            pass
 
     #[p]catboy
-    @commands.command(name="catboy", pass_context=True)
-    async def _catboy(self, ctx):
+    @commands.command(name="catboy", pass_context=False)
+    async def _catboy(self):
         """This command says it all (database still WIP)"""
-        #Send typing indicator, useful for when Discord explicit filter is on.
+        # Send typing indicator, useful when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatboy = random.choice(self.catboys)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Catboy"
-        embed.url = randCatboy[KEY_IMAGE_URL]
-        if randCatboy[KEY_ISPIXIV]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatboy[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatboy:
-            embed.add_field(name="Info",value=randCatboy["character"], inline=False)
-        embed.set_image(url=randCatboy[KEY_IMAGE_URL])
+        embed = getImage(self.catboys, "Catboy")
+
         try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(randCatboy)
-            print(e)
-            print("==========")
+            await self.bot.say("", embed=embed)
+        except discord.errors.Forbidden:
+            # No permission to send, ignore.
+            pass
 
     @commands.group(name="nyaa", pass_context=True, no_pm=False)
     async def _nyaa(self, ctx):
@@ -392,6 +359,44 @@ class Catgirl:
             random.shuffle(self.catboys)
             random.shuffle(self.catgirlsLocal)
             await asyncio.sleep(3600)
+
+def getImage(imageList, title):
+    """Pick an image from a list, and construct a discord.Embed object
+
+    Parameters:
+    -----------
+    imageList : []
+        A list of images that has the following keys:
+        KEY_IMAGE_URL, KEY_ISPIXIV, KEY_ISSEIGA
+
+    Returns:
+    --------
+    embed : discord.Embed
+        A fully constructed discord.Embed object, ready to be sent as a message.
+    """
+    image = random.choice(imageList)
+    embed = discord.Embed()
+    embed.colour = discord.Colour.red()
+    embed.title = title
+    embed.url = image[KEY_IMAGE_URL].replace(" ", "%20")
+    if KEY_ISPIXIV in image and image[KEY_ISPIXIV]:
+        source = "[{}]({})".format("Original Source",
+                                   PREFIX_PIXIV.format(image[KEY_PIXIV_ID]))
+        embed.add_field(name="Pixiv",value=source)
+        customFooter = "ID: " + image[KEY_PIXIV_ID]
+        embed.set_footer(text=customFooter)
+    elif KEY_ISSEIGA in image and image[KEY_ISSEIGA]:
+        source = "[{}]({})".format("Original Source",
+                                   PREFIX_SEIGA.format(image[KEY_SEIGA_ID]))
+        embed.add_field(name="Nico Nico Seiga", value=source)
+        customFooter = "ID: {}".format(image[KEY_SEIGA_ID])
+        embed.set_footer(text=customFooter)
+    # Implemented the following with the help of
+    # http://stackoverflow.com/questions/1602934/
+    if "character" in image:
+        embed.add_field(name="Info", value=image["character"], inline=False)
+    embed.set_image(url=image[KEY_IMAGE_URL])
+    return embed
 
 def setup(bot):
     checkFolder()   #Make sure the data folder exists!
