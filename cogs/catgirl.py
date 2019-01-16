@@ -1,10 +1,9 @@
+import os
+import asyncio
+import random
 import discord
 from discord.ext import commands
-from __main__ import send_cmd_help
 from cogs.utils.dataIO import dataIO
-import asyncio #Used for task loop.
-import os #Used to create folder at first load.
-import random #Used for selecting random catgirls.
 
 #Global variables
 JSON_mainKey = "catgirls" #Key for JSON files.
@@ -170,7 +169,7 @@ class Catgirl_beta:
     async def _nyaa(self, ctx):
         """Nekomimi universe! \o/"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
     #[p]nyaa about
     @_nyaa.command(pass_context=True, no_pm=False)
