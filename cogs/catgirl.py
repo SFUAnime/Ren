@@ -158,15 +158,19 @@ class Catgirl:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def about(self, ctx):
         """Displays information about this module"""
-        customAuthor = "[{}]({})".format("@Injabie3#1660","https://injabie3.moe/")
+        customAuthor = "[{}]({})".format("@Injabie3#1660", "https://injabie3.moe/")
         embed = discord.Embed()
         embed.title = "About this module"
         embed.add_field(name="Name", value="Catgirl Module")
         embed.add_field(name="Author", value=customAuthor)
         embed.add_field(name="Initial Version Date", value="2017-02-11")
-        embed.add_field(name="Description", value="A module to display pseudo-random catgirl images.  Image links are stored in the local database, separated into different lists (depending on if they are hosted locally or on another domain).  See https://github.com/Injabie3/lui-cogs for more info.")
+        embed.add_field(name="Description",
+                        value="A module to display pseudo-random catgirl images.  Image "
+                        "links are stored in the local database, separated into different "
+                        "lists (depending on if they are hosted locally or on another "
+                        "domain).  See https://github.com/Injabie3/lui-cogs for more info.")
         embed.set_footer(text="lui-cogs/catgirl")
-        await self.bot.say(content="",embed=embed)
+        await self.bot.say(content="", embed=embed)
 
     #[p]nyaa catgirl
     @_nyaa.command(pass_context=True, no_pm=False)
@@ -320,7 +324,7 @@ def getImage(imageList, title):
     if KEY_ISPIXIV in image and image[KEY_ISPIXIV]:
         source = "[{}]({})".format("Original Source",
                                    PREFIX_PIXIV.format(image[KEY_PIXIV_ID]))
-        embed.add_field(name="Pixiv",value=source)
+        embed.add_field(name="Pixiv", value=source)
         customFooter = "ID: " + image[KEY_PIXIV_ID]
         embed.set_footer(text=customFooter)
     elif KEY_ISSEIGA in image and image[KEY_ISSEIGA]:
