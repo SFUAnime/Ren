@@ -62,42 +62,44 @@ class Catgirl:
         self.filepathLocal = SAVE_FOLDER + "links-local.json"
         self.filepathLocalx10 = SAVE_FOLDER + "links-localx10.json"
 
-        #Web catgirls will take on full URLs.
+        # Web catgirls will take on full URLs.
         self.filepathWeb = SAVE_FOLDER + "links-web.json"
 
-        #List of pending catgirls waiting to be added.
+        # List of pending catgirls waiting to be added.
         self.filepathPending = SAVE_FOLDER + "links-pending.json"
 
-        #Catgirls
         self.picturesLocal = dataIO.load_json(self.filepathLocal)
         self.picturesLocalx10 = dataIO.load_json(self.filepathLocalx10)
         self.picturesWeb = dataIO.load_json(self.filepathWeb)
         self.picturesPending = dataIO.load_json(self.filepathPending)
 
-        #Trap (kek)
-        self.catgirls_local_trap = [];
+        # Traps
+        self.catgirlsLocalTrap = []
 
-        #Custom key which holds an array of catgirl filenames/paths
-        self.KEY_CATGIRL = "catgirls"
+        # Prepend local listings with domain name.
+        for image in self.picturesLocal[KEY_CATGIRL]:
+            image[KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + image[KEY_IMAGE_URL]
 
-        #Prepend local listings with domain name.
-        for x in range(0,len(self.picturesLocal[KEY_CATGIRL])):
-            self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL]
+            if "trap" in image and image["trap"]:
+                self.catgirlsLocalTrap.append(image)
 
-            if ("trap" in self.picturesLocal[KEY_CATGIRL][x]) and (self.picturesLocal[KEY_CATGIRL][x]['trap'] is True):
-                self.catgirls_local_trap.append(self.picturesLocal[KEY_CATGIRL][x])
-            #self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nyan.injabie3.moe/p/" + self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL]
+        # Prepend hosted listings with domain name.
+        for image in self.picturesLocalx10[KEY_CATGIRL]:
+            image[KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + image[KEY_IMAGE_URL]
 
-        #Prepend hosted listings with domain name.
-        for x in range(0,len(self.picturesLocalx10[KEY_CATGIRL])):
-            self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL]
+        for image in self.picturesLocal[KEY_CATBOY]:
+            image[KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + image[KEY_IMAGE_URL]
 
-        for x in range(0, len(self.picturesLocal[KEY_CATBOY])):
-            self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL]
+        self.catgirlsLocal = self.picturesLocal[KEY_CATGIRL]
 
-        self.catgirls_local = self.picturesLocal[KEY_CATGIRL]
-        self.catgirls = self.picturesLocal[KEY_CATGIRL] + self.picturesWeb[KEY_CATGIRL] + self.picturesLocalx10[KEY_CATGIRL]
-        self.catboys = self.picturesLocal[KEY_CATBOY] + self.picturesWeb[KEY_CATBOY] + self.catgirls_local_trap
+        self.catgirls = self.picturesLocal[KEY_CATGIRL]
+        self.catgirls += self.picturesWeb[KEY_CATGIRL]
+        self.catgirls += self.picturesLocalx10[KEY_CATGIRL]
+
+        self.catboys = self.picturesLocal[KEY_CATBOY]
+        self.catboys += self.picturesWeb[KEY_CATBOY]
+        self.catboys += self.catgirlsLocalTrap
+
         self.pending = self.picturesPending[KEY_CATGIRL]
 
     def __init__(self, bot):
@@ -246,7 +248,7 @@ class Catgirl:
         #Send typing indicator, useful for when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatgirl = random.choice(self.catgirls_local)
+        randCatgirl = random.choice(self.catgirlsLocal)
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catgirl"
@@ -276,7 +278,7 @@ class Catgirl:
         #Send typing indicator, useful for when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatgirl = random.choice(self.catgirls_local_trap)
+        randCatgirl = random.choice(self.catgirlsLocalTrap)
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Nekomimi"
@@ -388,7 +390,7 @@ class Catgirl:
         while self:
             random.shuffle(self.catgirls)
             random.shuffle(self.catboys)
-            random.shuffle(self.catgirls_local)
+            random.shuffle(self.catgirlsLocal)
             await asyncio.sleep(3600)
 
 def setup(bot):
