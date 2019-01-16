@@ -17,8 +17,8 @@ SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
 
 BASE = \
 {KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
-                  "id" : "null",
-                  "is_pixiv" : False}],
+                 "id" : "null",
+                 "is_pixiv" : False}],
  KEY_CATBOY : []
 }
 EMPTY = {KEY_CATGIRL : [], KEY_CATBOY : []}
@@ -59,20 +59,20 @@ class Catgirl_beta:
         """Refreshes the JSON files"""
         # Local catgirls allow for prepending a domain if you have a place where
         # where you're hosting your own catgirls.
-        self.filepath_local = SAVE_FOLDER + "links-local.json"
-        self.filepath_localx10 = SAVE_FOLDER + "links-localx10.json"
+        self.filepathLocal = SAVE_FOLDER + "links-local.json"
+        self.filepathLocalx10 = SAVE_FOLDER + "links-localx10.json"
         
         #Web catgirls will take on full URLs.
-        self.filepath_web = SAVE_FOLDER + "links-web.json"
+        self.filepathWeb = SAVE_FOLDER + "links-web.json"
 
         #List of pending catgirls waiting to be added.
-        self.filepath_pending = SAVE_FOLDER + "links-pending.json"
+        self.filepathPending = SAVE_FOLDER + "links-pending.json"
         
         #Catgirls
-        self.pictures_local = dataIO.load_json(self.filepath_local)
-        self.pictures_localx10 = dataIO.load_json(self.filepath_localx10)
-        self.pictures_web = dataIO.load_json(self.filepath_web)
-        self.pictures_pending = dataIO.load_json(self.filepath_pending)
+        self.picturesLocal = dataIO.load_json(self.filepathLocal)
+        self.picturesLocalx10 = dataIO.load_json(self.filepathLocalx10)
+        self.picturesWeb = dataIO.load_json(self.filepathWeb)
+        self.picturesPending = dataIO.load_json(self.filepathPending)
         
         #Trap (kek)
         self.catgirls_local_trap = [];
@@ -81,24 +81,24 @@ class Catgirl_beta:
         self.KEY_CATGIRL = "catgirls"
         
         #Prepend local listings with domain name.
-        for x in range(0,len(self.pictures_local[KEY_CATGIRL])):
-            self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL]
+        for x in range(0,len(self.picturesLocal[KEY_CATGIRL])):
+            self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL]
 
-            if ("trap" in self.pictures_local[KEY_CATGIRL][x]) and (self.pictures_local[KEY_CATGIRL][x]['trap'] is True):
-                self.catgirls_local_trap.append(self.pictures_local[KEY_CATGIRL][x])
-            #self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nyan.injabie3.moe/p/" + self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL]
+            if ("trap" in self.picturesLocal[KEY_CATGIRL][x]) and (self.picturesLocal[KEY_CATGIRL][x]['trap'] is True):
+                self.catgirls_local_trap.append(self.picturesLocal[KEY_CATGIRL][x])
+            #self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nyan.injabie3.moe/p/" + self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL]
 
         #Prepend hosted listings with domain name.
-        for x in range(0,len(self.pictures_localx10[KEY_CATGIRL])):
-            self.pictures_localx10[KEY_CATGIRL][x][KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + self.pictures_localx10[KEY_CATGIRL][x][KEY_IMAGE_URL]
+        for x in range(0,len(self.picturesLocalx10[KEY_CATGIRL])):
+            self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL]
         
-        for x in range(0, len(self.pictures_local[KEY_CATBOY])):
-            self.pictures_local[KEY_CATBOY][x][KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + self.pictures_local[KEY_CATBOY][x][KEY_IMAGE_URL]
+        for x in range(0, len(self.picturesLocal[KEY_CATBOY])):
+            self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL]
 
-        self.catgirls_local = self.pictures_local[KEY_CATGIRL]
-        self.catgirls = self.pictures_local[KEY_CATGIRL] + self.pictures_web[KEY_CATGIRL] + self.pictures_localx10[KEY_CATGIRL]
-        self.catboys = self.pictures_local[KEY_CATBOY] + self.pictures_web[KEY_CATBOY] + self.catgirls_local_trap
-        self.pending = self.pictures_pending[KEY_CATGIRL]
+        self.catgirls_local = self.picturesLocal[KEY_CATGIRL]
+        self.catgirls = self.picturesLocal[KEY_CATGIRL] + self.picturesWeb[KEY_CATGIRL] + self.picturesLocalx10[KEY_CATGIRL]
+        self.catboys = self.picturesLocal[KEY_CATBOY] + self.picturesWeb[KEY_CATBOY] + self.catgirls_local_trap
+        self.pending = self.picturesPending[KEY_CATGIRL]
         
     def __init__(self, bot):
         self.bot = bot
@@ -230,14 +230,14 @@ class Catgirl_beta:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def numbers(self, ctx):
         """Displays the number of images in the database."""
-        await self.bot.say("There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[KEY_CATGIRL])) + "** pending images.")
+        await self.bot.say("There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.picturesPending[KEY_CATGIRL])) + "** pending images.")
 
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
     @_nyaa.command(pass_context=True, no_pm=False)
     async def refresh(self, ctx):
         """Refreshes the internal database of nekomimi images."""
         self.refreshDatabase()
-        await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[KEY_CATGIRL])) + "** pending images.")
+        await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.picturesPending[KEY_CATGIRL])) + "** pending images.")
     
     #[p]nyaa local
     @_nyaa.command(pass_context=True, no_pm=False)
@@ -370,8 +370,8 @@ class Catgirl_beta:
         temp["is_pixiv"] = False
         
     
-        self.pictures_pending[KEY_CATGIRL].append(temp)
-        dataIO.save_json(self.filepath_pending, self.pictures_pending)
+        self.picturesPending[KEY_CATGIRL].append(temp)
+        dataIO.save_json(self.filepathPending, self.picturesPending)
 
         #Get owner ID.
         owner = discord.utils.get(self.bot.get_all_members(),id=self.bot.settings.owner)
