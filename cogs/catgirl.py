@@ -35,23 +35,23 @@ def checkFiles():
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-web.json...")
         dataIO.save_json(f, BASE)
-        
+
     f = SAVE_FOLDER + "links-localx10.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-localx10.json...")
         dataIO.save_json(f, EMPTY)
-        
+
     f = SAVE_FOLDER + "links-local.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-local.json...")
         dataIO.save_json(f, EMPTY)
-        
+
     f = SAVE_FOLDER + "links-pending.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-pending.json...")
         dataIO.save_json(f, EMPTY)
-            
-class Catgirl_beta:
+
+class Catgirl:
     """Display cute nyaas~"""
 
 
@@ -61,25 +61,25 @@ class Catgirl_beta:
         # where you're hosting your own catgirls.
         self.filepathLocal = SAVE_FOLDER + "links-local.json"
         self.filepathLocalx10 = SAVE_FOLDER + "links-localx10.json"
-        
+
         #Web catgirls will take on full URLs.
         self.filepathWeb = SAVE_FOLDER + "links-web.json"
 
         #List of pending catgirls waiting to be added.
         self.filepathPending = SAVE_FOLDER + "links-pending.json"
-        
+
         #Catgirls
         self.picturesLocal = dataIO.load_json(self.filepathLocal)
         self.picturesLocalx10 = dataIO.load_json(self.filepathLocalx10)
         self.picturesWeb = dataIO.load_json(self.filepathWeb)
         self.picturesPending = dataIO.load_json(self.filepathPending)
-        
+
         #Trap (kek)
         self.catgirls_local_trap = [];
 
         #Custom key which holds an array of catgirl filenames/paths
         self.KEY_CATGIRL = "catgirls"
-        
+
         #Prepend local listings with domain name.
         for x in range(0,len(self.picturesLocal[KEY_CATGIRL])):
             self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + self.picturesLocal[KEY_CATGIRL][x][KEY_IMAGE_URL]
@@ -91,7 +91,7 @@ class Catgirl_beta:
         #Prepend hosted listings with domain name.
         for x in range(0,len(self.picturesLocalx10[KEY_CATGIRL])):
             self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + self.picturesLocalx10[KEY_CATGIRL][x][KEY_IMAGE_URL]
-        
+
         for x in range(0, len(self.picturesLocal[KEY_CATBOY])):
             self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + self.picturesLocal[KEY_CATBOY][x][KEY_IMAGE_URL]
 
@@ -99,13 +99,13 @@ class Catgirl_beta:
         self.catgirls = self.picturesLocal[KEY_CATGIRL] + self.picturesWeb[KEY_CATGIRL] + self.picturesLocalx10[KEY_CATGIRL]
         self.catboys = self.picturesLocal[KEY_CATBOY] + self.picturesWeb[KEY_CATBOY] + self.catgirls_local_trap
         self.pending = self.picturesPending[KEY_CATGIRL]
-        
+
     def __init__(self, bot):
         self.bot = bot
         checkFolder()
         checkFiles()
         self.refreshDatabase()
-        
+
     #[p]catgirl
     @commands.command(name="catgirl", pass_context=True)
     async def _catgirl(self, ctx):
@@ -225,7 +225,7 @@ class Catgirl_beta:
             print(randCatgirl)
             print(e)
             print("==========")
-        
+
     #[p]nyaa numbers
     @_nyaa.command(pass_context=True, no_pm=False)
     async def numbers(self, ctx):
@@ -238,7 +238,7 @@ class Catgirl_beta:
         """Refreshes the internal database of nekomimi images."""
         self.refreshDatabase()
         await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.picturesPending[KEY_CATGIRL])) + "** pending images.")
-    
+
     #[p]nyaa local
     @_nyaa.command(pass_context=True, no_pm=False)
     async def local(self, ctx):
@@ -340,7 +340,7 @@ class Catgirl_beta:
                msg = "```"
         msg += "```"
         await self.bot.send_message(ctx.message.author, msg)
-        
+
         msg = "Catboys:\n```"
         for x in range(0,len(self.catboys)):
             msg += self.catboys[x][KEY_IMAGE_URL] + "\n"
@@ -350,14 +350,14 @@ class Catgirl_beta:
                msg = "```"
         msg += "```"
         await self.bot.send_message(ctx.message.author, msg)
-    
+
     #[p]nyaa add
     @_nyaa.command(pass_context=True, no_pm=True)
     async def add(self, ctx, link: str, description: str=""):
         """
         Add a catgirl image to the pending database.
         Will be screened before it is added to the global list. WIP
-        
+
         link          The full URL to an image, use \" \" around the link.
         description   Description of character (optional)
         """
@@ -368,23 +368,21 @@ class Catgirl_beta:
         temp["submitter"] = ctx.message.author.name
         temp["id"] = None
         temp["is_pixiv"] = False
-        
-    
+
+
         self.picturesPending[KEY_CATGIRL].append(temp)
         dataIO.save_json(self.filepathPending, self.picturesPending)
 
         #Get owner ID.
         owner = discord.utils.get(self.bot.get_all_members(),id=self.bot.settings.owner)
-                              
+
         try:
             await self.bot.send_message(owner, "New catgirl image is pending approval. Please check the list!")
         except discord.errors.InvalidArgument:
             await self.bot.say("Added, but could not notify owner.")
         else:
             await self.bot.say("Added, notified and pending approval. :ok_hand:")
-                
-        
-            
+
     async def _randomize(self):
         """Shuffles images in the list."""
         while self:
@@ -396,6 +394,6 @@ class Catgirl_beta:
 def setup(bot):
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have a local database!
-    nyanko = Catgirl_beta(bot)
+    nyanko = Catgirl(bot)
     bot.add_cog(nyanko)
     bot.loop.create_task(nyanko._randomize())
