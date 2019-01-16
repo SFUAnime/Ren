@@ -6,45 +6,50 @@ from discord.ext import commands
 from cogs.utils.dataIO import dataIO
 
 #Global variables
-JSON_mainKey = "catgirls" #Key for JSON files.
-JSON_catboyKey = "catboys" #Key containing other images.
-JSON_imageURLKey = "url" #Key for URL
-JSON_isPixiv = "is_pixiv" #Key that specifies if image is from pixiv. If true, pixivID should be set.
-JSON_isSeiga = "is_seiga"
-JSON_pixivID = "id" #Key for Pixiv ID, used to create URL to pixiv image page, if applicable.
-JSON_seigaID = "id"
-saveFolder = "data/lui-cogs/catgirl/" #Path to save folder.
+KEY_CATGIRL = "catgirls" # Key for JSON files.
+KEY_CATBOY = "catboys" # Key containing other images.
+KEY_IMAGE_URL = "url" # Key for URL
+KEY_ISPIXIV = "is_pixiv" # Key that specifies if image is from pixiv.
+KEY_ISSEIGA = "is_seiga"
+KEY_PIXIV_ID = "id" # Key for Pixiv ID, used to create URL to pixiv image page, if applicable.
+KEY_SEIGA_ID = "id"
+SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
+
+BASE = \
+{KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
+                  "id" : "null",
+                  "is_pixiv" : False}],
+ KEY_CATBOY : []
+}
+EMPTY = {KEY_CATGIRL : [], KEY_CATBOY : []}
 
 def checkFolder():
     """Used to create the data folder at first startup"""
-    if not os.path.exists(saveFolder):
-        print("Creating " + saveFolder + " folder...")
-        os.makedirs(saveFolder)
+    if not os.path.exists(SAVE_FOLDER):
+        print("Creating " + SAVE_FOLDER + " folder...")
+        os.makedirs(SAVE_FOLDER)
 
 def checkFiles():
     """Used to initialize an empty database at first startup"""
-    base = { JSON_mainKey : [{ JSON_imageURLKey :"https://cdn.awwni.me/utpd.jpg" , "id" : "null", "is_pixiv" : False}], JSON_catboyKey : [] }
-    empty = { JSON_mainKey : [], JSON_catboyKey : [] }
-    
-    f = saveFolder + "links-web.json"
+    f = SAVE_FOLDER + "links-web.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-web.json...")
-        dataIO.save_json(f, base)
+        dataIO.save_json(f, BASE)
         
-    f = saveFolder + "links-localx10.json"
+    f = SAVE_FOLDER + "links-localx10.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-localx10.json...")
-        dataIO.save_json(f, empty)
+        dataIO.save_json(f, EMPTY)
         
-    f = saveFolder + "links-local.json"
+    f = SAVE_FOLDER + "links-local.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-local.json...")
-        dataIO.save_json(f, empty)
+        dataIO.save_json(f, EMPTY)
         
-    f = saveFolder + "links-pending.json"
+    f = SAVE_FOLDER + "links-pending.json"
     if not dataIO.is_valid_json(f):
         print("Creating default catgirl links-pending.json...")
-        dataIO.save_json(f, empty)
+        dataIO.save_json(f, EMPTY)
             
 class Catgirl_beta:
     """Display cute nyaas~"""
@@ -52,15 +57,16 @@ class Catgirl_beta:
 
     def refreshDatabase(self):
         """Refreshes the JSON files"""
-        #Local catgirls allow for prepending predefined domain, if you have a place where you're hosting your own catgirls.
-        self.filepath_local = saveFolder + "links-local.json"
-        self.filepath_localx10 = saveFolder + "links-localx10.json"
+        # Local catgirls allow for prepending a domain if you have a place where
+        # where you're hosting your own catgirls.
+        self.filepath_local = SAVE_FOLDER + "links-local.json"
+        self.filepath_localx10 = SAVE_FOLDER + "links-localx10.json"
         
         #Web catgirls will take on full URLs.
-        self.filepath_web = saveFolder + "links-web.json"
+        self.filepath_web = SAVE_FOLDER + "links-web.json"
 
         #List of pending catgirls waiting to be added.
-        self.filepath_pending = saveFolder + "links-pending.json"
+        self.filepath_pending = SAVE_FOLDER + "links-pending.json"
         
         #Catgirls
         self.pictures_local = dataIO.load_json(self.filepath_local)
@@ -72,27 +78,27 @@ class Catgirl_beta:
         self.catgirls_local_trap = [];
 
         #Custom key which holds an array of catgirl filenames/paths
-        self.JSON_mainKey = "catgirls"
+        self.KEY_CATGIRL = "catgirls"
         
         #Prepend local listings with domain name.
-        for x in range(0,len(self.pictures_local[JSON_mainKey])):
-            self.pictures_local[JSON_mainKey][x][JSON_imageURLKey] = "https://nekomimi.injabie3.moe/p/" + self.pictures_local[JSON_mainKey][x][JSON_imageURLKey]
+        for x in range(0,len(self.pictures_local[KEY_CATGIRL])):
+            self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nekomimi.injabie3.moe/p/" + self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL]
 
-            if ("trap" in self.pictures_local[JSON_mainKey][x]) and (self.pictures_local[JSON_mainKey][x]['trap'] is True):
-                self.catgirls_local_trap.append(self.pictures_local[JSON_mainKey][x])
-            #self.pictures_local[JSON_mainKey][x][JSON_imageURLKey] = "https://nyan.injabie3.moe/p/" + self.pictures_local[JSON_mainKey][x][JSON_imageURLKey]
+            if ("trap" in self.pictures_local[KEY_CATGIRL][x]) and (self.pictures_local[KEY_CATGIRL][x]['trap'] is True):
+                self.catgirls_local_trap.append(self.pictures_local[KEY_CATGIRL][x])
+            #self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL] = "https://nyan.injabie3.moe/p/" + self.pictures_local[KEY_CATGIRL][x][KEY_IMAGE_URL]
 
         #Prepend hosted listings with domain name.
-        for x in range(0,len(self.pictures_localx10[JSON_mainKey])):
-            self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey] = "http://injabie3.x10.mx/p/" + self.pictures_localx10[JSON_mainKey][x][JSON_imageURLKey]
+        for x in range(0,len(self.pictures_localx10[KEY_CATGIRL])):
+            self.pictures_localx10[KEY_CATGIRL][x][KEY_IMAGE_URL] = "http://injabie3.x10.mx/p/" + self.pictures_localx10[KEY_CATGIRL][x][KEY_IMAGE_URL]
         
-        for x in range(0, len(self.pictures_local[JSON_catboyKey])):
-            self.pictures_local[JSON_catboyKey][x][JSON_imageURLKey] = "http://nekomimi.injabie3.moe/p/b/" + self.pictures_local[JSON_catboyKey][x][JSON_imageURLKey]
+        for x in range(0, len(self.pictures_local[KEY_CATBOY])):
+            self.pictures_local[KEY_CATBOY][x][KEY_IMAGE_URL] = "http://nekomimi.injabie3.moe/p/b/" + self.pictures_local[KEY_CATBOY][x][KEY_IMAGE_URL]
 
-        self.catgirls_local = self.pictures_local[JSON_mainKey]
-        self.catgirls = self.pictures_local[JSON_mainKey] + self.pictures_web[JSON_mainKey] + self.pictures_localx10[JSON_mainKey]
-        self.catboys = self.pictures_local[JSON_catboyKey] + self.pictures_web[JSON_catboyKey] + self.catgirls_local_trap
-        self.pending = self.pictures_pending[JSON_mainKey]
+        self.catgirls_local = self.pictures_local[KEY_CATGIRL]
+        self.catgirls = self.pictures_local[KEY_CATGIRL] + self.pictures_web[KEY_CATGIRL] + self.pictures_localx10[KEY_CATGIRL]
+        self.catboys = self.pictures_local[KEY_CATBOY] + self.pictures_web[KEY_CATBOY] + self.catgirls_local_trap
+        self.pending = self.pictures_pending[KEY_CATGIRL]
         
     def __init__(self, bot):
         self.bot = bot
@@ -111,21 +117,21 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catgirl"
-        embed.url = randCatgirl[JSON_imageURLKey]
-        if JSON_isPixiv in randCatgirl and randCatgirl[JSON_isPixiv]:
-            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[JSON_pixivID])
+        embed.url = randCatgirl[KEY_IMAGE_URL]
+        if KEY_ISPIXIV in randCatgirl and randCatgirl[KEY_ISPIXIV]:
+            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_pixivID]
+            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
-        if JSON_isSeiga in randCatgirl and randCatgirl[JSON_isSeiga]:
-            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[JSON_seigaID])
+        if KEY_ISSEIGA in randCatgirl and randCatgirl[KEY_ISSEIGA]:
+            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[KEY_SEIGA_ID])
             embed.add_field(name="Nico Nico Seiga",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_seigaID]
+            customFooter = "ID: " + randCatgirl[KEY_SEIGA_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatgirl:
             embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[JSON_imageURLKey])
+        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -146,16 +152,16 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catboy"
-        embed.url = randCatboy[JSON_imageURLKey]
-        if randCatboy[JSON_isPixiv]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[JSON_pixivID])
+        embed.url = randCatboy[KEY_IMAGE_URL]
+        if randCatboy[KEY_ISPIXIV]:
+            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatboy[JSON_pixivID]
+            customFooter = "ID: " + randCatboy[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatboy:
             embed.add_field(name="Info",value=randCatboy["character"], inline=False)
-        embed.set_image(url=randCatboy[JSON_imageURLKey])
+        embed.set_image(url=randCatboy[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -196,21 +202,21 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catgirl"
-        embed.url = randCatgirl[JSON_imageURLKey]
-        if JSON_isPixiv in randCatgirl and randCatgirl[JSON_isPixiv]:
-            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[JSON_pixivID])
+        embed.url = randCatgirl[KEY_IMAGE_URL]
+        if KEY_ISPIXIV in randCatgirl and randCatgirl[KEY_ISPIXIV]:
+            source = "[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_pixivID]
+            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
-        if JSON_isSeiga in randCatgirl and randCatgirl[JSON_isSeiga]:
-            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[JSON_seigaID])
+        if KEY_ISSEIGA in randCatgirl and randCatgirl[KEY_ISSEIGA]:
+            source = "[{}]({})".format("Original Source","http://seiga.nicovideo.jp/seiga/im"+randCatgirl[KEY_SEIGA_ID])
             embed.add_field(name="Nico Nico Seiga",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_seigaID]
+            customFooter = "ID: " + randCatgirl[KEY_SEIGA_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatgirl:
             embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[JSON_imageURLKey])
+        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -224,14 +230,14 @@ class Catgirl_beta:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def numbers(self, ctx):
         """Displays the number of images in the database."""
-        await self.bot.say("There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[JSON_mainKey])) + "** pending images.")
+        await self.bot.say("There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[KEY_CATGIRL])) + "** pending images.")
 
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
     @_nyaa.command(pass_context=True, no_pm=False)
     async def refresh(self, ctx):
         """Refreshes the internal database of nekomimi images."""
         self.refreshDatabase()
-        await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[JSON_mainKey])) + "** pending images.")
+        await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.pictures_pending[KEY_CATGIRL])) + "** pending images.")
     
     #[p]nyaa local
     @_nyaa.command(pass_context=True, no_pm=False)
@@ -244,16 +250,16 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catgirl"
-        embed.url = randCatgirl[JSON_imageURLKey]
-        if randCatgirl[JSON_isPixiv]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[JSON_pixivID])
+        embed.url = randCatgirl[KEY_IMAGE_URL]
+        if randCatgirl[KEY_ISPIXIV]:
+            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_pixivID]
+            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatgirl:
             embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[JSON_imageURLKey])
+        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -274,16 +280,16 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Nekomimi"
-        embed.url = randCatgirl[JSON_imageURLKey]
-        if randCatgirl[JSON_isPixiv]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[JSON_pixivID])
+        embed.url = randCatgirl[KEY_IMAGE_URL]
+        if randCatgirl[KEY_ISPIXIV]:
+            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[JSON_pixivID]
+            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatgirl:
             embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[JSON_imageURLKey])
+        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -303,16 +309,16 @@ class Catgirl_beta:
         embed = discord.Embed()
         embed.colour = discord.Colour.red()
         embed.title = "Catboy"
-        embed.url = randCatboy[JSON_imageURLKey]
-        if randCatboy[JSON_isPixiv]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[JSON_pixivID])
+        embed.url = randCatboy[KEY_IMAGE_URL]
+        if randCatboy[KEY_ISPIXIV]:
+            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatboy[KEY_PIXIV_ID])
             embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatboy[JSON_pixivID]
+            customFooter = "ID: " + randCatboy[KEY_PIXIV_ID]
             embed.set_footer(text=customFooter)
         #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
         if "character" in randCatboy:
             embed.add_field(name="Info",value=randCatboy["character"], inline=False)
-        embed.set_image(url=randCatboy[JSON_imageURLKey])
+        embed.set_image(url=randCatboy[KEY_IMAGE_URL])
         try:
             await self.bot.say("",embed=embed)
         except Exception as e:
@@ -327,7 +333,7 @@ class Catgirl_beta:
         """Sends entire list via DM for debugging."""
         msg = "Debug Mode\nCatgirls:\n```"
         for x in range(0,len(self.catgirls)):
-            msg += self.catgirls[x][JSON_imageURLKey] + "\n"
+            msg += self.catgirls[x][KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
                msg += "```"
                await self.bot.send_message(ctx.message.author, msg)
@@ -337,7 +343,7 @@ class Catgirl_beta:
         
         msg = "Catboys:\n```"
         for x in range(0,len(self.catboys)):
-            msg += self.catboys[x][JSON_imageURLKey] + "\n"
+            msg += self.catboys[x][KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
                msg += "```"
                await self.bot.send_message(ctx.message.author, msg)
@@ -364,7 +370,7 @@ class Catgirl_beta:
         temp["is_pixiv"] = False
         
     
-        self.pictures_pending[JSON_mainKey].append(temp)
+        self.pictures_pending[KEY_CATGIRL].append(temp)
         dataIO.save_json(self.filepath_pending, self.pictures_pending)
 
         #Get owner ID.
