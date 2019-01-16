@@ -110,12 +110,6 @@ class Catgirl:
         checkFiles()
         self.refreshDatabase()
 
-    #[p]catgirl
-    @commands.command(name="catgirl", pass_context=True)
-    async def _catgirl(self, ctx):
-        """Displays a random, cute catgirl :3"""
-        await self.catgirlCmd(ctx)
-
     async def catgirlCmd(self, ctx):
         """Displays a random, cute catgirl :3"""
         # Send typing indicator, useful when Discord explicit filter is on.
@@ -184,73 +178,55 @@ class Catgirl:
     @_nyaa.command(pass_context=True, no_pm=False)
     async def numbers(self, ctx):
         """Displays the number of images in the database."""
-        await self.bot.say("There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.picturesPending[KEY_CATGIRL])) + "** pending images.")
-
+        msg = ("There are:\n"
+               "- **{}** catgirls available.\n"
+               "- **{}** catboys available.\n"
+               "- **{}** pending images.".format(len(self.catgirls),
+                                                 len(self.catboys),
+                                                 len(self.picturesPending[KEY_CATGIRL])))
+        await self.bot.say(msg)
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
     @_nyaa.command(pass_context=True, no_pm=False)
     async def refresh(self, ctx):
         """Refreshes the internal database of nekomimi images."""
         self.refreshDatabase()
-        await self.bot.say("List reloaded.  There are:\n - **" + str(len(self.catgirls)) + "** catgirls available.\n - **" + str(len(self.catboys)) + "** catboys available.\n - **" + str(len(self.picturesPending[KEY_CATGIRL])) + "** pending images.")
+        msg = ("List reloaded.  There are:\n"
+               "- **{}** catgirls available.\n"
+               "- **{}** catboys available.\n"
+               "- **{}** pending images.".format(len(self.catgirls),
+                                                 len(self.catboys),
+                                                 len(self.picturesPending[KEY_CATGIRL])))
+        await self.bot.say(msg)
 
     #[p]nyaa local
     @_nyaa.command(pass_context=True, no_pm=False)
     async def local(self, ctx):
         """Displays a random, cute catgirl from the local database."""
-        #Send typing indicator, useful for when Discord explicit filter is on.
+        # Send typing indicator, useful for when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatgirl = random.choice(self.catgirlsLocal)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Catgirl"
-        embed.url = randCatgirl[KEY_IMAGE_URL]
-        if randCatgirl[KEY_ISPIXIV]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatgirl:
-            embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
+        embed = getImage(self.catgirlsLocal, "Catgirl")
+
         try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(randCatgirl)
-            print(e)
-            print("==========")
+            await self.bot.say("", embed=embed)
+        except discord.errors.Forbidden:
+            # No permission to send, ignore.
+            pass
 
     #[p]nyaa trap
     @_nyaa.command(pass_context=True, no_pm=False)
     async def trap(self, ctx):
         """Say no more fam, gotchu covered ;)"""
-        #Send typing indicator, useful for when Discord explicit filter is on.
+        # Send typing indicator, useful when Discord explicit filter is on.
         await self.bot.send_typing(ctx.message.channel)
 
-        randCatgirl = random.choice(self.catgirlsLocalTrap)
-        embed = discord.Embed()
-        embed.colour = discord.Colour.red()
-        embed.title = "Nekomimi"
-        embed.url = randCatgirl[KEY_IMAGE_URL]
-        if randCatgirl[KEY_ISPIXIV]:
-            source="[{}]({})".format("Original Source","http://www.pixiv.net/member_illust.php?mode=medium&illust_id="+randCatgirl[KEY_PIXIV_ID])
-            embed.add_field(name="Pixiv",value=source)
-            customFooter = "ID: " + randCatgirl[KEY_PIXIV_ID]
-            embed.set_footer(text=customFooter)
-        #Implemented the following with the help of http://stackoverflow.com/questions/1602934/check-if-a-given-key-already-exists-in-a-dictionary
-        if "character" in randCatgirl:
-            embed.add_field(name="Info",value=randCatgirl["character"], inline=False)
-        embed.set_image(url=randCatgirl[KEY_IMAGE_URL])
+        embed = getImage(self.catgirlsLocalTrap, "Nekomimi")
+
         try:
-            await self.bot.say("",embed=embed)
-        except Exception as e:
-            await self.bot.say("Please try again.")
-            print("Catgirl exception:")
-            print(e)
-            print("==========")
+            await self.bot.say("", embed=embed)
+        except discord.errors.Forbidden:
+            # No permission to send, ignore.
+            pass
 
     #[p]nyaa catboy
     @_nyaa.command(pass_context=True, no_pm=False)
