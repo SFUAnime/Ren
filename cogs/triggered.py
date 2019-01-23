@@ -10,7 +10,7 @@ from PIL import Image, ImageChops, ImageOps
 
 SAVE_FOLDER = "data/lui-cogs/triggered/" # Path to save folder.
 SAVE_FILE = "settings.json"
-AVATAR_URL = "https://images.discordapp.net/avatars/{0.id}/{0.avatar}.png?size=1024"
+AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
 
 def checkFolder():
     """Used to create the data folder at first startup"""
@@ -57,8 +57,7 @@ class Triggered: # pylint: disable=too-few-public-methods
         urllib.request.install_opener(opener)
 
         try:
-            url = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
-            urllib.request.urlretrieve(url.format(user), path)
+            urllib.request.urlretrieve(AVATAR_URL.format(user), path)
         except urllib.request.ContentTooShortError:
             return None
         except urllib.error.HTTPError:
