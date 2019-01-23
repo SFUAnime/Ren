@@ -1,3 +1,4 @@
+"""Catgirl cog.  Send random cute catgirls to a channel."""
 import os
 import asyncio
 import random
@@ -33,27 +34,20 @@ def checkFolder():
 
 def checkFiles():
     """Used to initialize an empty database at first startup"""
-    f = SAVE_FOLDER + "links-web.json"
-    if not dataIO.is_valid_json(f):
+    theFile = SAVE_FOLDER + "links-web.json"
+    if not dataIO.is_valid_json(theFile):
         print("Creating default catgirl links-web.json...")
-        dataIO.save_json(f, BASE)
+        dataIO.save_json(theFile, BASE)
 
-    f = SAVE_FOLDER + "links-localx10.json"
-    if not dataIO.is_valid_json(f):
-        print("Creating default catgirl links-localx10.json...")
-        dataIO.save_json(f, EMPTY)
+    files = [SAVE_FOLDER + "links-localx10.json",
+             SAVE_FOLDER + "links-local.json",
+             SAVE_FOLDER + "links-pending.json"]
+    for item in files:
+        if not dataIO.is_valid_json(item):
+            print("Creating default catgirl " + item)
+            dataIO.save_json(item, EMPTY)
 
-    f = SAVE_FOLDER + "links-local.json"
-    if not dataIO.is_valid_json(f):
-        print("Creating default catgirl links-local.json...")
-        dataIO.save_json(f, EMPTY)
-
-    f = SAVE_FOLDER + "links-pending.json"
-    if not dataIO.is_valid_json(f):
-        print("Creating default catgirl links-pending.json...")
-        dataIO.save_json(f, EMPTY)
-
-class Catgirl:
+class Catgirl: # pylint: disable=too-many-instance-attributes
     """Display cute nyaas~"""
 
 
@@ -150,13 +144,13 @@ class Catgirl:
 
     @commands.group(name="nyaa", pass_context=True, no_pm=False)
     async def _nyaa(self, ctx):
-        """Nekomimi universe! \o/"""
+        """Nekomimi universe!"""
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
     #[p]nyaa about
-    @_nyaa.command(pass_context=True, no_pm=False)
-    async def about(self, ctx):
+    @_nyaa.command(pass_context=False, no_pm=False)
+    async def about(self):
         """Displays information about this module"""
         customAuthor = "[{}]({})".format("@Injabie3#1660", "https://injabie3.moe/")
         embed = discord.Embed()
@@ -179,8 +173,8 @@ class Catgirl:
         await self.catgirlCmd(ctx)
 
     #[p]nyaa numbers
-    @_nyaa.command(pass_context=True, no_pm=False)
-    async def numbers(self, ctx):
+    @_nyaa.command(pass_context=False, no_pm=False)
+    async def numbers(self):
         """Displays the number of images in the database."""
         msg = ("There are:\n"
                "- **{}** catgirls available.\n"
@@ -190,8 +184,8 @@ class Catgirl:
                                                  len(self.picturesPending[KEY_CATGIRL])))
         await self.bot.say(msg)
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
-    @_nyaa.command(pass_context=True, no_pm=False)
-    async def refresh(self, ctx):
+    @_nyaa.command(pass_context=False, no_pm=False)
+    async def refresh(self):
         """Refreshes the internal database of nekomimi images."""
         self.refreshDatabase()
         msg = ("List reloaded.  There are:\n"
@@ -243,30 +237,29 @@ class Catgirl:
     async def debug(self, ctx):
         """Sends entire list via DM for debugging."""
         msg = "Debug Mode\nCatgirls:\n```"
-        for x in range(0,len(self.catgirls)):
-            msg += self.catgirls[x][KEY_IMAGE_URL] + "\n"
+        for image in self.catgirls:
+            msg += image[KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
-               msg += "```"
-               await self.bot.send_message(ctx.message.author, msg)
-               msg = "```"
+                msg += "```"
+                await self.bot.send_message(ctx.message.author, msg)
+                msg = "```"
         msg += "```"
         await self.bot.send_message(ctx.message.author, msg)
 
         msg = "Catboys:\n```"
-        for x in range(0,len(self.catboys)):
-            msg += self.catboys[x][KEY_IMAGE_URL] + "\n"
+        for image in self.catboys:
+            msg += image[KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
-               msg += "```"
-               await self.bot.send_message(ctx.message.author, msg)
-               msg = "```"
+                msg += "```"
+                await self.bot.send_message(ctx.message.author, msg)
+                msg = "```"
         msg += "```"
         await self.bot.send_message(ctx.message.author, msg)
 
     #[p]nyaa add
     @_nyaa.command(pass_context=True, no_pm=True)
-    async def add(self, ctx, link: str, description: str=""):
-        """
-        Add a catgirl image to the pending database.
+    async def add(self, ctx, link: str, description: str = ""):
+        """Add a catgirl image to the pending database.
         Will be screened before it is added to the global list. WIP
 
         link          The full URL to an image, use \" \" around the link.
@@ -285,10 +278,12 @@ class Catgirl:
         dataIO.save_json(self.filepathPending, self.picturesPending)
 
         #Get owner ID.
-        owner = discord.utils.get(self.bot.get_all_members(),id=self.bot.settings.owner)
+        owner = discord.utils.get(self.bot.get_all_members(),
+                                  id=self.bot.settings.owner)
 
         try:
-            await self.bot.send_message(owner, "New catgirl image is pending approval. Please check the list!")
+            await self.bot.send_message(owner, "New catgirl image is pending approval. "
+                                        "Please check the list!")
         except discord.errors.InvalidArgument:
             await self.bot.say("Added, but could not notify owner.")
         else:
