@@ -183,6 +183,7 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
                                                  len(self.catboys),
                                                  len(self.picturesPending[KEY_CATGIRL])))
         await self.bot.say(msg)
+
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
     @_nyaa.command(pass_context=False, no_pm=False)
     async def refresh(self):
@@ -289,7 +290,7 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
         else:
             await self.bot.say("Added, notified and pending approval. :ok_hand:")
 
-    async def _randomize(self):
+    async def randomize(self):
         """Shuffles images in the list."""
         while self:
             random.shuffle(self.catgirls)
@@ -336,8 +337,9 @@ def getImage(imageList, title):
     return embed
 
 def setup(bot):
+    """Add the cog to the bot."""
     checkFolder()   #Make sure the data folder exists!
     checkFiles()    #Make sure we have a local database!
     nyanko = Catgirl(bot)
     bot.add_cog(nyanko)
-    bot.loop.create_task(nyanko._randomize())
+    bot.loop.create_task(nyanko.randomize())
