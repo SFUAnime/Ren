@@ -19,7 +19,7 @@ def is_owner():
 def is_owner_or_permissions(**perms):
     def predicate(ctx):
         _id = ctx.message.author.id
-        if _id == settings.owner or _id in ctx.bot.settings.co_owners:
+        if _id == ctx.bot.settings.owner or _id in ctx.bot.settings.co_owners:
             return True
             
         return check_permissions(ctx,perms)
@@ -80,8 +80,8 @@ def admin_or_permissions(**perms):
 def sensei_or_mod_or_permissions(**perms):
     def predicate(ctx):
         server = ctx.message.server
-        mod_role = settings.get_server_mod(server).lower()
-        admin_role = settings.get_server_admin(server).lower()
+        mod_role = ctx.bot.settings.get_server_mod(server).lower()
+        admin_role = ctx.bot.settings.get_server_admin(server).lower()
         return role_or_permissions(ctx, lambda r: r.name.lower() in (mod_role, admin_role, "sensei"), **perms)
         
     return commands.check(predicate)
