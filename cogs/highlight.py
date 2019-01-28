@@ -1,25 +1,20 @@
+"""Highlights cog: DM a user certain "highlight" words that they specify.
+
+Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) but at
+the time, that bot was closed source.
+"""
+from datetime import timedelta, timezone
+import itertools
+import os
+import re
+from threading import Lock
+import asyncio
 import discord
 from discord.ext import commands
-from __main__ import send_cmd_help
 from cogs.utils.dataIO import dataIO
-import asyncio
-import aiohttp
-from datetime import datetime, timedelta, timezone
-from threading import Lock
-import os
-import itertools
-import re
 
-"""
-Cog Purpose:
-    - To dm a user certain "highlight" words that they specify
-Credit:
-    - This idea was first implemented by Danny (https://github.com/Rapptz/) but that bot is currently closed source.
-    So this is my own subpar implementation of the highlight bot :D
-"""
-
-def check_filesystem():
-
+def checkFilesystem():
+    """Check if the folders/files are created."""
     folders = ["data/highlight"]
     for folder in folders:
         if not os.path.exists(folder):
@@ -27,15 +22,15 @@ def check_filesystem():
             os.makedirs(folder)
 
     files = ["data/highlight/words.json"]
-    for file in files:
-        if not os.path.exists(file):
-            if "words" in file:
+    for theFile in files:
+        if not os.path.exists(theFile):
+            if "words" in theFile:
                 #build a default words.json
-                dict = {}
-                dict['guilds'] = []
-                dataIO.save_json("data/highlight/words.json",dict)
+                myDict = {}
+                myDict['guilds'] = []
+                dataIO.save_json("data/highlight/words.json", myDict)
 
-            print("Highlight: Creating file: {} ...".format(file))
+            print("Highlight: Creating file: {} ...".format(theFile))
 
 class Highlight(object):
     def __init__(self, bot):
@@ -86,7 +81,7 @@ class Highlight(object):
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of at-mentions"""
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
 
     @highlight.command(name="add", pass_context=True, no_pm=True)
     async def add_highlight(self, ctx, word: str):
@@ -123,7 +118,8 @@ class Highlight(object):
 
         await self.bot.delete_message(ctx.message)
 
-    @highlight.command(name="remove", pass_context=True, no_pm=True)
+    @highlight.command(name="del", pass_context=True, no_pm=True,
+                       aliases=["delete", "remove", "rm"])
     async def remove_highlight(self, ctx, word: str):
         """Remove a highlighted word in the current guild"""
         guild_id = ctx.message.server.id
@@ -153,7 +149,7 @@ class Highlight(object):
 
         await self.bot.delete_message(ctx.message)
 
-    @highlight.command(name="list", pass_context=True, no_pm=True)
+    @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
     async def list_highlight(self, ctx):
         """List your highighted words for the current guild"""
         guild_id = ctx.message.server.id
@@ -305,7 +301,7 @@ class Highlight(object):
         return is_active
 
 def setup(bot):
-    check_filesystem()
+    checkFilesystem()
     hilite = Highlight(bot)
     bot.add_listener(hilite.check_highlights, 'on_message')
     bot.add_cog(hilite)
