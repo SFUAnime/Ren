@@ -3,8 +3,8 @@ import os
 import asyncio
 import random
 import discord
+from redbot.core import Config
 from discord.ext import commands
-from cogs.utils.dataIO import dataIO
 
 #Global variables
 KEY_CATGIRL = "catgirls" # Key for JSON files.
@@ -18,56 +18,37 @@ PREFIX_PIXIV = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id={}"
 PREFIX_SEIGA = "http://seiga.nicovideo.jp/seiga/im{}"
 SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
 
-BASE = \
-{KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
-                 "id" : "null",
-                 "is_pixiv" : False}],
- KEY_CATBOY : []
-}
 EMPTY = {KEY_CATGIRL : [], KEY_CATBOY : []}
-
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
-
-def checkFiles():
-    """Used to initialize an empty database at first startup"""
-    theFile = SAVE_FOLDER + "links-web.json"
-    if not dataIO.is_valid_json(theFile):
-        print("Creating default catgirl links-web.json...")
-        dataIO.save_json(theFile, BASE)
-
-    files = [SAVE_FOLDER + "links-localx10.json",
-             SAVE_FOLDER + "links-local.json",
-             SAVE_FOLDER + "links-pending.json"]
-    for item in files:
-        if not dataIO.is_valid_json(item):
-            print("Creating default catgirl " + item)
-            dataIO.save_json(item, EMPTY)
+BASE = \
+{"web" : {KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
+                         "id" : "null",
+                         "is_pixiv" : False}],
+          KEY_CATBOY : []},
+ "local" : EMPTY,
+ "localx10" : EMPTY,
+ "pending" : EMPTY
+}
 
 class Catgirl: # pylint: disable=too-many-instance-attributes
     """Display cute nyaas~"""
 
-
-    def refreshDatabase(self):
+    async def refreshDatabase(self):
         """Refreshes the JSON files"""
         # Local catgirls allow for prepending a domain if you have a place where
         # where you're hosting your own catgirls.
-        self.filepathLocal = SAVE_FOLDER + "links-local.json"
-        self.filepathLocalx10 = SAVE_FOLDER + "links-localx10.json"
+        # self.filepathLocal = SAVE_FOLDER + "links-local.json"
+        # self.filepathLocalx10 = SAVE_FOLDER + "links-localx10.json"
 
         # Web catgirls will take on full URLs.
-        self.filepathWeb = SAVE_FOLDER + "links-web.json"
+        # self.filepathWeb = SAVE_FOLDER + "links-web.json"
 
         # List of pending catgirls waiting to be added.
-        self.filepathPending = SAVE_FOLDER + "links-pending.json"
+        # self.filepathPending = SAVE_FOLDER + "links-pending.json"
 
-        self.picturesLocal = dataIO.load_json(self.filepathLocal)
-        self.picturesLocalx10 = dataIO.load_json(self.filepathLocalx10)
-        self.picturesWeb = dataIO.load_json(self.filepathWeb)
-        self.picturesPending = dataIO.load_json(self.filepathPending)
+        self.picturesLocal = await self.config.local()
+        self.picturesLocalx10 = await self.config.localx10()
+        self.picturesWeb = await self.config.web()
+        self.picturesPending = await self.config.pending()
 
         # Traps
         self.catgirlsLocalTrap = []
@@ -98,11 +79,10 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
 
         self.pending = self.picturesPending[KEY_CATGIRL]
 
-    def __init__(self, bot):
-        self.bot = bot
-        checkFolder()
-        checkFiles()
-        self.refreshDatabase()
+    def __init__(self):
+        self.config = Config.get_conf(self, identifier=5842647)
+        self.config.register_global(**BASE)
+        await self.refreshDatabase()
 
     async def catgirlCmd(self, ctx):
         """Displays a random, cute catgirl :3"""
