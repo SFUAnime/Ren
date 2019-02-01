@@ -1,10 +1,9 @@
 """Catgirl cog.  Send random cute catgirls to a channel."""
-import os
 import asyncio
 import random
 import discord
-from redbot.core import Config
-from discord.ext import commands
+from redbot.core import Config, commands
+from redbot.core.bot import Red
 
 #Global variables
 KEY_CATGIRL = "catgirls" # Key for JSON files.
@@ -21,15 +20,15 @@ SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
 EMPTY = {KEY_CATGIRL : [], KEY_CATBOY : []}
 BASE = \
 {"web" : {KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
-                         "id" : "null",
-                         "is_pixiv" : False}],
+                          "id" : "null",
+                          "is_pixiv" : False}],
           KEY_CATBOY : []},
  "local" : EMPTY,
  "localx10" : EMPTY,
  "pending" : EMPTY
 }
 
-class Catgirl: # pylint: disable=too-many-instance-attributes
+class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
     """Display cute nyaas~"""
 
     async def refreshDatabase(self):
@@ -79,20 +78,32 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
 
         self.pending = self.picturesPending[KEY_CATGIRL]
 
-    def __init__(self):
+    def __init__(self, bot: Red):
+        super().__init__()
+        self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647)
         self.config.register_global(**BASE)
-        await self.refreshDatabase()
+        self.catgirls = None
+        self.catgirlsLocal = None
+        self.catgirlsLocalTrap = None
+        self.catboys = None
+
+        self.pending = None
+
+        self.picturesLocal = None
+        self.picturesLocalx10 = None
+        self.picturesPending = None
+        self.picturesWeb = None
 
     async def catgirlCmd(self, ctx):
         """Displays a random, cute catgirl :3"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
+        await ctx.channel.trigger_typing()
 
         embed = getImage(self.catgirls, "Catgirl")
 
         try:
-            await self.bot.say("", embed=embed)
+            await ctx.send(embed=embed)
         except discord.errors.Forbidden:
             # No permission to send, ignore.
             pass
@@ -105,32 +116,30 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
         embed = getImage(self.catboys, "Catboy")
 
         try:
-            await self.bot.say("", embed=embed)
+            await ctx.send(embed=embed)
         except discord.errors.Forbidden:
             # No permission to send, ignore.
             pass
 
     #[p]catgirl
-    @commands.command(name="catgirl", pass_context=True)
+    @commands.command(name="catgirl")
     async def _catgirl(self, ctx):
         """Displays a random, cute catgirl :3"""
         await self.catgirlCmd(ctx)
 
     #[p]catboy
-    @commands.command(name="catboy", pass_context=True)
+    @commands.command(name="catboy")
     async def _catboy(self, ctx):
         """This command says it all (database still WIP)"""
         await self.catboyCmd(ctx)
 
-    @commands.group(name="nyaa", pass_context=True, no_pm=False)
+    @commands.group(name="nyaa")
     async def _nyaa(self, ctx):
         """Nekomimi universe!"""
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_cmd_help(ctx)
 
     #[p]nyaa about
-    @_nyaa.command(pass_context=False, no_pm=False)
-    async def about(self):
+    @_nyaa.command(name="about")
+    async def about(self, ctx):
         """Displays information about this module"""
         customAuthor = "[{}]({})".format("@Injabie3#1660", "https://injabie3.moe/")
         embed = discord.Embed()
@@ -144,17 +153,17 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
                         "lists (depending on if they are hosted locally or on another "
                         "domain).  See https://github.com/Injabie3/lui-cogs for more info.")
         embed.set_footer(text="lui-cogs/catgirl")
-        await self.bot.say(content="", embed=embed)
+        await ctx.send(embed=embed)
 
     #[p]nyaa catgirl
-    @_nyaa.command(pass_context=True, no_pm=False)
+    @_nyaa.command(name="catgirl")
     async def catgirl(self, ctx):
         """Displays a random, cute catgirl :3"""
         await self.catgirlCmd(ctx)
 
     #[p]nyaa numbers
-    @_nyaa.command(pass_context=False, no_pm=False)
-    async def numbers(self):
+    @_nyaa.command(name="numbers")
+    async def numbers(self, ctx):
         """Displays the number of images in the database."""
         msg = ("There are:\n"
                "- **{}** catgirls available.\n"
@@ -162,38 +171,38 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
                "- **{}** pending images.".format(len(self.catgirls),
                                                  len(self.catboys),
                                                  len(self.picturesPending[KEY_CATGIRL])))
-        await self.bot.say(msg)
+        await ctx.send(msg)
 
     #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
-    @_nyaa.command(pass_context=False, no_pm=False)
-    async def refresh(self):
+    @_nyaa.command(pass_context=True, no_pm=False)
+    async def refresh(self, ctx):
         """Refreshes the internal database of nekomimi images."""
-        self.refreshDatabase()
+        await self.refreshDatabase()
         msg = ("List reloaded.  There are:\n"
                "- **{}** catgirls available.\n"
                "- **{}** catboys available.\n"
                "- **{}** pending images.".format(len(self.catgirls),
                                                  len(self.catboys),
                                                  len(self.picturesPending[KEY_CATGIRL])))
-        await self.bot.say(msg)
+        await ctx.send(msg)
 
     #[p]nyaa local
-    @_nyaa.command(pass_context=True, no_pm=False)
+    @_nyaa.command(name="local")
     async def local(self, ctx):
         """Displays a random, cute catgirl from the local database."""
         # Send typing indicator, useful for when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
+        await ctx.channel.trigger_typing()
 
         embed = getImage(self.catgirlsLocal, "Catgirl")
 
         try:
-            await self.bot.say("", embed=embed)
+            await ctx.send(embed=embed)
         except discord.errors.Forbidden:
             # No permission to send, ignore.
             pass
 
     #[p]nyaa trap
-    @_nyaa.command(pass_context=True, no_pm=False)
+    @_nyaa.command(name="trap")
     async def trap(self, ctx):
         """Say no more fam, gotchu covered ;)"""
         # Send typing indicator, useful when Discord explicit filter is on.
@@ -202,7 +211,7 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
         embed = getImage(self.catgirlsLocalTrap, "Nekomimi")
 
         try:
-            await self.bot.say("", embed=embed)
+            await ctx.send(embed=embed)
         except discord.errors.Forbidden:
             # No permission to send, ignore.
             pass
@@ -214,7 +223,7 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
         await self.catboyCmd(ctx)
 
     #[p] nyaa debug
-    @_nyaa.command(pass_context=True, no_pm=False)
+    @_nyaa.command()
     async def debug(self, ctx):
         """Sends entire list via DM for debugging."""
         msg = "Debug Mode\nCatgirls:\n```"
@@ -222,23 +231,24 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
             msg += image[KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
                 msg += "```"
-                await self.bot.send_message(ctx.message.author, msg)
+                await ctx.message.author.send(msg)
                 msg = "```"
         msg += "```"
-        await self.bot.send_message(ctx.message.author, msg)
+        await ctx.message.author.send(msg)
 
         msg = "Catboys:\n```"
         for image in self.catboys:
             msg += image[KEY_IMAGE_URL] + "\n"
             if len(msg) > 1900:
                 msg += "```"
-                await self.bot.send_message(ctx.message.author, msg)
+                await ctx.message.author.send(msg)
                 msg = "```"
         msg += "```"
-        await self.bot.send_message(ctx.message.author, msg)
+        await ctx.message.author.send(msg)
 
     #[p]nyaa add
-    @_nyaa.command(pass_context=True, no_pm=True)
+    @commands.guild_only()
+    @_nyaa.command(name="add")
     async def add(self, ctx, link: str, description: str = ""):
         """Add a catgirl image to the pending database.
         Will be screened before it is added to the global list. WIP
@@ -256,19 +266,19 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
 
 
         self.picturesPending[KEY_CATGIRL].append(temp)
-        dataIO.save_json(self.filepathPending, self.picturesPending)
+        await self.config.pending.put(self.picturesPending)
 
         #Get owner ID.
         owner = discord.utils.get(self.bot.get_all_members(),
                                   id=self.bot.settings.owner)
 
         try:
-            await self.bot.send_message(owner, "New catgirl image is pending approval. "
-                                        "Please check the list!")
+            await owner.send("New catgirl image is pending approval. Please check "
+                             "the list!")
         except discord.errors.InvalidArgument:
-            await self.bot.say("Added, but could not notify owner.")
+            await ctx.send("Added, but could not notify owner.")
         else:
-            await self.bot.say("Added, notified and pending approval. :ok_hand:")
+            await ctx.send("Added, notified and pending approval. :ok_hand:")
 
     async def randomize(self):
         """Shuffles images in the list."""
@@ -315,11 +325,3 @@ def getImage(imageList, title):
         embed.add_field(name="Info", value=image["character"], inline=False)
     embed.set_image(url=image[KEY_IMAGE_URL])
     return embed
-
-def setup(bot):
-    """Add the cog to the bot."""
-    checkFolder()   #Make sure the data folder exists!
-    checkFiles()    #Make sure we have a local database!
-    nyanko = Catgirl(bot)
-    bot.add_cog(nyanko)
-    bot.loop.create_task(nyanko.randomize())
