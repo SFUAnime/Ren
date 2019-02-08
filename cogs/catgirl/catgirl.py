@@ -268,9 +268,9 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
         self.picturesPending[KEY_CATGIRL].append(temp)
         await self.config.pending.put(self.picturesPending)
 
-        #Get owner ID.
+        # Get owner ID.
         owner = discord.utils.get(self.bot.get_all_members(),
-                                  id=self.bot.settings.owner)
+                                  id=self.bot.owner_id)
 
         try:
             await owner.send("New catgirl image is pending approval. Please check "
