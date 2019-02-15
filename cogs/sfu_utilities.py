@@ -23,6 +23,15 @@ WEBCAM_AQPOND = ("http://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
 WEBCAM_SUB = ("http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
               "?nocache=0.3346598630889852&update=15000&timeout=1800000")
 ROAD_API = "http://www.sfu.ca/security/sfuroadconditions/api/3/current"
+
+CAMPUSES = "campuses"
+BUR = "burnaby"
+SUR = "surrey"
+VAN = "vancouver"
+ROADS = "roads"
+STATUS = "status"
+ANNOUNCE = "announcements"
+
 SAVE_FOLDER = "data/lui-cogs/webcam/" # Path to save folder.
 SAVE_FILE = "settings.json"
 
@@ -90,12 +99,12 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
         # await self.bot.say(results)
         embed = discord.Embed()
         embed.title = "SFU Campus Report"
-        vanAnnounce = results["campuses"]["vancouver"]["announcements"] or "No updates."
-        surreyAnnounce = results["campuses"]["surrey"]["announcements"] or "No updates."
-        if results["campuses"]["burnaby"]["announcements"]:
-            announce = BeautifulSoup(results["campuses"]["burnaby"]
-                                     ["announcements"]).get_text()
-            roads = results["campuses"]["burnaby"]["roads"]["status"]
+        vanAnnounce = results[CAMPUSES][VAN][ANNOUNCE] or "No updates."
+        surreyAnnounce = results[CAMPUSES][SUR][ANNOUNCE] or "No updates."
+        if results[CAMPUSES][BUR][ANNOUNCE]:
+            announce = BeautifulSoup(results[CAMPUSES][BUR]
+                                     [ANNOUNCE]).get_text()
+            roads = results[CAMPUSES][BUR][ROADS][STATUS]
             burnAnnounce = ("**__Roads__**:\n{}\n\n**__Announcements__**:"
                             "\n{}".format(roads, announce))
         else:
