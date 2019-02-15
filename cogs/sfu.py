@@ -1,9 +1,13 @@
-"""SFU web cameras
-See road conditions in realtime.
+"""SFU Utilities.
+- Web cameras: see road conditions in realtime.
+- Campus report: fetched from the Road Report API.
 """
-
 import os
+import datetime
+import json
 import urllib.request
+from bs4 import BeautifulSoup
+import discord
 from discord.ext import commands
 
 WEBCAM_GAGLARDI = ("http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
@@ -18,6 +22,7 @@ WEBCAM_AQPOND = ("http://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
                  "?nocache=1&update=15000&timeout=1800000")
 WEBCAM_SUB = ("http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
               "?nocache=0.3346598630889852&update=15000&timeout=1800000")
+ROAD_API = "http://www.sfu.ca/security/sfuroadconditions/api/3/current"
 SAVE_FOLDER = "data/lui-cogs/webcam/" # Path to save folder.
 SAVE_FILE = "settings.json"
 
@@ -27,10 +32,8 @@ def checkFolder():
         print("Creating " + SAVE_FOLDER + " folder...")
         os.makedirs(SAVE_FOLDER)
 
-class SFUCam: # pylint: disable=too-few-public-methods
-    """SFU Webcams."""
-
-    # Class constructor
+class SFUUtilities: # pylint: disable=too-few-public-methods
+    """Various SFU Utilities"""
     def __init__(self, bot):
         self.bot = bot
 
@@ -79,9 +82,35 @@ class SFUCam: # pylint: disable=too-few-public-methods
 
         await self.bot.send_file(ctx.message.channel, path)
 
+    @commands.command(name="report")
+    async def report(self):
+        """Show the SFU Campus Report"""
+        with urllib.request.urlopen(ROAD_API) as roadReport:
+            results = json.loads(roadReport.read().decode('utf-8'))
+        # await self.bot.say(results)
+        embed = discord.Embed()
+        embed.title = "SFU Campus Report"
+        vanAnnounce = results["campuses"]["vancouver"]["announcements"] or "No updates."
+        surreyAnnounce = results["campuses"]["surrey"]["announcements"] or "No updates."
+        if results["campuses"]["burnaby"]["announcements"]:
+            announce = BeautifulSoup(results["campuses"]["burnaby"]
+                                     ["announcements"]).get_text()
+            roads = results["campuses"]["burnaby"]["roads"]["status"]
+            burnAnnounce = ("**__Roads__**:\n{}\n\n**__Announcements__**:"
+                            "\n{}".format(roads, announce))
+        else:
+            burnAnnounce = "No updates."
+
+        embed.add_field(name="Burnaby", value=burnAnnounce)
+        embed.add_field(name="Vancouver", value=vanAnnounce)
+        embed.add_field(name="Surrey", value=surreyAnnounce)
+
+        lastUpdated = datetime.datetime.fromtimestamp(results["lastUpdated"]
+                                                      /1000).strftime("%Y-%m-%d %H:%M:%S")
+        embed.set_footer(text="This report was last updated on {}".format(lastUpdated))
+        await self.bot.say(embed=embed)
 
 def setup(bot):
     """Add the cog to the bot."""
     checkFolder()
-    customCog = SFUCam(bot)
-    bot.add_cog(customCog)
+    bot.add_cog(SFUUtilities(bot))
