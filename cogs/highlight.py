@@ -3,6 +3,7 @@
 Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) but at
 the time, that bot was closed source.
 """
+from copy import deepcopy
 from datetime import timedelta, timezone
 import itertools
 import os
@@ -126,7 +127,7 @@ class Highlight(object):
                                              "a duplicate word".format(userName,
                                                                        MAX_WORDS))
             await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILD, self.highlights)
+            await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
@@ -148,7 +149,7 @@ class Highlight(object):
                 confMsg = await self.bot.say("Sorry {}, you don't have this word "
                                              "highlighted".format(userName))
             await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILD, self.highlights)
+            await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
@@ -177,42 +178,43 @@ class Highlight(object):
         await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="import", pass_context=True, no_pm=False)
-    async def import_highlight(self, ctx, from_server: str):
-        """Transfer highlights from a different guild to the current guild, OVERWRITING any words in the current guild"""
-        guild_id = ctx.message.server.id
-        user_id = ctx.message.author.id
-        user_name = ctx.message.author.name
+    async def importHighlight(self, ctx, fromServer: str):
+        """Transfer highlights from a different guild to the current guild.
+        This OVERWRITES any words in the current guild.
 
-        guild_idx = self._check_guilds(guild_id)
-        user = self._is_registered(guild_idx,guild_id,user_id)
+        Parameters:
+        -----------
+        fromServer: str
+            The name of the server you wish to import from.
+        """
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
 
-        guild = discord.utils.get(self.bot.servers, name=from_server)
+            self._registerUser(guildId, userId)
+            prevServerWords = self.highlights[guildId][userId][KEY_WORDS]
 
-        # This is kind of ugly, dont really like it but kind of has to be done like this based on how i have
-        # the highlight data structured, will definitely be revisting this
-        if guild is not None and user is not None:
-            user_idx = user[0]
-            if guild.id in self._get_guild_ids():
-                impt_guild_idx = self._check_guilds(guild.id)
-                impt_user = self._is_registered(impt_guild_idx,guild.id,user_id)
+            importGuild = discord.utils.get(self.bot.servers, name=fromServer)
 
-                if impt_user is not None:
-                    impt_user_idx = impt_user[0]
-                    impt = self.highlights['guilds'][impt_guild_idx][guild.id]['users'][impt_user_idx]
-                    self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = impt
-                    self._update_highlights(self.highlights)
-                    t_msg = await self.bot.say("Highlight words imported from {0} for {1}".format(from_server,user_name))
-                    await self._sleep_then_delete(t_msg,3)
-            else:
-                msg = "Sorry {}, the guild you want to import from"
-                msg += " is not registered for highlights, or you are not registered in that guild"
-                t_msg = await self.bot.say(msg.format(user_name))
-                await self._sleep_then_delete(t_msg,5)
-        else:
-            msg = "Sorry {}, this bot is not in the guild you want to import from,"
-            msg += " or you are not registered in this guild"
-            t_msg = await self.bot.say(msg.format(user_name))
-            await self._sleep_then_delete(t_msg,5)
+            if not importGuild:
+                await self.bot.say("The server you wanted to import from is not "
+                                   "in the list of servers I'm in.")
+                return
+
+            self._registerUser(importGuild.id, userId)
+
+            if not self.highlights[importGuild.id][userId][KEY_WORDS]:
+                await self.bot.say("You don't have any words from the server you "
+                                   "wish to import from!")
+                return
+            importWords = self.highlights[importGuild.id][userId][KEY_WORDS]
+            self.highlights[guildId][userId][KEY_WORDS] = deepcopy(importWords)
+            confMsg = await self.bot.say("Highlight words imported from {} for "
+                                         "{}".format(fromServer,
+                                                     userName))
+            await self.settings.put(KEY_GUILDS, self.highlights)
+        await self._sleep_then_delete(confMsg, 5)
 
     async def check_highlights(self, msg):
         if isinstance(msg.channel,discord.PrivateChannel):
