@@ -131,34 +131,25 @@ class Highlight(object):
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
                        aliases=["delete", "remove", "rm"])
-    async def remove_highlight(self, ctx, word: str):
+    async def removeHighlight(self, ctx, word: str):
         """Remove a highlighted word in the current guild"""
-        guild_id = ctx.message.server.id
-        user_id = ctx.message.author.id
-        user_name = ctx.message.author.name
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
 
-        guild_idx = self._check_guilds(guild_id)
-        user = self._is_registered(guild_idx,guild_id,user_id)
+            self._registerUser(guildId, userId)
+            userWords = self.highlights[guildId][userId][KEY_WORDS]
 
-        if user is not None:
-            user_idx = user[0]
-            user_rm = user[1]
-            if word in user_rm['words']:
-                user_rm['words'].remove(word)
-                self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_rm
-                self._update_highlights(self.highlights)
-                t_msg = await self.bot.say("Highlight word removed, {}".format(user_name))
-                await self._sleep_then_delete(t_msg,2)
+            if word in userWords:
+                userWords.remove(word)
+                confMsg = await self.bot.say("Highlight word removed, {}".format(userName))
             else:
-                t_msg = await self.bot.say("Sorry {}, you don't have this word highlighted".format(user_name))
-                await self._sleep_then_delete(t_msg,5)
-        else:
-            msg = "Sorry {}, you aren't currently registered for highlights."
-            msg += " Add a word to become registered"
-            t_msg = await self.bot.say(msg.format(user_name))
-            await self._sleep_then_delete(t_msg,5)
-
-        await self.bot.delete_message(ctx.message)
+                confMsg = await self.bot.say("Sorry {}, you don't have this word "
+                                             "highlighted".format(userName))
+            await self.bot.delete_message(ctx.message)
+            await self.settings.put(KEY_GUILD, self.highlights)
+        await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
     async def list_highlight(self, ctx):
