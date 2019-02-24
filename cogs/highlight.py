@@ -39,7 +39,8 @@ def checkFilesystem():
 
             print("Highlight: Creating file: {} ...".format(theFile))
 
-class Highlight(object):
+class Highlight:
+    """Slack-like feature to be notified based on specific words."""
     def __init__(self, bot):
         self.bot = bot
         self.lock = Lock()
@@ -49,35 +50,9 @@ class Highlight(object):
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
-    def _update_highlights(self, new_obj):
-        self.lock.acquire()
-        try:
-            dataIO.save_json("data/highlight/words.json", new_obj)
-            self.highlights = dataIO.load_json("data/highlight/words.json")
-        finally:
-            self.lock.release()
-
-    async def _sleep_then_delete(self, msg, time):
+    async def _sleepThenDelete(self, msg, time):
         await asyncio.sleep(time)
         await self.bot.delete_message(msg)
-
-    def _get_guild_ids(self):
-        guilds = [list(x) for x in self.highlights['guilds']]
-        return list(itertools.chain.from_iterable(guilds)) # flatten list
-
-    def _check_guilds(self, guild_id):
-        """returns guild pos in list"""
-        guilds_ids = self._get_guild_ids()
-
-        if guild_id not in guilds_ids:
-            new_guild = {}
-            users = {}
-            users['users'] = []
-            new_guild[guild_id] = users
-            self.highlights['guilds'].append(new_guild)
-            self._update_highlights(self.highlights)
-
-        return next(x for (x, d) in enumerate(self.highlights['guilds']) if guild_id in d)
 
     def _registerUser(self, guildId, userId):
         """Checks to see if user is registered, and if not, registers the user.
@@ -129,7 +104,7 @@ class Highlight(object):
                                                                        MAX_WORDS))
             await self.bot.delete_message(ctx.message)
             await self.settings.put(KEY_GUILDS, self.highlights)
-        await self._sleep_then_delete(confMsg, 5)
+        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
                        aliases=["delete", "remove", "rm"])
@@ -151,7 +126,7 @@ class Highlight(object):
                                              "highlighted".format(userName))
             await self.bot.delete_message(ctx.message)
             await self.settings.put(KEY_GUILDS, self.highlights)
-        await self._sleep_then_delete(confMsg, 5)
+        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
     async def listHighlight(self, ctx):
@@ -176,7 +151,7 @@ class Highlight(object):
         else:
             confMsg = await self.bot.say("Sorry {}, you have no highlighted words "
                                          "currently".format(userName))
-        await self._sleep_then_delete(confMsg, 5)
+        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def importHighlight(self, ctx, fromServer: str):
@@ -194,7 +169,6 @@ class Highlight(object):
             userName = ctx.message.author.name
 
             self._registerUser(guildId, userId)
-            prevServerWords = self.highlights[guildId][userId][KEY_WORDS]
 
             importGuild = discord.utils.get(self.bot.servers, name=fromServer)
 
@@ -215,7 +189,7 @@ class Highlight(object):
                                          "{}".format(fromServer,
                                                      userName))
             await self.settings.put(KEY_GUILDS, self.highlights)
-        await self._sleep_then_delete(confMsg, 5)
+        await self._sleepThenDelete(confMsg, 5)
 
     async def checkHighlights(self, msg):
         """Background listener to check if a highlight has been triggered."""
