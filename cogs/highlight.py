@@ -5,7 +5,7 @@ the time, that bot was closed source.
 """
 from copy import deepcopy
 from datetime import timedelta, timezone
-import itertools
+import logging
 import os
 import re
 from threading import Lock
@@ -16,6 +16,7 @@ from discord.ext import commands
 from cogs.utils import config
 from cogs.utils.dataIO import dataIO
 
+LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
 KEY_WORDS = "words"
@@ -235,12 +236,12 @@ class Highlight:
         try:
             async for msg in self.bot.logs_from(message.channel, limit=6, around=message):
                 msgs.append(msg)
-        except aiohttpErrors.ClientResponseError:
-            # TODO: Add logger.
-            pass
-        except aiohttpErrors.ServerDisconnectedError:
-            # TODO: Add logger.
-            pass
+        except aiohttpErrors.ClientResponseError as error:
+            LOGGER.error("Client response error within discord.py!")
+            LOGGER.error(error)
+        except aiohttpErrors.ServerDisconnectedError as error:
+            LOGGER.error("Server disconnect error within discord.py!")
+            LOGGER.error(error)
         msgContext = sorted(msgs, key=lambda r: r.timestamp)
         msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
                                                                    message.channel.id,
@@ -264,6 +265,8 @@ class Highlight:
         footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p %Z'))
         embed.set_footer(text=footer)
         await self.bot.send_message(user, content=notifyMsg, embed=embed)
+        LOGGER.info("%s#%s (%s) was successfully triggered.",
+                    user.name, user.discriminator, user.id)
 
     async def _isActive(self, userId, message):
         """Checks to see if the user has been active on a channel,
@@ -283,11 +286,13 @@ class Highlight:
                 if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=20):
                     isActive = True
                     break
-        except aiohttpErrors.ClientResponseError:
-            # TODO: Add logger.
+        except aiohttpErrors.ClientResponseError as error:
+            LOGGER.error("Client response error within discord.py!")
+            LOGGER.error(error)
             isActive = False
         except aiohttpErrors.ServerDisconnectedError:
-            # TODO: Add logger.
+            LOGGER.error("Server disconnect error within discord.py!")
+            LOGGER.error(error)
             isActive = False
         return isActive
 
@@ -310,13 +315,24 @@ def _isWordMatch(word, string):
         regex = r'\b{}\b'.format(re.escape(word.lower()))
         return bool(re.search(regex, string.lower()))
     except Exception as error: # pylint: disable=broad-except
-        print("Highlight error: Using the word \"{}\"".format(word))
-        print(error)
+        LOGGER.error("Regex error: %s", word)
+        LOGGER.error(error)
         return False
 
 def setup(bot):
     """Add the cog to the bot."""
     checkFilesystem()
     hilite = Highlight(bot)
+    global LOGGER # pylint: disable=global-statement
+    LOGGER = logging.getLogger("red.Highlight")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename="data/lui-cogs/highlight/info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     bot.add_listener(hilite.checkHighlights, 'on_message')
     bot.add_cog(hilite)
