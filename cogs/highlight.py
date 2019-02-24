@@ -216,18 +216,17 @@ class Highlight(object):
             await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleep_then_delete(confMsg, 5)
 
-    async def check_highlights(self, msg):
-        if isinstance(msg.channel,discord.PrivateChannel):
+    async def checkHighlights(self, msg):
+        """Background listener to check if a highlight has been triggered."""
+        if isinstance(msg.channel, discord.PrivateChannel):
             return
 
-        guild_id = msg.server.id
-        user_id = msg.author.id
-        user_obj = msg.author
-
-        guild_idx = self._check_guilds(guild_id)
+        guildId = msg.server.id
+        userId = msg.author.id
+        user = msg.author
 
         # Prevent bots from triggering your highlight word.
-        if user_obj.bot:
+        if user.bot:
             return
 
         # Don't send notification for filtered messages  
@@ -237,20 +236,21 @@ class Highlight(object):
             return
 
         tasks = []
-        # iterate through every users words on the server, and notify all highlights
-        for user in self.highlights['guilds'][guild_idx][guild_id]['users']:
-            for word in user['words']:
-                active = await self._is_active(user['id'],msg.channel,msg)
-                match = self._is_word_match(word,msg.content)
-                if match and not active and user_id != user['id']:
-                    hilite_user = msg.server.get_member(user['id'])
-                    if hilite_user is None:
+        # Iterate through every user's words on the server, and notify all highlights
+        for currentUserId, data in self.highlights[guildId].items():
+            for word in data[KEY_WORDS]:
+                active = await self._isActive(currentUserId, msg)
+                match = self._is_word_match(word, msg.content)
+                if match and not active and userId != currentUserId:
+                    hiliteUser = msg.server.get_member(currentUserId)
+                    if not hiliteUser:
                         # Handle case where user is no longer in the server of interest.
                         continue
-                    perms = msg.channel.permissions_for(hilite_user)
+                    perms = msg.channel.permissions_for(hiliteUser)
                     if not perms.read_messages:
+                        # Handle case where user cannot see the channel.
                         break
-                    tasks.append(self._notify_user(hilite_user,msg,word))
+                    tasks.append(self._notify_user(hiliteUser, msg, word))
 
         await asyncio.gather(*tasks)
 
@@ -288,18 +288,28 @@ class Highlight(object):
             print("Highlight error: Using the word \"{}\"".format(word))
             print(e)
 
-    async def _is_active(self, user_id, channel, message):
-        is_active = False
+    async def _isActive(self, userId, message):
+        """Checks to see if the user has been active on a channel,
+        given a message from a channel.
 
-        async for msg in self.bot.logs_from(channel,limit=50,before=message):
-            delta_since_msg = message.timestamp - msg.timestamp
-            if msg.author.id == user_id and delta_since_msg <= timedelta(seconds=20):
-                is_active = True
+        Parameters:
+        -----------
+        userId: int
+            The user ID we wish to check.
+        message: discord.Message
+            The discord message object that we wish to check the user against.
+        """
+        isActive = False
+
+        async for msg in self.bot.logs_from(message.channel, limit=50, before=message):
+            deltaSinceMsg = message.timestamp - msg.timestamp
+            if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=20):
+                isActive = True
                 break
-        return is_active
+        return isActive
 
 def setup(bot):
     checkFilesystem()
     hilite = Highlight(bot)
-    bot.add_listener(hilite.check_highlights, 'on_message')
+    bot.add_listener(hilite.checkHighlights, 'on_message')
     bot.add_cog(hilite)
