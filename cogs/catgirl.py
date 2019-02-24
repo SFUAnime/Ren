@@ -296,7 +296,7 @@ class Catgirl: # pylint: disable=too-many-instance-attributes
             random.shuffle(self.catgirls)
             random.shuffle(self.catboys)
             random.shuffle(self.catgirlsLocal)
-            await asyncio.sleep(3600)
+            await asyncio.sleep(3600) # pylint: disable=no-member
 
 def getImage(imageList, title):
     """Pick an image from a list, and construct a discord.Embed object

@@ -265,7 +265,7 @@ class RSSFeed():
                     LOGGER.error(error)
 
             try:
-                await asyncio.sleep(self.checkInterval)
+                await asyncio.sleep(self.checkInterval) # pylint: disable=no-member
             except asyncio.CancelledError as error:
                 LOGGER.error("The asyncio sleep was cancelled!")
                 LOGGER.error(error)

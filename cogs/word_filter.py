@@ -557,12 +557,12 @@ class WordFilter(): # pylint: disable=too-many-instance-attributes
             except discord.errors.Forbidden as error:
                 LOGGER.error("Could not DM user, perhaps they have blocked DMs?")
                 LOGGER.error(error)
-            await asyncio.sleep(3)
+            await asyncio.sleep(3) # pylint: disable=no-member
             await self.bot.delete_message(notifyMsg)
         elif (filteredMsg != originalMsg and oneWord) or allFiltered:
             filterNotify = "{0.author.mention} was filtered!".format(msg)
             notifyMsg = await self.bot.send_message(msg.channel, filterNotify)
-            await asyncio.sleep(3)
+            await asyncio.sleep(3) # pylint: disable=no-member
             await self.bot.delete_message(notifyMsg)
         else:
             filterNotify = "{0.author.mention} was filtered! Message was: \n".format(msg)

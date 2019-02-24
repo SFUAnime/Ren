@@ -96,19 +96,31 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
         """Show the SFU Campus Report"""
         with urllib.request.urlopen(ROAD_API) as roadReport:
             results = json.loads(roadReport.read().decode('utf-8'))
-        # await self.bot.say(results)
+
         embed = discord.Embed()
         embed.title = "SFU Campus Report"
-        vanAnnounce = results[CAMPUSES][VAN][ANNOUNCE] or "No updates."
-        surreyAnnounce = results[CAMPUSES][SUR][ANNOUNCE] or "No updates."
+
+        # We need to use BeautifulSoup to parse the HTML within the JSON.
         if results[CAMPUSES][BUR][ANNOUNCE]:
-            announce = BeautifulSoup(results[CAMPUSES][BUR]
-                                     [ANNOUNCE]).get_text()
+            announce = BeautifulSoup(results[CAMPUSES][BUR][ANNOUNCE],
+                                     "html.parser").get_text()
             roads = results[CAMPUSES][BUR][ROADS][STATUS]
             burnAnnounce = ("**__Roads__**:\n{}\n\n**__Announcements__**:"
                             "\n{}".format(roads, announce))
         else:
             burnAnnounce = "No updates."
+
+        if results[CAMPUSES][SUR][ANNOUNCE]:
+            surreyAnnounce = BeautifulSoup(results[CAMPUSES][SUR][ANNOUNCE],
+                                           "html.parser").get_text()
+        else:
+            surreyAnnounce = "No updates."
+
+        if results[CAMPUSES][VAN][ANNOUNCE]:
+            vanAnnounce = BeautifulSoup(results[CAMPUSES][VAN][ANNOUNCE],
+                                        "html.parser").get_text()
+        else:
+            vanAnnounce = "No updates."
 
         embed.add_field(name="Burnaby", value=burnAnnounce)
         embed.add_field(name="Vancouver", value=vanAnnounce)

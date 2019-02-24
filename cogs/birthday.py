@@ -259,7 +259,7 @@ class Birthday:
                                        "The role will be assigned automatically on this "
                                        "day.".format(forUser.name, userBirthday))
 
-        await asyncio.sleep(5)
+        await asyncio.sleep(5) # pylint: disable=no-member
 
         await self.bot.edit_message(messageID,
                                     ":white_check_mark: **Birthday - Set**: Successfully "
@@ -399,7 +399,7 @@ class Birthday:
                 self.lastChecked = datetime.now()
                 await self._dailySweep()
                 await self._dailyAdd()
-            await asyncio.sleep(60)
+            await asyncio.sleep(60) # pylint: disable=no-member
 
     async def _dailySweep(self):
         self.settingsLock.acquire()
