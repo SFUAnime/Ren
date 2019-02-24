@@ -11,7 +11,12 @@ from threading import Lock
 import asyncio
 import discord
 from discord.ext import commands
+from cogs.utils import config
 from cogs.utils.dataIO import dataIO
+
+MAX_WORDS = 5
+KEY_GUILDS = "guilds"
+KEY_WORDS = "words"
 
 def checkFilesystem():
     """Check if the folders/files are created."""
@@ -36,7 +41,10 @@ class Highlight(object):
     def __init__(self, bot):
         self.bot = bot
         self.lock = Lock()
-        self.highlights = dataIO.load_json("data/highlight/words.json")
+        self.settings = config.Config("settings.json",
+                                      cogname="lui-cogs/highlight")
+        self.highlights = self.settings.get(KEY_GUILDS) if not None else {}
+        # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
     def _update_highlights(self, new_obj):
@@ -67,56 +75,59 @@ class Highlight(object):
             self.highlights['guilds'].append(new_guild)
             self._update_highlights(self.highlights)
 
-        return next(x for (x,d) in enumerate(self.highlights['guilds']) if guild_id in d)
+        return next(x for (x, d) in enumerate(self.highlights['guilds']) if guild_id in d)
 
-    def _is_registered(self, guild_idx, guild_id, user_id):
-        users = self.highlights['guilds'][guild_idx][guild_id]['users']
+    def _registerUser(self, guildId, userId):
+        """Checks to see if user is registered, and if not, registers the user.
+        If the user is already registered, this method will do nothing.
+        If the user is not, they will be initialized to contain an empty words list.
 
-        for user in users:
-            if user_id == user['id']:
-                return [next(index for (index, d) in enumerate(users) if d["id"] == user['id']), user]
-        return None
+        Parameters:
+        -----------
+        guildId: int
+            The guild ID for the user.
+        userId: int
+            The user ID.
+
+        Returns:
+        --------
+            None.
+        """
+        if guildId not in self.highlights.keys():
+            self.highlights[guildId] = {}
+
+        if userId not in self.highlights[guildId].keys():
+            self.highlights[guildId][userId] = {KEY_WORDS: []}
 
     @commands.group(name="highlight", pass_context=True, no_pm=True)
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of at-mentions"""
-        if ctx.invoked_subcommand is None:
+        if not ctx.invoked_subcommand:
             await self.bot.send_cmd_help(ctx)
 
     @highlight.command(name="add", pass_context=True, no_pm=True)
-    async def add_highlight(self, ctx, word: str):
+    async def addHighlight(self, ctx, word: str):
         """Add a word to be highlighted in the current guild"""
-        guild_id = ctx.message.server.id
-        user_id = ctx.message.author.id
-        user_name = ctx.message.author.name
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
 
-        guild_idx = self._check_guilds(guild_id)
-        user = self._is_registered(guild_idx,guild_id,user_id)
+            self._registerUser(guildId, userId)
+            userWords = self.highlights[guildId][userId][KEY_WORDS]
 
-        if user is not None:
-            user_idx = user[0]
-            user_add = user[1]
-            if len(user_add['words']) <= 4 and word not in user_add['words']: # user can only have max of 5 words
-                user_add['words'].append(word)
-                self.highlights['guilds'][guild_idx][guild_id]['users'][user_idx] = user_add
-                self._update_highlights(self.highlights)
-                t_msg = await self.bot.say("Highlight word added, {}".format(user_name))
-                await self._sleep_then_delete(t_msg,2)
+            if len(userWords) <= MAX_WORDS and word not in userWords:
+                # user can only have MAX_WORDS words
+                userWords.append(word)
+                confMsg = await self.bot.say("Highlight word added, {}".format(userName))
             else:
-                msg = "Sorry {}, you already have 5 words highlighted"
-                msg += ", or you are trying to add a duplicate word"
-                t_msg = await self.bot.say(msg.format(user_name))
-                await self._sleep_then_delete(t_msg,5)
-        else:
-            new_user = {}
-            new_user['id'] = ctx.message.author.id
-            new_user['words'] = [word]
-            self.highlights['guilds'][guild_idx][guild_id]['users'].append(new_user)
-            self._update_highlights(self.highlights)
-            t_msg = await self.bot.say("Registered and highlight word added, {}".format(user_name))
-            await self._sleep_then_delete(t_msg,2)
-
-        await self.bot.delete_message(ctx.message)
+                confMsg = await self.bot.say("Sorry {}, you already have {} words "
+                                             "highlighted, or you are trying to add "
+                                             "a duplicate word".format(userName,
+                                                                       MAX_WORDS))
+            await self.bot.delete_message(ctx.message)
+            await self.settings.put(KEY_GUILD, self.highlights)
+        await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
                        aliases=["delete", "remove", "rm"])
