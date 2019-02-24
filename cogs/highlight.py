@@ -152,35 +152,29 @@ class Highlight(object):
         await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
-    async def list_highlight(self, ctx):
+    async def listHighlight(self, ctx):
         """List your highighted words for the current guild"""
-        guild_id = ctx.message.server.id
-        user_id = ctx.message.author.id
-        user_name = ctx.message.author.name
+        guildId = ctx.message.server.id
+        userId = ctx.message.author.id
+        userName = ctx.message.author.name
 
-        guild_idx = self._check_guilds(guild_id)
-        user = self._is_registered(guild_idx,guild_id,user_id)
+        self._registerUser(guildId, userId)
+        userWords = self.highlights[guildId][userId][KEY_WORDS]
 
-        if user is not None:
-            user_list = user[1]
-            if len(user_list['words']) > 0:
-                msg = ""
-                for word in user_list['words']:
-                    msg += word
-                    msg += "\n"
+        if userWords:
+            msg = ""
+            for word in userWords:
+                msg += "{}\n".format(word)
 
-                embed = discord.Embed(description=msg,colour=discord.Colour.red())
-                embed.set_author(name=ctx.message.author.name,icon_url=ctx.message.author.avatar_url)
-                t_msg = await self.bot.say(embed=embed)
-                await self._sleep_then_delete(t_msg,5)
-            else:
-                t_msg = await self.bot.say("Sorry {}, you have no highlighted words currently".format(user_name))
-                await self._sleep_then_delete(t_msg,5)
+            embed = discord.Embed(description=msg,
+                                  colour=discord.Colour.red())
+            embed.set_author(name=ctx.message.author.name,
+                             icon_url=ctx.message.author.avatar_url)
+            confMsg = await self.bot.say(embed=embed)
         else:
-            msg = "Sorry {}, you aren't currently registered for highlights."
-            msg += " Add a word to become registered"
-            t_msg = await self.bot.say(msg.format(user_name))
-            await self._sleep_then_delete(t_msg,5)
+            confMsg = await self.bot.say("Sorry {}, you have no highlighted words "
+                                         "currently".format(userName))
+        await self._sleep_then_delete(confMsg, 5)
 
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def import_highlight(self, ctx, from_server: str):
