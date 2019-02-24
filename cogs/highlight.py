@@ -16,6 +16,7 @@ from discord.ext import commands
 from cogs.utils import config
 from cogs.utils.dataIO import dataIO
 
+ACTIVE_TIME = 20
 LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
@@ -211,11 +212,21 @@ class Highlight:
         if guildId not in self.highlights.keys():
             # Skip if the guild is not initialized.
             return
+        activeMessages = []
+        try:
+            async for message in self.bot.logs_from(msg.channel, limit=50, before=msg):
+                activeMessages.append(message)
+        except aiohttpErrors.ClientResponseError as error:
+            LOGGER.error("Client response error within discord.py!")
+            LOGGER.error(error)
+        except aiohttpErrors.ServerDisconnectedError:
+            LOGGER.error("Server disconnect error within discord.py!")
+            LOGGER.error(error)
 
         # Iterate through every user's words on the server, and notify all highlights
         for currentUserId, data in self.highlights[guildId].items():
             for word in data[KEY_WORDS]:
-                active = await self._isActive(currentUserId, msg)
+                active = _isActive(currentUserId, msg, activeMessages)
                 match = _isWordMatch(word, msg.content)
                 if match and not active and userId != currentUserId:
                     hiliteUser = msg.server.get_member(currentUserId)
@@ -268,33 +279,30 @@ class Highlight:
         LOGGER.info("%s#%s (%s) was successfully triggered.",
                     user.name, user.discriminator, user.id)
 
-    async def _isActive(self, userId, message):
-        """Checks to see if the user has been active on a channel,
-        given a message from a channel.
+def _isActive(userId, originalMessage, messages):
+    """Checks to see if the user has been active on a channel,
+    given a message from a channel.
 
-        Parameters:
-        -----------
-        userId: int
-            The user ID we wish to check.
-        message: discord.Message
-            The discord message object that we wish to check the user against.
-        """
-        isActive = False
-        try:
-            async for msg in self.bot.logs_from(message.channel, limit=50, before=message):
-                deltaSinceMsg = message.timestamp - msg.timestamp
-                if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=20):
-                    isActive = True
-                    break
-        except aiohttpErrors.ClientResponseError as error:
-            LOGGER.error("Client response error within discord.py!")
-            LOGGER.error(error)
-            isActive = False
-        except aiohttpErrors.ServerDisconnectedError:
-            LOGGER.error("Server disconnect error within discord.py!")
-            LOGGER.error(error)
-            isActive = False
-        return isActive
+    Parameters:
+    -----------
+    userId: int
+        The user ID we wish to check.
+    originalMessage: discord.Message
+        The original message whose base timestamp we wish to check against.
+    messages: [ discord.Message ]
+        A list of discord message objects that we wish to check the user against.
+
+    Returns:
+    --------
+    bool
+        True, if the user has spoken ACTIVE_TIME seconds before originalMessage.
+        False, otherwise.
+    """
+    for msg in messages:
+        deltaSinceMsg = originalMessage.timestamp - msg.timestamp
+        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=ACTIVE_TIME):
+            return True
+    return False
 
 def _isWordMatch(word, string):
     """See if the word/regex matches anything in string.
