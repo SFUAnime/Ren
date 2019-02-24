@@ -48,7 +48,7 @@ class Highlight:
         self.wordFilter = None
 
     async def _sleepThenDelete(self, msg, time):
-        await asyncio.sleep(time)
+        await asyncio.sleep(time) # pylint: disable=no-member
         await self.bot.delete_message(msg)
 
     def _registerUser(self, guildId, userId):
@@ -239,7 +239,7 @@ class Highlight:
                         break
                     tasks.append(self._notifyUser(hiliteUser, msg, word))
 
-        await asyncio.gather(*tasks)
+        await asyncio.gather(*tasks) # pylint: disable=no-member
 
     async def _notifyUser(self, user, message, word):
         """Notify the user of the triggered highlight word."""
