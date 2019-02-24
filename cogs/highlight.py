@@ -20,25 +20,19 @@ LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
 KEY_WORDS = "words"
+SAVE_FOLDER = "data/lui-cogs/highlight/"
+SAVE_FILE = "settings.json"
 
 def checkFilesystem():
     """Check if the folders/files are created."""
-    folders = ["data/highlight"]
-    for folder in folders:
-        if not os.path.exists(folder):
-            print("Highlight: Creating folder: {} ...".format(folder))
-            os.makedirs(folder)
+    if not os.path.exists(SAVE_FOLDER):
+        print("Highlight: Creating folder: {} ...".format(SAVE_FOLDER))
+        os.makedirs(SAVE_FOLDER)
 
-    files = ["data/highlight/words.json"]
-    for theFile in files:
-        if not os.path.exists(theFile):
-            if "words" in theFile:
-                #build a default words.json
-                myDict = {}
-                myDict['guilds'] = []
-                dataIO.save_json("data/highlight/words.json", myDict)
-
-            print("Highlight: Creating file: {} ...".format(theFile))
+    theFile = SAVE_FOLDER + SAVE_FILE
+    if not dataIO.is_valid_json(theFile):
+        print("Creating default highlight settings.json...")
+        dataIO.save_json(theFile, {})
 
 class Highlight:
     """Slack-like feature to be notified based on specific words."""
@@ -47,7 +41,8 @@ class Highlight:
         self.lock = Lock()
         self.settings = config.Config("settings.json",
                                       cogname="lui-cogs/highlight")
-        self.highlights = self.settings.get(KEY_GUILDS) if not None else {}
+        self.highlights = self.settings.get(KEY_GUILDS)
+        self.highlights = {} if not self.highlights else self.highlights
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
@@ -84,7 +79,7 @@ class Highlight:
             await self.bot.send_cmd_help(ctx)
 
     @highlight.command(name="add", pass_context=True, no_pm=True)
-    async def addHighlight(self, ctx, word: str):
+    async def addHighlight(self, ctx, *, word: str):
         """Add a word to be highlighted in the current guild"""
         with self.lock:
             guildId = ctx.message.server.id
@@ -109,7 +104,7 @@ class Highlight:
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
                        aliases=["delete", "remove", "rm"])
-    async def removeHighlight(self, ctx, word: str):
+    async def removeHighlight(self, ctx, *, word: str):
         """Remove a highlighted word in the current guild"""
         with self.lock:
             guildId = ctx.message.server.id
@@ -212,6 +207,11 @@ class Highlight:
             return
 
         tasks = []
+
+        if guildId not in self.highlights.keys():
+            # Skip if the guild is not initialized.
+            return
+
         # Iterate through every user's words on the server, and notify all highlights
         for currentUserId, data in self.highlights[guildId].items():
             for word in data[KEY_WORDS]:
