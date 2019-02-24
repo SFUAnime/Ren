@@ -10,6 +10,7 @@ import os
 import re
 from threading import Lock
 import asyncio
+from aiohttp import errors as aiohttpErrors
 import discord
 from discord.ext import commands
 from cogs.utils import config
@@ -229,7 +230,7 @@ class Highlight(object):
         if user.bot:
             return
 
-        # Don't send notification for filtered messages  
+        # Don't send notification for filtered messages
         if not self.wordFilter:
             self.wordFilter = self.bot.get_cog("WordFilter")
         elif self.wordFilter.containsFilterableWords(msg):
@@ -240,7 +241,7 @@ class Highlight(object):
         for currentUserId, data in self.highlights[guildId].items():
             for word in data[KEY_WORDS]:
                 active = await self._isActive(currentUserId, msg)
-                match = self._is_word_match(word, msg.content)
+                match = _isWordMatch(word, msg.content)
                 if match and not active and userId != currentUserId:
                     hiliteUser = msg.server.get_member(currentUserId)
                     if not hiliteUser:
@@ -250,43 +251,45 @@ class Highlight(object):
                     if not perms.read_messages:
                         # Handle case where user cannot see the channel.
                         break
-                    tasks.append(self._notify_user(hiliteUser, msg, word))
+                    tasks.append(self._notifyUser(hiliteUser, msg, word))
 
         await asyncio.gather(*tasks)
 
-    async def _notify_user(self, user, message, word):
+    async def _notifyUser(self, user, message, word):
+        """Notify the user of the triggered highlight word."""
         msgs = []
-        async for msg in self.bot.logs_from(message.channel,limit=6,around=message):
-            msgs.append(msg)
-        msg_ctx = sorted(msgs, key=lambda r: r.timestamp)
+        try:
+            async for msg in self.bot.logs_from(message.channel, limit=6, around=message):
+                msgs.append(msg)
+        except aiohttpErrors.ClientResponseError:
+            # TODO: Add logger.
+            pass
+        except aiohttpErrors.ServerDisconnectedError:
+            # TODO: Add logger.
+            pass
+        msgContext = sorted(msgs, key=lambda r: r.timestamp)
         msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
                                                                    message.channel.id,
                                                                    message.id)
-        notify_msg = ("In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n"
-                      "Jump: {2}".format(word, message, msgUrl))
-        embed_msg = ""
-        msg_still_there = False
-        for msg in msg_ctx:
+        notifyMsg = ("In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n"
+                     "Jump: {2}".format(word, message, msgUrl))
+        embedMsg = ""
+        msgStillThere = False
+        for msg in msgContext:
             time = msg.timestamp
             time = time.replace(tzinfo=timezone.utc).astimezone(tz=None).strftime('%H:%M:%S %Z')
-            embed_msg += "[{0}] {1.author.name}#{1.author.discriminator}: {1.content}\n".format(time,msg)
-            if self._is_word_match(word, msg.content):
-                msg_still_there = True
-        if not msg_still_there:
+            embedMsg += ("[{0}] {1.author.name}#{1.author.discriminator}: {1.content}"
+                         "\n".format(time, msg))
+            if _isWordMatch(word, msg.content):
+                msgStillThere = True
+        if not msgStillThere:
             return
-        embed = discord.Embed(title=user.name,description=embed_msg,colour=discord.Colour.red())
+        embed = discord.Embed(title=user.name, description=embedMsg,
+                              colour=discord.Colour.red())
         time = message.timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None)
         footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p %Z'))
         embed.set_footer(text=footer)
-        await self.bot.send_message(user,content=notify_msg,embed=embed)
-
-    def _is_word_match(self, word, string):
-        try:
-            regex = r'\b{}\b'.format(re.escape(word.lower()))
-            return bool(re.search(regex,string.lower()))
-        except Exception as e:
-            print("Highlight error: Using the word \"{}\"".format(word))
-            print(e)
+        await self.bot.send_message(user, content=notifyMsg, embed=embed)
 
     async def _isActive(self, userId, message):
         """Checks to see if the user has been active on a channel,
@@ -300,15 +303,45 @@ class Highlight(object):
             The discord message object that we wish to check the user against.
         """
         isActive = False
-
-        async for msg in self.bot.logs_from(message.channel, limit=50, before=message):
-            deltaSinceMsg = message.timestamp - msg.timestamp
-            if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=20):
-                isActive = True
-                break
+        try:
+            async for msg in self.bot.logs_from(message.channel, limit=50, before=message):
+                deltaSinceMsg = message.timestamp - msg.timestamp
+                if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=20):
+                    isActive = True
+                    break
+        except aiohttpErrors.ClientResponseError:
+            # TODO: Add logger.
+            isActive = False
+        except aiohttpErrors.ServerDisconnectedError:
+            # TODO: Add logger.
+            isActive = False
         return isActive
 
+def _isWordMatch(word, string):
+    """See if the word/regex matches anything in string.
+
+    Parameters:
+    -----------
+    word: str
+        The regex/word you wish to see exists.
+    string: str
+        The string in which you want to check if word is in.
+
+    Returns:
+    --------
+    bool
+        Whether or not word is in string.
+    """
+    try:
+        regex = r'\b{}\b'.format(re.escape(word.lower()))
+        return bool(re.search(regex, string.lower()))
+    except Exception as error: # pylint: disable=broad-except
+        print("Highlight error: Using the word \"{}\"".format(word))
+        print(error)
+        return False
+
 def setup(bot):
+    """Add the cog to the bot."""
     checkFilesystem()
     hilite = Highlight(bot)
     bot.add_listener(hilite.checkHighlights, 'on_message')
