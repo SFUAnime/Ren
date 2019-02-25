@@ -263,6 +263,7 @@ class RSSFeed():
                 except discord.errors.HTTPException as error:
                     LOGGER.error("Could not post to RSS channel!")
                     LOGGER.error(error)
+                    LOGGER.error("Embed: %s", embed.to_dict())
 
             try:
                 await asyncio.sleep(self.checkInterval) # pylint: disable=no-member
