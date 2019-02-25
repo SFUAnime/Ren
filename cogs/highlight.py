@@ -13,7 +13,7 @@ import asyncio
 from aiohttp import errors as aiohttpErrors
 import discord
 from discord.ext import commands
-from cogs.utils import config
+from cogs.utils import config, chat_formatting
 from cogs.utils.dataIO import dataIO
 
 ACTIVE_TIME = 20
@@ -264,8 +264,9 @@ class Highlight:
         for msg in msgContext:
             time = msg.timestamp
             time = time.replace(tzinfo=timezone.utc).astimezone(tz=None).strftime('%H:%M:%S %Z')
-            embedMsg += ("[{0}] {1.author.name}#{1.author.discriminator}: {1.content}"
-                         "\n".format(time, msg))
+            escapedMsg = chat_formatting.escape(msg.content, formatting=True)
+            embedMsg += ("[{0}] {1.author.name}#{1.author.discriminator}: {2}"
+                         "\n".format(time, msg, escapedMsg))
             if _isWordMatch(word, msg.content):
                 msgStillThere = True
         if not msgStillThere:
@@ -275,9 +276,13 @@ class Highlight:
         time = message.timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None)
         footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p %Z'))
         embed.set_footer(text=footer)
-        await self.bot.send_message(user, content=notifyMsg, embed=embed)
-        LOGGER.info("%s#%s (%s) was successfully triggered.",
-                    user.name, user.discriminator, user.id)
+        try:
+            await self.bot.send_message(user, content=notifyMsg, embed=embed)
+            LOGGER.info("%s#%s (%s) was successfully triggered.",
+                        user.name, user.discriminator, user.id)
+        except discord.errors.Forbidden as error:
+            LOGGER.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
+                         user.name, user.discriminator, user.id)
 
 def _isActive(userId, originalMessage, messages):
     """Checks to see if the user has been active on a channel,
