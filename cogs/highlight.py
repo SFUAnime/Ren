@@ -150,6 +150,39 @@ class Highlight:
                                          "currently".format(userName))
         await self._sleepThenDelete(confMsg, 5)
 
+    @highlight.group(name="blacklist", pass_context=True, no_pm=True,
+                     aliases=["bl"])
+    async def userBlacklist(self, ctx):
+        """Blacklist certain users from triggering your words."""
+        if str(ctx.invoked_subcommand).lower() == "highlight blacklist":
+            await self.bot.send_cmd_help(ctx)
+
+    @userBlacklist.command(name="add", pass_context=True, no_pm=True)
+    async def userBlAdd(self, ctx, user: discord.Member):
+        """Add a user to your blacklist.
+
+        Parameters:
+        -----------
+        user: discord.Member
+            The user you wish to block from triggering your highlight words.
+        """
+
+    @userBlacklist.command(name="del", pass_context=True, no_pm=True,
+                           aliases=["delete", "remove", "rm"])
+    async def userBlRemove(self, ctx, user: discord.Member):
+        """Remove a user from your blacklist.
+
+        Parameters:
+        -----------
+        user: discord.Member
+            The user you wish to remove from your blacklist.
+        """
+
+    @userBlacklist.command(name="list", pass_context=True, no_pm=True,
+                           aliases=["ls"])
+    async def userBlList(self, ctx, user: discord.Member):
+        """List the users on your blacklist."""
+
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def importHighlight(self, ctx, fromServer: str):
         """Transfer highlights from a different guild to the current guild.
