@@ -20,6 +20,7 @@ ACTIVE_TIME = 20
 LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
+KEY_BLACKLIST = "blacklist"
 KEY_WORDS = "words"
 SAVE_FOLDER = "data/lui-cogs/highlight/"
 SAVE_FILE = "settings.json"
@@ -71,7 +72,11 @@ class Highlight:
             self.highlights[guildId] = {}
 
         if userId not in self.highlights[guildId].keys():
-            self.highlights[guildId][userId] = {KEY_WORDS: []}
+            self.highlights[guildId][userId] = {KEY_WORDS: [], KEY_BLACKLIST: []}
+            return
+
+        if KEY_BLACKLIST not in self.highlights[guildId][userId].keys():
+            self.highlights[guildId][userId][KEY_BLACKLIST] = []
 
     @commands.group(name="highlight", pass_context=True, no_pm=True)
     async def highlight(self, ctx):
@@ -166,6 +171,23 @@ class Highlight:
         user: discord.Member
             The user you wish to block from triggering your highlight words.
         """
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
+
+            self._registerUser(guildId, userId)
+            userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
+
+            if user.id not in userBl:
+                userBl.append(user.id)
+                confMsg = await self.bot.say("{} added to the blacklist, "
+                                             "{}".format(user.name, userName))
+            else:
+                confMsg = await self.bot.say("This user is already on the blacklist!")
+            await self.bot.delete_message(ctx.message)
+            await self.settings.put(KEY_GUILDS, self.highlights)
+        await self._sleepThenDelete(confMsg, 5)
 
     @userBlacklist.command(name="del", pass_context=True, no_pm=True,
                            aliases=["delete", "remove", "rm"])
@@ -177,11 +199,77 @@ class Highlight:
         user: discord.Member
             The user you wish to remove from your blacklist.
         """
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
+
+            self._registerUser(guildId, userId)
+            userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
+
+            if user.id in userBl:
+                userBl.remove(user.id)
+                confMsg = await self.bot.say("{} removed from blacklist, "
+                                             "{}".format(user.name, userName))
+            else:
+                confMsg = await self.bot.say("This user is not on the blacklist!")
+            await self.bot.delete_message(ctx.message)
+            await self.settings.put(KEY_GUILDS, self.highlights)
+        await self._sleepThenDelete(confMsg, 5)
+
+    @userBlacklist.command(name="clear", pass_context=True, no_pm=True,
+                           aliases=["cls"])
+    async def userBlClear(self, ctx):
+        """Clear your user blacklist.  Will ask for confirmation."""
+        await self.bot.say("Are you sure you want to clear your blacklist?  Type "
+                           "`yes` to continue, otherwise type something else.")
+        response = await self.bot.wait_for_message(timeout=10, author=ctx.message.author,
+                                                   channel=ctx.message.channel)
+
+        if response.content.lower() == "yes":
+            with self.lock:
+                guildId = ctx.message.server.id
+                userId = ctx.message.author.id
+
+                self._registerUser(guildId, userId)
+                self.highlights[guildId][userId][KEY_BLACKLIST].clear()
+                await self.settings.put(KEY_GUILDS, self.highlights)
+                await self.bot.say("Your highlight blacklist was cleared.")
+        else:
+            await self.bot.say("Not clearing your blacklist.")
 
     @userBlacklist.command(name="list", pass_context=True, no_pm=True,
                            aliases=["ls"])
-    async def userBlList(self, ctx, user: discord.Member):
+    async def userBlList(self, ctx):
         """List the users on your blacklist."""
+        guildId = ctx.message.server.id
+        userId = ctx.message.author.id
+        userName = ctx.message.author.name
+
+        self._registerUser(guildId, userId)
+        userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
+
+        if userBl:
+            msg = ""
+            for userId in userBl:
+                userObj = discord.utils.get(ctx.message.server.members, id=userId)
+                if not userObj:
+                    continue
+                msg += "{}\n".format(userObj.name)
+            if msg == "":
+                msg = "You have blacklisted users that are no longer in the guild."
+
+            embed = discord.Embed(description=msg,
+                                  colour=discord.Colour.red())
+            embed.title = "Blacklisted users on {}".format(ctx.message.server.name)
+            embed.set_author(name=ctx.message.author.name,
+                             icon_url=ctx.message.author.avatar_url)
+            await self.bot.send_message(ctx.message.author, embed=embed)
+            confMsg = await self.bot.say("Please check your DMs.")
+        else:
+            confMsg = await self.bot.say("Sorry {}, you have no backlisted users "
+                                         "currently".format(userName))
+        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def importHighlight(self, ctx, fromServer: str):
