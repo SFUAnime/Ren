@@ -78,7 +78,8 @@ class Highlight:
         if KEY_BLACKLIST not in self.highlights[guildId][userId].keys():
             self.highlights[guildId][userId][KEY_BLACKLIST] = []
 
-    @commands.group(name="highlight", pass_context=True, no_pm=True)
+    @commands.group(name="highlight", pass_context=True, no_pm=True,
+                    aliases=["hl"])
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of at-mentions"""
         if not ctx.invoked_subcommand:
