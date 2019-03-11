@@ -78,6 +78,9 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
                 urllib.request.urlretrieve(WEBCAM_AQPOND, path)
             elif cam.lower() == "sub":
                 urllib.request.urlretrieve(WEBCAM_SUB, path)
+            elif cam.lower() == "help":
+                await self.bot.send_cmd_help(ctx)
+                return
             else:
                 urllib.request.urlretrieve(WEBCAM_GAGLARDI, path)
         except urllib.request.ContentTooShortError:
