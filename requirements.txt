@@ -1,8 +1,9 @@
 pip
-git+git://github.com/Rapptz/discord.py.git#egg=discord.py[voice]
+https://github.com/Rapptz/discord.py/archive/async.zip
 youtube_dl
 imgurpython
 bs4
 feedparser
 mysqlclient
 Pillow
+pylint==2.3.0

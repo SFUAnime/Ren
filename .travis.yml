@@ -3,7 +3,6 @@ python:
   - "3.5.2"
 install:
   - pip install -r requirements.txt
-  - pip install pylint==2.3.0
 script:
   - python -m compileall ./red.py
   - python -m compileall ./cogs
