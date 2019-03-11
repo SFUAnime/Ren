@@ -346,6 +346,10 @@ class Highlight:
 
         # Iterate through every user's words on the server, and notify all highlights
         for currentUserId, data in self.highlights[guildId].items():
+            # Handle case where message author has been blacklisted by the user.
+            if KEY_BLACKLIST in data.keys() and msg.author.id in data[KEY_BLACKLIST]:
+                continue
+
             for word in data[KEY_WORDS]:
                 active = _isActive(currentUserId, msg, activeMessages)
                 match = _isWordMatch(word, msg.content)
