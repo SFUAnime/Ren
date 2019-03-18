@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 import discord
 from discord.ext import commands
@@ -8,19 +9,27 @@ import re
 import textwrap
 import time
 
-from .mod import CaseMessageNotFound, NoModLogAccess
 from .utils import checks
 from .utils.chat_formatting import pagify, box, warning, error, info, bold
 from .utils.dataIO import dataIO
 
-__version__ = '2.0.3'
-
 try:
     import tabulate
-except Exception as e:
-    raise RuntimeError("You must run `pip3 install tabulate`.") from e
+except ImportError as e:
+    raise RuntimeError("Punish requires tabulate. To install it, run `pip3 install tabulate` from the console or "
+                       "`[p]debug bot.pip_install('tabulate')` from in Discord.") from e
 
 log = logging.getLogger('red.punish')
+
+try:
+    from .mod import CaseMessageNotFound, NoModLogAccess
+    ENABLE_MODLOG = True
+except ImportError:
+    log.warn("Could not import modlog exceptions from mod cog, most likely because mod.py was deleted or Red is out of "
+             "date. Modlog integration will be disabled.")
+    ENABLE_MODLOG = False
+
+__version__ = '2.3.1'
 
 ACTION_STR = "Timed mute \N{HOURGLASS WITH FLOWING SAND} \N{SPEAKER WITH CANCELLATION STROKE}"
 PURGE_MESSAGES = 1  # for cpunish
@@ -31,6 +40,9 @@ DEFAULT_ROLE_NAME = 'Punished'
 DEFAULT_TEXT_OVERWRITE = discord.PermissionOverwrite(send_messages=False, send_tts_messages=False, add_reactions=False)
 DEFAULT_VOICE_OVERWRITE = discord.PermissionOverwrite(speak=False)
 DEFAULT_TIMEOUT_OVERWRITE = discord.PermissionOverwrite(send_messages=True, read_messages=True)
+DEFAULT_TIMEOUT_OVERWRITE_HUSH = discord.PermissionOverwrite(send_messages=False, read_messages=True)
+
+QUEUE_TIME_CUTOFF = 30
 
 DEFAULT_TIMEOUT = '30m'
 DEFAULT_CASE_MIN_LENGTH = '30m'  # only create modlog cases when length is longer than this
@@ -84,8 +96,11 @@ def _timespec_sec(expr):
         raise BadTimeExpr("invalid value: '%s'" % atoms[0])
 
 
-def _generate_timespec(sec, short=False, micro=False):
+def _generate_timespec(sec: int, short=False, micro=False) -> str:
     timespec = []
+    sec = int(sec)
+    neg = sec < 0
+    sec = abs(sec)
 
     for names, length in UNIT_TABLE:
         n, sec = divmod(sec, length)
@@ -97,18 +112,27 @@ def _generate_timespec(sec, short=False, micro=False):
                 s = '%d%s' % (n, names[1])
             else:
                 s = '%d %s' % (n, names[0])
-            if n <= 1:
+
+            if n <= 1 and not (micro and names[2] == 's'):
                 s = s.rstrip('s')
+
             timespec.append(s)
 
     if len(timespec) > 1:
         if micro:
-            return ''.join(timespec)
+            spec = ''.join(timespec)
 
         segments = timespec[:-1], timespec[-1:]
-        return ' and '.join(', '.join(x) for x in segments)
+        spec = ' and '.join(', '.join(x) for x in segments)
+    elif timespec:
+        spec = timespec[0]
+    else:
+        return '0'
 
-    return timespec[0]
+    if neg:
+        spec += ' ago'
+
+    return spec
 
 
 def format_list(*items, join='and', delim=', '):
@@ -231,7 +255,12 @@ class Punish:
     def __init__(self, bot):
         self.bot = bot
         self.json = compat_load(JSON)
-        self.handles = {}
+
+        # queue variables
+        self.queue = asyncio.PriorityQueue(loop=bot.loop)
+        self.queue_lock = asyncio.Lock(loop=bot.loop)
+        self.pending = {}
+        self.enqueued = set()
 
         try:
             self.analytics = CogAnalytics(self)
@@ -256,7 +285,8 @@ class Punish:
         sig = inspect.signature(mod.new_case)
         return 'force_create' in sig.parameters
 
-    @commands.group(pass_context=True, invoke_without_command=True, no_pm=True)
+    @commands.group(pass_context=True, invoke_without_command=True, no_pm=True,
+                    aliases=["mute"])
     @checks.mod_or_permissions(manage_messages=True)
     async def punish(self, ctx, user: discord.Member, duration: str = None, *, reason: str = None):
         if ctx.invoked_subcommand:
@@ -382,6 +412,34 @@ class Punish:
 
         await self.bot.say('Cleaned %i absent members from the list.' % count)
 
+    @punish.command(pass_context=True, no_pm=True, name='clean-bans')
+    @checks.mod_or_permissions(manage_messages=True)
+    async def punish_clean_bans(self, ctx):
+        """
+        Removes banned members from the punished list.
+        """
+
+        count = 0
+        server = ctx.message.server
+        data = self.json.get(server.id, {})
+
+        try:
+            bans = await self.bot.get_bans(server)
+            ban_ids = {u.id for u in bans}
+        except discord.errors.Forbidden:
+            await self.bot.say(warning("I need ban permissions to see the list of banned users."))
+            return
+
+        for mid, mdata in data.copy().items():
+            if not mid.isdigit() or server.get_member(mid):
+                continue
+
+            elif mid in ban_ids:
+                del(data[mid])
+                count += 1
+
+        await self.bot.say('Cleaned %i banned users from the list.' % count)
+
     @punish.command(pass_context=True, no_pm=True, name='warn')
     @checks.mod_or_permissions(manage_messages=True)
     async def punish_warn(self, ctx, user: discord.Member, *, reason: str = None):
@@ -433,7 +491,9 @@ class Punish:
             if data.get('reason'):
                 msg += '\n\nOriginal reason was: ' + data['reason']
 
-            await self._unpunish(user, msg, update=True)
+            if not await self._unpunish(user, msg, update=True):
+                msg += '\n\n(failed to send punishment end notification DM)'
+
             await self.bot.say(msg)
         elif data:  # This shouldn't happen, but just in case
             now = time.time()
@@ -478,7 +538,7 @@ class Punish:
         caseno = data.get('caseno')
         mod = self.bot.get_cog('Mod')
 
-        if mod and caseno:
+        if mod and caseno and ENABLE_MODLOG:
             moderator = ctx.message.author
             case_error = None
 
@@ -498,6 +558,48 @@ class Punish:
                 msg += '\n\n' + warning('There was an error updating the modlog case: %s.' % case_error)
 
         await self.bot.say(msg)
+
+    @punish.command(pass_context=True, no_pm=True, name='channel-hush')
+    @checks.mod_or_permissions(manage_messages=True)
+    async def punish_channel_hush(self, ctx, on_off: bool = None):
+        """
+        Set or show whether punished members can post in the timeout channel
+
+        For this to work, the channel must be set, and other roles must
+        not conflict. This cog ONLY changes the timeout role overrides.
+
+        Hush is automatically disabled when no more members are punished.
+        """
+        server = ctx.message.server
+        settings = self.json.get(server.id, {})
+        current = settings.get('CHANNEL_HUSH', False)
+        channel = settings.get('CHANNEL_ID')
+        channel = channel and server.get_channel(channel)
+        msg = 'Punished members %s to post in the timeout channel.'
+
+        if on_off is None:
+            on_off = current
+            status = 'are currently '
+        elif on_off == current:
+            status = 'were already '
+        else:
+            if server.id not in self.json:
+                self.json[server.id] = {}
+
+            self.json[server.id]['CHANNEL_HUSH'] = on_off
+            self.save()
+            status = 'are now '
+            role = await self.get_role(server, create=True)
+
+            if channel and role:
+                await self.setup_channel(channel, role)
+            elif not channel:
+                msg = warning('Note: the timeout channel must be set for this to take effect.') + '\n' + msg
+            elif not role:
+                msg = warning('Note: the punished role has not yet been created.') + '\n' + msg
+
+        status += 'unable' if on_off else 'able'
+        await self.bot.say(msg % status)
 
     @commands.group(pass_context=True, invoke_without_command=True, no_pm=True)
     @checks.admin_or_permissions(administrator=True)
@@ -872,7 +974,10 @@ class Punish:
             # maybe this will be used later:
             # config = settings.get('TIMEOUT_OVERWRITE')
             config = None
-            defaults = DEFAULT_TIMEOUT_OVERWRITE
+            if settings.get('CHANNEL_HUSH', False):
+                defaults = DEFAULT_TIMEOUT_OVERWRITE_HUSH
+            else:
+                defaults = DEFAULT_TIMEOUT_OVERWRITE
         elif channel.type is discord.ChannelType.voice:
             config = settings.get('VOICE_OVERWRITE')
             defaults = DEFAULT_VOICE_OVERWRITE
@@ -900,9 +1005,9 @@ class Punish:
 
             me = server.me
             role = await self.get_role(server, quiet=True, create=True)
+
             if not role:
-                log.error("Needed to create punish role in %s, but couldn't."
-                          % server.name)
+                log.error("Needed to create punish role in %s, but couldn't." % server.name)
                 continue
 
             for member_id, data in members.copy().items():
@@ -910,29 +1015,118 @@ class Punish:
                     continue
 
                 until = data['until']
-                if until:
-                    duration = until - time.time()
-
                 member = server.get_member(member_id)
-                if until and duration < 0:
+
+                if until and (until - time.time()) < 0:
                     if member:
-                        reason = 'Punishment removal overdue, maybe bot was offline. '
+                        reason = 'Punishment removal overdue, maybe the bot was offline. '
+
                         if self.json[server.id][member_id]['reason']:
                             reason += self.json[server.id][member_id]['reason']
+
                         await self._unpunish(member, reason)
                     else:  # member disappeared
                         del(self.json[server.id][member_id])
 
-                elif member and role not in member.roles:
-                    if role >= me.top_role:
-                        log.error("Needed to re-add punish role to %s in %s, "
-                                  "but couldn't." % (member, server.name))
-                        continue
-                    await self.bot.add_roles(member, role)
+                elif member:
+                    if role not in member.roles:
+                        if role >= me.top_role:
+                            log.error("Needed to re-add punish role to %s in %s, but couldn't." % (member, server.name))
+                            continue
+
+                        await self.bot.add_roles(member, role)
+
                     if until:
-                        self.schedule_unpunish(duration, member)
+                        await self.schedule_unpunish(until, member)
 
         self.save()
+
+        while True:
+            try:
+                async with self.queue_lock:
+                    while await self.process_queue_event():
+                        pass
+
+                await asyncio.sleep(5)
+
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                pass
+
+        log.debug('queue manager dying')
+
+        while not self.queue.empty():
+            self.queue.get_nowait()
+
+        for fut in self.pending.values():
+            fut.cancel()
+
+    async def cancel_queue_event(self, *args) -> bool:
+        if args in self.pending:
+            self.pending.pop(args).cancel()
+            return True
+        else:
+            events = []
+            removed = None
+
+            async with self.queue_lock:
+                while not self.queue.empty():
+                    item = self.queue.get_nowait()
+
+                    if args == item[1:]:
+                        removed = item
+                        break
+                    else:
+                        events.append(item)
+
+                for item in events:
+                    self.queue.put_nowait(item)
+
+            return removed is not None
+
+    async def put_queue_event(self, run_at : float, *args):
+        diff = run_at - time.time()
+
+        if args in self.enqueued:
+            return False
+
+        self.enqueued.add(args)
+
+        if diff < 0:
+            self.execute_queue_event(*args)
+        elif run_at - time.time() < QUEUE_TIME_CUTOFF:
+            self.pending[args] = self.bot.loop.call_later(diff, self.execute_queue_event, *args)
+        else:
+            await self.queue.put((run_at, *args))
+
+    async def process_queue_event(self):
+        if self.queue.empty():
+            return False
+
+        now = time.time()
+        item = await self.queue.get()
+        next_time, *args = item
+
+        diff = next_time - now
+
+        if diff < 0:
+            if self.execute_queue_event(*args):
+                return
+        elif diff < QUEUE_TIME_CUTOFF:
+            self.pending[args] = self.bot.loop.call_later(diff, self.execute_queue_event, *args)
+            return True
+
+        await self.queue.put(item)
+        return False
+
+    def execute_queue_event(self, *args) -> bool:
+        self.enqueued.discard(args)
+
+        try:
+            return self.execute_unpunish(*args)
+        except Exception:
+            log.exception("failed to execute scheduled event")
 
     async def _punish_cmd_common(self, ctx, member, duration, reason, quiet=False):
         server = ctx.message.server
@@ -954,6 +1148,9 @@ class Punish:
 
         if not hierarchy_allowed:
             await self.bot.say('Permission denied due to role hierarchy.')
+            return
+        elif member == server.me:
+            await self.bot.say("You can't punish the bot.")
             return
 
         if duration and duration.lower() in ['forever', 'inf', 'infinite']:
@@ -983,9 +1180,9 @@ class Punish:
         # Call time() after getting the role due to potential creation delay
         now = time.time()
         until = (now + duration + 0.5) if duration else None
+        duration_ok = (case_min_length is not None) and ((duration is None) or duration >= case_min_length)
 
-        if mod and (case_min_length is not None) and self.can_create_cases() and ((duration is None)
-                                                                                  or duration >= case_min_length):
+        if mod and self.can_create_cases() and duration_ok and ENABLE_MODLOG:
             mod_until = until and datetime.utcfromtimestamp(until)
 
             try:
@@ -1027,17 +1224,18 @@ class Punish:
 
         if duration:
             timespec = _generate_timespec(duration)
+
             if using_default:
                 timespec += ' (the default)'
+
             msg += ' I will remove %s in %s.' % (subject, timespec)
 
-        if (case_min_length is not None) and not self.can_create_cases() and ((duration is None)
-                                                                              or duration >= case_min_length):
+        if duration_ok and not (self.can_create_cases() and ENABLE_MODLOG):
             if mod:
                 msg += '\n\n' + warning('If you can, please update the bot so I can create modlog cases.')
             else:
                 pass  # msg += '\n\nI cannot create modlog cases if the `mod` cog is not loaded.'
-        elif case_error:
+        elif case_error and ENABLE_MODLOG:
             if isinstance(case_error, CaseMessageNotFound):
                 case_error = 'the case message could not be found'
             elif isinstance(case_error, NoModLogAccess):
@@ -1078,8 +1276,8 @@ class Punish:
         self.save()
 
         # schedule callback for role removal
-        if duration:
-            self.schedule_unpunish(duration, member, reason)
+        if until:
+            await self.schedule_unpunish(until, member)
 
         if not quiet:
             await self.bot.say(msg)
@@ -1088,26 +1286,29 @@ class Punish:
 
     # Functions related to unpunishing
 
-    def _create_unpunish_task(self, member, reason):
-        return self.bot.loop.create_task(self._unpunish(member, reason))
-
-    def schedule_unpunish(self, delay, member, reason=None):
+    async def schedule_unpunish(self, until, member):
         """
         Schedules role removal, canceling and removing existing tasks if present
         """
 
-        sid = member.server.id
+        await self.put_queue_event(until, member.server.id, member.id)
 
-        if sid not in self.handles:
-            self.handles[sid] = {}
+    def execute_unpunish(self, server_id, member_id) -> bool:
+        server = self.bot.get_server(server_id)
 
-        if member.id in self.handles[sid]:
-            self.handles[sid][member.id].cancel()
+        if not server:
+            return False
 
-        handle = self.bot.loop.call_later(delay, self._create_unpunish_task, member, reason)
-        self.handles[sid][member.id] = handle
+        member = server.get_member(member_id)
 
-    async def _unpunish(self, member, reason=None, remove_role=True, update=False, moderator=None):
+        if member:
+            self.bot.loop.create_task(self._unpunish(member))
+            return True
+        else:
+            self.bot.loop.create_task(self.bot.request_offline_members(server))
+            return False
+
+    async def _unpunish(self, member, reason=None, remove_role=True, update=False, moderator=None, quiet=False) -> bool:
         """
         Remove punish role, delete record and task handle
         """
@@ -1122,6 +1323,22 @@ class Punish:
 
             # Has to be done first to prevent triggering listeners
             self._unpunish_data(member)
+            await self.cancel_queue_event(member.server.id, member.id)
+
+            # No more members punished, lift back channel hush
+            if not any(mid.isdigit() for mid in data):
+                if data.get("CHANNEL_HUSH", False):
+                    data["CHANNEL_HUSH"] = False
+                    self.save()
+
+                    channel = data.get('CHANNEL_ID')
+                    channel = channel and server.get_channel(channel)
+
+                    if channel:
+                        try:
+                            await self.setup_channel(channel, role)
+                        except Exception:
+                            pass
 
             if remove_role:
                 await self.bot.remove_roles(member, role)
@@ -1156,25 +1373,27 @@ class Punish:
                         unmute_list.append(member.id)
                     self.save()
 
+            if quiet:
+                return True
+
             msg = 'Your punishment in %s has ended.' % member.server.name
 
             if reason:
                 msg += "\nReason: %s" % reason
 
-            await self.bot.send_message(member, msg)
-
-            return member_data
+            try:
+                await self.bot.send_message(member, msg)
+                return True
+            except Exception:
+                return False
 
     def _unpunish_data(self, member):
         """Removes punish data entry and cancels any present callback"""
         sid = member.server.id
+
         if member.id in self.json.get(sid, {}):
             del(self.json[member.server.id][member.id])
             self.save()
-
-        if sid in self.handles and member.id in self.handles[sid]:
-            self.handles[sid][member.id].cancel()
-            del(self.handles[member.server.id][member.id])
 
     # Listeners
 
@@ -1194,12 +1413,12 @@ class Punish:
         sid = before.server.id
         data = self.json.get(sid, {})
         member_data = data.get(before.id)
+        role = await self.get_role(before.server, quiet=True)
 
-        if member_data is None:
+        if not (member_data and role):
             return
 
-        role = await self.get_role(before.server, quiet=True)
-        if role and role in before.roles and role not in after.roles:
+        if role in before.roles and role not in after.roles:
             msg = 'Punishment manually ended early by a moderator/admin.'
             if member_data['reason']:
                 msg += '\nReason was: ' + member_data['reason']
@@ -1209,21 +1428,24 @@ class Punish:
     async def on_member_join(self, member):
         """Restore punishment if punished user leaves/rejoins"""
         sid = member.server.id
-        role = await self.get_role(member.server, quiet=True)
         data = self.json.get(sid, {}).get(member.id)
-        if not role or data is None:
+
+        if not data:
             return
 
-        duration = data['until'] - time.time()
-        if duration > 0:
-            await self.bot.add_roles(member, role)
+        # give other tools a chance to settle, then re-fetch data just in case
+        await asyncio.sleep(1)
+        member = self.bot.get_server(sid).get_member(member.id)
+        role = await self.get_role(member.server, quiet=True)
 
-            reason = 'Punishment re-added on rejoin. '
-            if data['reason']:
-                reason += data['reason']
+        until = data['until']
+        duration = until - time.time()
 
-            if member.id not in self.handles[sid]:
-                self.schedule_unpunish(duration, member, reason)
+        if role and duration > 0:
+            await self.schedule_unpunish(until, member)
+
+            if role not in member.roles:
+                await self.bot.add_roles(member, role)
 
     async def on_voice_state_update(self, before, after):
         data = self.json.get(before.server.id, {})
@@ -1238,9 +1460,27 @@ class Punish:
 
         elif before.id in unmute_list:
             await self.bot.server_voice_state(after, mute=False)
+
             while before.id in unmute_list:
                 unmute_list.remove(before.id)
+
             self.save()
+
+    async def on_member_ban(self, member):
+        """Remove punishment record when member is banned."""
+        sid = member.server.id
+        data = self.json.get(sid, {})
+        member_data = data.get(member.id)
+
+        if member_data is None:
+            return
+
+        msg = "Punishment ended early due to ban."
+
+        if member_data.get('reason'):
+            msg += '\n\nOriginal reason was: ' + member_data['reason']
+
+        await self._unpunish(member, msg, remove_role=False, update=True, quiet=True)
 
     async def on_command(self, command, ctx):
         if ctx.cog is self and self.analytics:
