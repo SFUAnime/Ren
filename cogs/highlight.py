@@ -383,8 +383,8 @@ class Highlight:
         msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
                                                                    message.channel.id,
                                                                    message.id)
-        notifyMsg = ("In {1.channel.mention}, you were mentioned with highlight word **{0}**:\n"
-                     "Jump: {2}".format(word, message, msgUrl))
+        notifyMsg = ("In {1.channel.mention}, you were mentioned with highlight word "
+                     "**{0}**:".format(word, message))
         embedMsg = ""
         msgStillThere = False
         for msg in msgContext:
@@ -399,6 +399,7 @@ class Highlight:
             return
         embed = discord.Embed(title=user.name, description=embedMsg,
                               colour=discord.Colour.red())
+        embed.add_field(name="Context", value="[Click to Jump]({})".format(msgUrl))
         time = message.timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None)
         footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p %Z'))
         embed.set_footer(text=footer)
