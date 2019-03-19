@@ -181,11 +181,12 @@ class Stars:
         if starrers > 1:
             base = '%s **%s** %s ID: %s\nJump: %s' % (emoji, starrers, msg.channel.mention, msg.id, msgUrl)
         else:
-            base = '%s %s ID: %s\nJump: %s' % (emoji, msg.channel.mention, msg.id, msgUrl)
+            base = '%s %s ID: %s' % (emoji, msg.channel.mention, msg.id)
 
 
         content = msg.content
         e = discord.Embed(description=content)
+        e.add_field(name="Context", value="[Click to Jump](%s)" % msgUrl)
         if msg.embeds:
             data = discord.Embed.from_data(msg.embeds[0])
             if data.type == 'image':
