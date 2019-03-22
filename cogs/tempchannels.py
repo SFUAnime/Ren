@@ -1,14 +1,16 @@
-import discord
-from discord.ext import commands
-from .utils import checks
-from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
-import time
-import os
+"""Temporary channel cog.
+
+Creates a temporary channel.
+"""
 import asyncio
-import aiohttp # Using this to build own request to Discord API for NSFW.
+import os
 import json # Will need this to use in conjunction with aiohttp below.
 import itertools
+import aiohttp # Using this to build own request to Discord API for NSFW.
+import discord
+from discord.ext import commands
+from cogs.utils import checks
+from cogs.utils.dataIO import dataIO
 
 def check_filesystem():
     folders = ["data/lui-cogs/tempchannels"]
@@ -44,7 +46,7 @@ class TempChannels:
         """
         #Display the help context menu
         if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
+            await self.bot.send_cmd_help(ctx)
     
     @_tempchannels.command(name="default", pass_context=True, no_pm=True)
     @checks.serverowner()
