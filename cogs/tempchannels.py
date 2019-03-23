@@ -12,20 +12,19 @@ from discord.ext import commands
 from cogs.utils import checks
 from cogs.utils.dataIO import dataIO
 
-def checkFilesystem():
-    folders = ["data/lui-cogs/tempchannels"]
-    for folder in folders:
-        if not os.path.exists(folder):
-            print("Temporary Channels: Creating folder: {} ...".format(folder))
-            os.makedirs(folder)
+SAVE_FOLDER = "data/lui-cogs/tempchannels"
+SAVE_FILE = "settings.json"
 
-    files = ["data/lui-cogs/tempchannels/settings.json"]
-    for theFile in files:
-        if not os.path.exists(theFile):
-            #build a default filter.json
-            defaultDict = {}
-            dataIO.save_json(theFile, defaultDict)
-            print("Temporary Channels: Creating file: {} ...".format(file))
+def checkFilesystem():
+    if not os.path.exists(SAVE_FOLDER):
+        print("Temporary Channels: Creating folder: {} ...".format(SAVE_FOLDER))
+        os.makedirs(SAVE_FOLDER)
+
+    if not os.path.exists(SAVE_FILE):
+        # Build a default settings.json
+        defaultDict = {}
+        dataIO.save_json("{}/{}".format(SAVE_FOLDER, SAVE_FILE), defaultDict)
+        print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
 
 class TempChannels:
     """Creates a temporary channel."""
