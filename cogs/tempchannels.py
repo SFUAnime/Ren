@@ -9,10 +9,11 @@ import itertools
 import aiohttp # Using this to build own request to Discord API for NSFW.
 import discord
 from discord.ext import commands
-from cogs.utils import checks
+from cogs.utils import checks, config
 from cogs.utils.dataIO import dataIO
 
-SAVE_FOLDER = "data/lui-cogs/tempchannels"
+KEY_SETTINGS = "settings"
+SAVE_FOLDER = "data/lui-cogs/tempchannels/"
 SAVE_FILE = "settings.json"
 
 def checkFilesystem():
@@ -23,7 +24,7 @@ def checkFilesystem():
     if not os.path.exists(SAVE_FILE):
         # Build a default settings.json
         defaultDict = {}
-        dataIO.save_json("{}/{}".format(SAVE_FOLDER, SAVE_FILE), defaultDict)
+        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, defaultDict)
         print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
 
 class TempChannels:
@@ -31,11 +32,13 @@ class TempChannels:
 
     def __init__(self, bot):
         self.bot = bot
-        self.settings = dataIO.load_json("data/lui-cogs/tempchannels/settings.json")
+        self.config = config.Config("settings.json",
+                                    cogname="lui-cogs/tempchannels")
+        self.settings = self.config.get(KEY_SETTINGS)
 
     def _sync_settings(self):
-        dataIO.save_json("data/lui-cogs/tempchannels/settings.json", self.settings)
-        self.settings = dataIO.load_json("data/lui-cogs/tempchannels/settings.json")
+        await self.config.put(KEY_SETTINGS, self.settings)
+        self.settings = self.config.get(KEY_SETTINGS)
 
     @commands.group(name="tempchannels", pass_context=True, no_pm=True, aliases=["tc"])
     @checks.serverowner()
