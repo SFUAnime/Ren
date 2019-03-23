@@ -12,7 +12,7 @@ from discord.ext import commands
 from cogs.utils import checks
 from cogs.utils.dataIO import dataIO
 
-def check_filesystem():
+def checkFilesystem():
     folders = ["data/lui-cogs/tempchannels"]
     for folder in folders:
         if not os.path.exists(folder):
@@ -20,11 +20,11 @@ def check_filesystem():
             os.makedirs(folder)
 
     files = ["data/lui-cogs/tempchannels/settings.json"]
-    for file in files:
-        if not os.path.exists(file):
+    for theFile in files:
+        if not os.path.exists(theFile):
             #build a default filter.json
-            dict = {}
-            dataIO.save_json(file,dict)
+            defaultDict = {}
+            dataIO.save_json(theFile, defaultDict)
             print("Temporary Channels: Creating file: {} ...".format(file))
 
 class TempChannels:
@@ -495,7 +495,7 @@ class TempChannels:
                 print("TempChannels: No servers. {}".format(e))
 
 def setup(bot):
-    check_filesystem()
+    checkFilesystem()
     tempchannels = TempChannels(bot)
     bot.add_cog(tempchannels)
     bot.loop.create_task(tempchannels._check_channels())
