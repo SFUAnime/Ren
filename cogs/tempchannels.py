@@ -3,9 +3,11 @@
 Creates a temporary channel.
 """
 import asyncio
+from copy import deepcopy
 import os
 import json # Will need this to use in conjunction with aiohttp below.
 import itertools
+from threading import Lock
 import aiohttp # Using this to build own request to Discord API for NSFW.
 import discord
 from discord.ext import commands
@@ -13,17 +15,53 @@ from cogs.utils import checks, config
 from cogs.utils.dataIO import dataIO
 
 KEY_SETTINGS = "settings"
+KEY_CH_ID = "channel"
+KEY_CH_TOPIC = "channelTopic"
+KEY_CH_NAME = "channelName"
+KEY_CH_POS = "channelPosition"
+KEY_CH_CREATED = "channelCreated"
+KEY_CH_CATEGORY = "channelCategory"
+KEY_DURATION_HOURS = "durationHours"
+KEY_DURATION_MINS = "durationMinutes"
+KEY_START_HOUR = "startHour"
+KEY_START_MIN = "startMinute"
+KEY_ENABLED = "enabled"
+KEY_NSFW = "nsfw"
+KEY_ROLE_ALLOW = "roleallow"
+KEY_ROLE_DENY = "roledeny"
+
+LOGGER = None
+
 SAVE_FOLDER = "data/lui-cogs/tempchannels/"
 SAVE_FILE = "settings.json"
+
+
+DEFAULT_DICT = \
+{
+    KEY_CH_ID: None,
+    KEY_CH_NAME: "temp-channel",
+    KEY_CH_TOPIC: "Created with the TempChannels cog!",
+    KEY_CH_POS: 0,
+    KEY_CH_CREATED: False,
+    KEY_CH_CATEGORY: None,
+    KEY_DURATION_HOURS: 0,
+    KEY_DURATION_MINS: 1,
+    KEY_START_HOUR: 20,
+    KEY_START_MIN: 0,
+    KEY_ENABLED: False,
+    KEY_NSFW: False,
+    KEY_ROLE_ALLOW: [],
+    KEY_ROLE_DENY: []
+}
 
 def checkFilesystem():
     if not os.path.exists(SAVE_FOLDER):
         print("Temporary Channels: Creating folder: {} ...".format(SAVE_FOLDER))
         os.makedirs(SAVE_FOLDER)
 
-    if not os.path.exists(SAVE_FILE):
+    if not os.path.exists(SAVE_FOLDER+SAVE_FILE):
         # Build a default settings.json
-        defaultDict = {}
+        defaultDict = {KEY_SETTINGS: {}}
         dataIO.save_json(SAVE_FOLDER+SAVE_FILE, defaultDict)
         print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
 
@@ -34,9 +72,10 @@ class TempChannels:
         self.bot = bot
         self.config = config.Config("settings.json",
                                     cogname="lui-cogs/tempchannels")
+        self.lock = Lock()
         self.settings = self.config.get(KEY_SETTINGS)
 
-    def _sync_settings(self):
+    async def _sync_settings(self):
         await self.config.put(KEY_SETTINGS, self.settings)
         self.settings = self.config.get(KEY_SETTINGS)
 
@@ -46,13 +85,12 @@ class TempChannels:
         """
         Temporary text-channel creation (only 1 at the moment).
         """
-        #Display the help context menu
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
     @_tempchannels.command(name="default", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_default(self, ctx):
+    async def _tempChannelsDefault(self, ctx):
         """RUN FIRST: Sets default settings.
         - Start at 00:00.
         - Duration of channel is 1 minute.
@@ -61,63 +99,49 @@ class TempChannels:
         - TempChannel will not be role restricted.
         - If present, the previous TempChannel (if any) will be forgotten, and not deleted.
         """
-        try:
-            self.settings[ctx.message.server.id]
-        except:
-            self.settings[ctx.message.server.id] = {}
+        with self.lock:
+            self.settings[ctx.message.server.id] = deepcopy(DEFAULT_DICT)
 
-        self.settings[ctx.message.server.id]["channelName"] = "tempchannel"
-        self.settings[ctx.message.server.id]["channelTopic"] = "Created with TempChannels cog."
-        self.settings[ctx.message.server.id]["channelPosition"] = 0
-        self.settings[ctx.message.server.id]["channelCreated"] = False
-        self.settings[ctx.message.server.id]["durationHours"] = 0
-        self.settings[ctx.message.server.id]["durationMinutes"] = 1
-        self.settings[ctx.message.server.id]["startHour"] = 20
-        self.settings[ctx.message.server.id]["startMinute"] = 0
-        self.settings[ctx.message.server.id]["enabled"] = False
-        self.settings[ctx.message.server.id]["nsfw"] = False
-        self.settings[ctx.message.server.id]["roleallow"] = []
-        self.settings[ctx.message.server.id]["roledeny"] = []
-        self.settings[ctx.message.server.id]["channel"] = None
-
-        self._sync_settings()
+            await self._sync_settings()
         await self.bot.say(":white_check_mark: TempChannel: Setting default settings.")
 
     @_tempchannels.command(name="show", pass_context=True, no_pm=True)
     @checks.serverowner()
     async def _tempchannels_show(self,ctx):
         """Show current settings."""
-        self._sync_settings()
+        await self._sync_settings()
         try:
-            msg  = ":information_source: TempChannel - Current Settings\n```"
-            if self.settings[ctx.message.server.id]["enabled"]:
-                msg += "Enabled?          Yes\n"
-            else:
-                msg += "Enabled?          No\n"
-            if self.settings[ctx.message.server.id]["nsfw"]:
-                msg += "NSFW Prompt:      Yes\n"
-            else:
-                msg += "NSFW Prompt:      No\n"
-            if len(self.settings[ctx.message.server.id]["roleallow"]) == 0:
-                msg += "Role Allow:       None\n"
-            else:
-                msg += "Role Allow:       {0}\n".format(self.settings[ctx.message.server.id]["roleallow"])
-            if len(self.settings[ctx.message.server.id]["roledeny"]) == 0:
-                msg += "Role Deny:        None\n"
-            else:
-                msg += "Role Deny:        {0}\n".format(self.settings[ctx.message.server.id]["roledeny"])
-            msg += "Channel Name:     {0}\n".format(self.settings[ctx.message.server.id]["channelName"])
-            msg += "Channel Topic:    {0}\n".format(self.settings[ctx.message.server.id]["channelTopic"])
-            msg += "Creation Time:    {0:002d}:{1:002d}\n".format(self.settings[ctx.message.server.id]["startHour"],self.settings[ctx.message.server.id]["startMinute"])
-            msg += "Duration:         {0}h {1}m\n".format(self.settings[ctx.message.server.id]["durationHours"],self.settings[ctx.message.server.id]["durationMinutes"])
-            msg += "Channel Position: {0}\n".format(self.settings[ctx.message.server.id]["channelPosition"])
-            if self.settings[ctx.message.server.id]["channelCategory"] == 0:
-                msg += "Channel Category: None.```"
-            else:
-                msg += "Channel Category: ID {}```".format(self.settings[ctx.message.server.id]["channelCategory"])
+            tempCh = self.settings[ctx.message.server.id]
+            msg = (":information_source: TempChannel - Current Settings\n```"
+                   "Enabled?       {}\n"
+                   "NSFW Prompt:   {}\n"
+                   "Roles Allowed: {}\n"
+                   "Roles Denied:  {}\n"
+                   "Ch. Name:      #{}\n"
+                   "Ch. Topic:     {}\n"
+                   "Ch. Position:  {}\n"
+                   "Ch. Category:  {}\n"
+                   "Creation Time: {:002d}:{:002d}\n"
+                   "Duration:      {}h {}m"
+                   "```".format("Yes" if tempCh[KEY_ENABLED] else "No",
+                                "Yes" if tempCh[KEY_NSFW] else "No",
+                                tempCh[KEY_ROLE_ALLOW],
+                                tempCh[KEY_ROLE_DENY],
+                                tempCh[KEY_CH_NAME],
+                                tempCh[KEY_CH_TOPIC],
+                                tempCh[KEY_CH_POS],
+                                "ID {}".format(tempCh[KEY_CH_CATEGORY]) if
+                                tempCh[KEY_CH_CATEGORY] else "(not set)",
+                                tempCh[KEY_START_HOUR], tempCh[KEY_START_MIN],
+                                tempCh[KEY_DURATION_HOURS], tempCh[KEY_DURATION_MINS]))
+
             await self.bot.say(msg)
-        except:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: Cannot display settings.  Please set default settings by typing `{}tempchannels default` first.".format(ctx.prefix))
+        except KeyError as error:
+            # LOGGER.error(error)
+            await self.bot.say(":negative_squared_cross_mark: TempChannel: Cannot "
+                               "display settings.  Please set default settings by "
+                               "typing `{}tempchannels default` first, and then "
+                               "try again.".format(ctx.prefix))
 
     @_tempchannels.command(name="toggle", pass_context=True, no_pm=True)
     @checks.serverowner()
@@ -133,7 +157,7 @@ class TempChannels:
         except: #Typically a KeyError
             self.settings[ctx.message.server.id]["enabled"] = True
             set = True
-        self._sync_settings()
+        await self._sync_settings()
         if set:
             await self.bot.say(":white_check_mark: TempChannel: Enabled.")
         else:
@@ -153,7 +177,7 @@ class TempChannels:
         except: #Typically a KeyError
             self.settings[ctx.message.server.id]["nsfw"] = True
             set = True
-        self._sync_settings()
+        await self._sync_settings()
         if set:
             await self.bot.say(":white_check_mark: TempChannel: NSFW requirement enabled.")
         else:
@@ -172,7 +196,7 @@ class TempChannels:
 
         self.settings[ctx.message.server.id]["startHour"] = hour
         self.settings[ctx.message.server.id]["startMinute"] = minute
-        self._sync_settings()
+        await self._sync_settings()
         await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time set to {0:002d}:{1:002d}.".format(hour,minute))
 
     @_tempchannels.command(name="setduration", pass_context=True, no_pm=True)
@@ -199,7 +223,7 @@ class TempChannels:
 
         self.settings[ctx.message.server.id]["durationHours"] = hours
         self.settings[ctx.message.server.id]["durationMinutes"] = minutes
-        self._sync_settings()
+        await self._sync_settings()
 
         await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to **{0} hours, {1} minutes**.".format(hours, minutes))
 
@@ -212,7 +236,7 @@ class TempChannels:
             return
 
         self.settings[ctx.message.server.id]["channelTopic"] = topic
-        self._sync_settings()
+        await self._sync_settings()
 
         await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n```{0}```".format(topic))
 
@@ -225,7 +249,7 @@ class TempChannels:
             return
 
         self.settings[ctx.message.server.id]["channelName"] = name
-        self._sync_settings()
+        await self._sync_settings()
 
         await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set to: ``{0}``".format(name))
 
@@ -238,7 +262,7 @@ class TempChannels:
             return
 
         self.settings[ctx.message.server.id]["channelPosition"] = position
-        self._sync_settings()
+        await self._sync_settings()
 
         await self.bot.say(":white_check_mark: TempChannel - Position: This channel will be at position {0}".format(position))
 
@@ -262,7 +286,7 @@ class TempChannels:
             return
 
         self.settings[ctx.message.server.id]["channelCategory"] = id
-        self._sync_settings()
+        await self._sync_settings()
 
         if id == 0:
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent category disabled.")
@@ -308,7 +332,7 @@ class TempChannels:
             return
         else:
             self.settings[ctx.message.server.id]["roleallow"].remove(role)
-            self._sync_settings()
+            await self._sync_settings()
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** removed from the list.".format(role))
 
     @_tempchannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
@@ -353,7 +377,7 @@ class TempChannels:
             return
         else:
             self.settings[ctx.message.server.id]["roledeny"].remove(role)
-            self._sync_settings()
+            await self._sync_settings()
             await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** removed from the list.".format(role))
 
     @_tempchannels.command(name="delete", pass_context=True, no_pm=True)
@@ -362,7 +386,7 @@ class TempChannels:
         """Deletes the temp channel, if it exists."""
         if self.settings[ctx.message.server.id]["channelCreated"]:
             # Channel created, see when we should delete it.
-            self._sync_settings()
+            await self._sync_settings()
             try:
                 if self.settings[ctx.message.server.id]["channel"] is not None:
                     try:
@@ -378,7 +402,7 @@ class TempChannels:
                 await self.bot.say(":negative_squared_cross_mark: No temp channel to delete.")
             print("TempChannel: Channel deleted at "+format(time.strftime("%H:%M:%S")))
             self.settings[ctx.message.server.id]["channelCreated"] = False
-            self._sync_settings()
+            await self._sync_settings()
 
     ###################
     # Background Loop #
@@ -449,7 +473,7 @@ class TempChannels:
                                 created_channel = await self.bot.create_channel(self.bot.get_server(server), self.settings[server]["channelName"], *list(allow_list), *list(deny_list))
 
                             self.settings[server]["channel"] = created_channel.id
-                            self._sync_settings()
+                            await self._sync_settings()
                             print("TempChannel: Channel created at "+format(time.strftime("%H:%M:%S")))
 
                             # Change topic.
@@ -475,11 +499,11 @@ class TempChannels:
                             # Set delete times, and save settings.
                             self.settings[server]["stopTime"] = time.time() + (self.settings[server]["durationHours"]*60*60) + (self.settings[server]["durationMinutes"]*60)
                             self.settings[server]["channelCreated"] = True
-                            self._sync_settings()
+                            await self._sync_settings()
 
                     elif self.settings[server]["channelCreated"]:
                         # Channel created, see when we should delete it.
-                        self._sync_settings()
+                        await self._sync_settings()
                         if time.time() >= self.settings[server]["stopTime"]:
                             try:
                                 if self.settings[server]["channel"] is not None:
@@ -492,7 +516,7 @@ class TempChannels:
                                 self.settings[server]["channel"] = None
                             print("TempChannel: Channel deleted at "+format(time.strftime("%H:%M:%S")))
                             self.settings[server]["channelCreated"] = False
-                            self._sync_settings()
+                            await self._sync_settings()
             except Exception as e:
                 print("TempChannels: No servers. {}".format(e))
 
