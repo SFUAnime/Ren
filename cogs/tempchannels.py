@@ -145,20 +145,21 @@ class TempChannels:
 
     @_tempchannels.command(name="toggle", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_toggle(self, ctx):
+    async def _tempchannelsToggle(self, ctx):
         """Toggle the creation/deletion of the temporary channel."""
         try:
-            if self.settings[ctx.message.server.id]["enabled"]:
-                self.settings[ctx.message.server.id]["enabled"] = False
-                set = False
+            sid = ctx.message.server.id
+            if self.settings[sid][KEY_ENABLED]:
+                self.settings[sid][KEY_ENABLED] = False
+                isSet = False
             else:
-                self.settings[ctx.message.server.id]["enabled"] = True
-                set = True
-        except: #Typically a KeyError
-            self.settings[ctx.message.server.id]["enabled"] = True
-            set = True
+                self.settings[sid][KEY_ENABLED] = True
+                isSet = True
+        except KeyError:
+            self.settings[sid][KEY_ENABLED] = True
+            isSet = True
         await self._sync_settings()
-        if set:
+        if isSet:
             await self.bot.say(":white_check_mark: TempChannel: Enabled.")
         else:
             await self.bot.say(":negative_squared_cross_mark: TempChannel: Disabled.")
