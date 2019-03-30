@@ -166,23 +166,26 @@ class TempChannels:
 
     @_tempchannels.command(name="nsfw", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_nsfw(self, ctx):
+    async def _tempchannelsNSFW(self, ctx):
         """Toggle NSFW requirements"""
         try:
-            if self.settings[ctx.message.server.id]["nsfw"]:
-                self.settings[ctx.message.server.id]["nsfw"] = False
-                set = False
+            sid = ctx.message.server.id
+            if self.settings[sid][KEY_NSFW]:
+                self.settings[sid][KEY_NSFW] = False
+                isSet = False
             else:
-                self.settings[ctx.message.server.id]["nsfw"] = True
-                set = True
-        except: #Typically a KeyError
-            self.settings[ctx.message.server.id]["nsfw"] = True
-            set = True
+                self.settings[sid][KEY_NSFW] = True
+                isSet = True
+        except KeyError:
+            self.settings[sid][KEY_NSFW] = True
+            isSet = True
         await self._sync_settings()
-        if set:
-            await self.bot.say(":white_check_mark: TempChannel: NSFW requirement enabled.")
+        if isSet:
+            await self.bot.say(":white_check_mark: TempChannel: NSFW "
+                               "requirement enabled.")
         else:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: NSFW requirement disabled.")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel: NSFW "
+                               "requirement disabled.")
 
     @_tempchannels.command(name="setstart", pass_context=True, no_pm=True)
     @checks.serverowner()
