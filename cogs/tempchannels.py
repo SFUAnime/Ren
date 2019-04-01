@@ -218,31 +218,42 @@ class TempChannels:
 
     @_tempchannels.command(name="setduration", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_setduration(self, ctx, hours: int, minutes: int):
+    async def _tempchannelsSetDuration(self, ctx, hours: int, minutes: int):
         """
         Sets the duration of the temp channel.  Maximum 100 hours.
-        hours:    # of hours to make this channel available, and
-        minutes:  # of minutes to make this channel available.
+
+        Parameters:
+        -----------
+        hours: int
+            Number of hours to make this channel available.
+        minutes: int
+            Number of minutes to make this channel available.
 
         Example:
         If hours = 1, and minutes = 3, then the channel will be available for
         1 hour 3 minutes.
         """
+        sid = ctx.message.server.id
+
         if (hours >= 100) or (hours < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: Please enter valid hours!")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
+                               "Please enter valid hours!")
             return
         elif (minutes >= 60) or (minutes < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: Please enter valid minutes!")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
+                               "Please enter valid minutes!")
             return
         elif (hours >= 99) and (minutes >= 60):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: Please enter a valid duration!")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
+                               "Please enter a valid duration!")
             return
 
-        self.settings[ctx.message.server.id]["durationHours"] = hours
-        self.settings[ctx.message.server.id]["durationMinutes"] = minutes
+        self.settings[sid][KEY_DURATION_HOURS] = hours
+        self.settings[sid][KEY_DURATION_MINS] = minutes
         await self._sync_settings()
 
-        await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to **{0} hours, {1} minutes**.".format(hours, minutes))
+        await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to "
+                           "**{0} hours, {1} minutes**.".format(hours, minutes))
 
     @_tempchannels.command(name="settopic", pass_context=True, no_pm=True)
     @checks.serverowner()
