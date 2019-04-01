@@ -189,19 +189,32 @@ class TempChannels:
 
     @_tempchannels.command(name="setstart", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_setstart(self, ctx, hour: int, minute: int):
-        """Set the temp channel creation time. Use 24 hour time."""
+    async def _tempchannelsSetStart(self, ctx, hour: int, minute: int):
+        """Set the temp channel creation time. Use 24 hour time.
+
+        Parameters:
+        -----------
+        hour: int
+            The hour to start the temporary channel.
+        minute: int
+            The minute to start the temporary channel.
+
+        """
+        sid = ctx.message.server.id
         if (hour > 23) or (hour < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start Time: Please enter a valid time.")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start "
+                               "Time: Please enter a valid time.")
             return
         if (minute > 59) or (minute < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start Time: Please enter a valid time.")
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start "
+                               "Time: Please enter a valid time.")
             return
 
-        self.settings[ctx.message.server.id]["startHour"] = hour
-        self.settings[ctx.message.server.id]["startMinute"] = minute
+        self.settings[sid][KEY_START_HOUR] = hour
+        self.settings[sid][KEY_START_MIN] = minute
         await self._sync_settings()
-        await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time set to {0:002d}:{1:002d}.".format(hour,minute))
+        await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
+                           "set to {0:002d}:{1:002d}.".format(hour,minute))
 
     @_tempchannels.command(name="setduration", pass_context=True, no_pm=True)
     @checks.serverowner()
