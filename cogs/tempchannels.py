@@ -396,48 +396,49 @@ class TempChannels:
 
     @_tempchannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
     @checks.serverowner()
-    async def _tempchannels_denyadd(self, ctx, *, role: str):
-        """
-        Add role to block sending to the channel. No @mention.
-        Do not @mention the role, just type the name of the role.
-
-        Upon creation of channel, will check for role names, not IDs,
-        so you must update this list if you change the role name!
+    async def _tempchannelsDenyAdd(self, ctx, *, role: discord.Role):
+        """Add a role to block sending message to the channel.
 
         This role should be HIGHER in the role hierarchy than the roles in
         the allowed list!  The bot will not check for this.
+
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to deny sending permissions in the temporary channel.
         """
-        if len(role) > 25: # This is arbitrary.
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role: Role name is too long.  Try again.")
-            return
+        sid = ctx.message.server.id
 
-        # Validate the role.
-        result = discord.utils.get(ctx.message.server.roles, name=role)
-
-        if result is None:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: **`{}`** not found!  Not set.".format(role))
+        if role.id not in self.settings[sid][KEY_ROLE_DENY]:
+            self.settings[sid][KEY_ROLE_DENY].append(role.id)
+            await self.bot.say(":white_check_mark: TempChannel - Role: **`{0}`** will "
+                               "be denied message sending, provided this role is higher "
+                               "than any of the ones in the allowed list.".format(role.name))
         else:
-            if role not in self.settings[ctx.message.server.id]["roledeny"]:
-                self.settings[ctx.message.server.id]["roledeny"].append(role)
-                await self.bot.say(":white_check_mark: TempChannel - Role: **`{0}`** will be denied message sending, provided this role is higher than any of the ones in the allowed list.".format(role))
-            else:
-                await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: **`{0}`** is already denied.".format(role))
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
+                               "**`{0}`** is already denied.".format(role))
 
     @_tempchannels.command(name="denyremove", pass_context=True, no_pm=True, aliases=["dr"])
     @checks.serverowner()
-    async def _tempchannels_denyremove(self, ctx, *, role: str):
-        """
-        Remove role from being blocked sending to the channel. No @mention.
-        Do not @mention the role, just type the name of the role.
-        """
+    async def _tempchannelsDenyRemove(self, ctx, *, role: discord.Role):
+        """Remove role from being blocked sending to the channel.
 
-        if len(self.settings[ctx.message.server.id]["roledeny"]) == 0 or role not in self.settings[ctx.message.server.id]["roledeny"]:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: **`{0}`** wasn't on the list.".format(role))
-            return
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to remove from the deny list.
+        """
+        sid = ctx.message.server.id
+
+        if not self.settings[sid][KEY_ROLE_DENY] or \
+                role.id not in self.settings[sid][KEY_ROLE_DENY]:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
+                               "**`{0}`** wasn't on the list.".format(role.name))
         else:
-            self.settings[ctx.message.server.id]["roledeny"].remove(role)
+            self.settings[sid][KEY_ROLE_DENY].remove(role.id)
             await self._sync_settings()
-            await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** removed from the list.".format(role))
+            await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
+                               "removed from the list.".format(role.name))
 
     @_tempchannels.command(name="delete", pass_context=True, no_pm=True)
     @checks.serverowner()
