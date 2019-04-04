@@ -34,6 +34,7 @@ KEY_ROLE_DENY = "roledeny"
 LOGGER = None
 
 MAX_CH_NAME = 25
+MAX_CH_POS = 100
 MAX_CH_TOPIC = 1024
 
 SAVE_FOLDER = "data/lui-cogs/tempchannels/"
@@ -295,24 +296,26 @@ class TempChannels:
 
     @_tempchannels.command(name="setposition", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_setposition(self, ctx, position: int):
+    async def _tempchannelsSetPosition(self, ctx, position: int):
         """Sets the position of the text channel in the list."""
-        if position > 100 or position < 0:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Position: Invalid position.  Try again.")
+        if position > MAX_CH_POS or position < 0:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Position: "
+                               "Invalid position.  Try again.")
             return
 
-        self.settings[ctx.message.server.id]["channelPosition"] = position
+        sid = ctx.message.server.id
+
+        self.settings[sid][KEY_CH_POS] = position
         await self._sync_settings()
 
-        await self.bot.say(":white_check_mark: TempChannel - Position: This channel will be at position {0}".format(position))
+        await self.bot.say(":white_check_mark: TempChannel - Position: This channel "
+                           "will be at position {0}".format(position))
 
     @_tempchannels.command(name="setcategory", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_setcategory(self, ctx, id: int):
+    async def _tempchannelsSetCategory(self, ctx, categoryID: int):
         """
         Sets the parent category of the text channel (ID ONLY).
-
-        Enter an ID to enable, enter 0 to disable.
 
         Since the library does not support categories yet, we will use IDs.
         To retreive an ID:
@@ -320,18 +323,32 @@ class TempChannels:
         - Right click the category.
         - Click "Copy ID"
         - Run this command with the ID.
+
+        Note: This is an advanced command. No error checking is done for this! Ensure
+        that the ID is correct, or else the temporary channel may not show up!
+
+        Parameters:
+        -----------
+        categoryID: int
+            The category ID you wish to nest the temporary channel under. Enter 0
+            to disable category nesting.
         """
-        if id < 0:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Category: Please enter a valid ID.")
+        if categoryID < 0:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Category: "
+                               "Please enter a valid ID.")
             return
 
-        self.settings[ctx.message.server.id]["channelCategory"] = id
+        sid = ctx.message.server.id
+
+        self.settings[sid][KEY_CH_CATEGORY] = categoryID
         await self._sync_settings()
 
-        if id == 0:
-            await self.bot.say(":white_check_mark: TempChannel - Category: Parent category disabled.")
+        if categoryID == 0:
+            await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
+                               "category disabled.")
         else:
-            await self.bot.say(":white_check_mark: TempChannel - Category: Parent category set to ID `{}`.".format(id))
+            await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
+                               "category set to ID `{}`.".format(categoryID))
 
     @_tempchannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
     @checks.serverowner()
