@@ -352,45 +352,47 @@ class TempChannels:
 
     @_tempchannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
     @checks.serverowner()
-    async def _tempchannels_allowadd(self, ctx, *, role: str):
+    async def _tempchannelsAllowAdd(self, ctx, *, role: discord.Role):
+        """Add a role to allow access to the channel.
+
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to allow access to the temporary channel.
+
         """
-        Add role to allow access to the channel. No @mention.
-        Do not @mention the role, just type the name of the role.
+        sid = ctx.message.server.id
 
-        Upon creation of channel, will check for role names, not IDs,
-        so you must update this list if you change the role name!
-        """
-        if len(role) > 25: # This is arbitrary.
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role: Role name is too long.  Try again.")
-            return
-
-        # Validate the role.
-        result = discord.utils.get(ctx.message.server.roles, name=role)
-
-        if result is None:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: **`{}`** not found!  Not set.".format(role))
+        if role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
+            self.settings[sid][KEY_ROLE_ALLOW].append(role.id)
+            await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`"
+                               "** will be allowed access.".format(role.name))
         else:
-            if role not in self.settings[ctx.message.server.id]["roleallow"]:
-                self.settings[ctx.message.server.id]["roleallow"].append(role)
-                await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** will be allowed access.".format(role))
-            else:
-                await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: **`{0}`** is already allowed.".format(role))
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
+                               "**`{0}`** is already allowed.".format(role.name))
 
     @_tempchannels.command(name="allowremove", pass_context=True, no_pm=True, aliases=["ar"])
     @checks.serverowner()
-    async def _tempchannels_allowremove(self, ctx, *, role: str):
-        """
-        Remove role from access to the channel. No @mention.
-        Do not @mention the role, just type the name of the role.
-        """
+    async def _tempchannelsAllowRemove(self, ctx, *, role: discord.Role):
+        """Remove a role from being able access the temporary channel.
 
-        if len(self.settings[ctx.message.server.id]["roleallow"]) == 0 or role not in self.settings[ctx.message.server.id]["roleallow"]:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: **`{0}`** wasn't on the list.".format(role))
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to remove access from.
+        """
+        sid = ctx.message.server.id
+
+        if not self.settings[sid][KEY_ROLE_ALLOW] or \
+                role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
+                               "**`{0}`** wasn't on the list.".format(role.name))
             return
         else:
-            self.settings[ctx.message.server.id]["roleallow"].remove(role)
+            self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
             await self._sync_settings()
-            await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** removed from the list.".format(role))
+            await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
+                               "removed from the list.".format(role.name))
 
     @_tempchannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
     @checks.serverowner()
