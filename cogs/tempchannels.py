@@ -8,6 +8,7 @@ import os
 import json # Will need this to use in conjunction with aiohttp below.
 import itertools
 from threading import Lock
+import time
 import aiohttp # Using this to build own request to Discord API for NSFW.
 import discord
 from discord.ext import commands
@@ -32,6 +33,7 @@ KEY_ROLE_DENY = "roledeny"
 
 LOGGER = None
 
+MAX_CH_NAME = 25
 MAX_CH_TOPIC = 1024
 
 SAVE_FOLDER = "data/lui-cogs/tempchannels/"
@@ -276,16 +278,20 @@ class TempChannels:
 
     @_tempchannels.command(name="setname", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_setname(self, ctx, name: str):
+    async def _tempchannelsSetName(self, ctx, name: str):
         """Sets the #name of the channel."""
-        if len(name) > 25:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Name: Name is too long.  Try again.")
+        if len(name) > MAX_CH_NAME:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Name: "
+                               "Name is too long.  Try again.")
             return
 
-        self.settings[ctx.message.server.id]["channelName"] = name
+        sid = ctx.message.server.id
+
+        self.settings[sid][KEY_CH_NAME] = name
         await self._sync_settings()
 
-        await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set to: ``{0}``".format(name))
+        await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set "
+                           "to: ``{0}``".format(name))
 
     @_tempchannels.command(name="setposition", pass_context=True, no_pm=True)
     @checks.serverowner()
