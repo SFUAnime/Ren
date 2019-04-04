@@ -32,6 +32,8 @@ KEY_ROLE_DENY = "roledeny"
 
 LOGGER = None
 
+MAX_CH_TOPIC = 1024
+
 SAVE_FOLDER = "data/lui-cogs/tempchannels/"
 SAVE_FILE = "settings.json"
 
@@ -257,16 +259,20 @@ class TempChannels:
 
     @_tempchannels.command(name="settopic", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_settopic(self, ctx, *, topic: str):
+    async def _tempchannelsSetTopic(self, ctx, *, topic: str):
         """Sets the topic of the channel."""
-        if len(topic) > 1024:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Topic: Topic is too long.  Try again.")
+        if len(topic) > MAX_CH_TOPIC:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel - Topic: "
+                               "Topic is too long.  Try again.")
             return
 
-        self.settings[ctx.message.server.id]["channelTopic"] = topic
+        sid = ctx.message.server.id
+
+        self.settings[sid][KEY_CH_TOPIC] = topic
         await self._sync_settings()
 
-        await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n```{0}```".format(topic))
+        await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n"
+                           "```{0}```".format(topic))
 
     @_tempchannels.command(name="setname", pass_context=True, no_pm=True)
     @checks.serverowner()
