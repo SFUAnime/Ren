@@ -500,108 +500,111 @@ class TempChannels:
 
                     if int(time.strftime("%H")) == properties[KEY_START_HOUR] and \
                             int(time.strftime("%M")) == properties[KEY_START_MIN] and \
-                            not properties[KEY_CH_CREATED]:
-                        # See if it is the starting time.
+                            not properties[KEY_CH_CREATED] and \
+                            not properties[KEY_CH_ID]:
+                        # See if ALL of the following is satisfied.
+                        # - It is the starting time.
+                        # - The channel creation flag is not set.
+                        # - The channel ID doesn't exist.
+                        #
+                        # If it is satisfied, let's create a channel, and then
+                        # store the following in the settings:
+                        # - Channel ID.
+                        # - Time to delete channel.
+                        # Start with permissions
+                        allowList = []
+                        denyList = []
+                        allowPerms = [discord.PermissionOverwrite(read_messages=True,
+                                                                  send_messages=False)]
+                        allowRoles = [self.bot.user] # Always allow the bot to read.
+                        denyPerms = []
+                        denyRoles = []
 
-                        if not properties[KEY_CH_ID]:
-                            # If the channel doesn't exist, let's create it, and then
-                            # store the following in the settings:
-                            # - Channel ID.
-                            # - Time to delete channel.
-                            # Start with permissions
-                            allowList = []
-                            denyList = []
-                            allowPerms = [discord.PermissionOverwrite(read_messages=True,
-                                                                      send_messages=False)]
-                            allowRoles = [self.bot.user] # Always allow the bot to read.
-                            denyPerms = []
-                            denyRoles = []
+                        apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
+                                     "content-type": "application/json"}
 
-                            apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
-                                         "content-type": "application/json"}
+                        serverObj = self.bot.get_server(sid)
 
-                            serverObj = self.bot.get_server(sid)
+                        if properties[KEY_ROLE_ALLOW]:
+                        # If we have allow roles, automatically deny @everyone the "Read
+                        # Messages" permission.
+                            denyPerms.append(PERMS_READ_N)
+                            denyRoles.append(serverObj.default_role)
+                            for allowID in properties[KEY_ROLE_ALLOW]:
+                                findRole = discord.utils.get(serverObj.roles,
+                                                             id=allowID)
+                                allowRoles.append(findRole)
 
-                            if properties[KEY_ROLE_ALLOW]:
-                            # If we have allow roles, automatically deny @everyone the "Read
-                            # Messages" permission.
-                                denyPerms.append(PERMS_READ_N)
-                                denyRoles.append(serverObj.default_role)
-                                for allowID in properties[KEY_ROLE_ALLOW]:
-                                    findRole = discord.utils.get(serverObj.roles,
-                                                                 id=allowID)
-                                    allowRoles.append(findRole)
+                        allowList = itertools.zip_longest(allowRoles,
+                                                          allowPerms,
+                                                          fillvalue=PERMS_READ_Y)
 
-                            allowList = itertools.zip_longest(allowRoles,
-                                                              allowPerms,
-                                                              fillvalue=PERMS_READ_Y)
+                        # Check for deny permissions.
+                        if properties[KEY_ROLE_DENY]:
+                            denyPerms.append(PERMS_SEND_N)
+                            for denyID in properties[KEY_ROLE_DENY]:
+                                findRole = discord.utils.get(serverObj.roles,
+                                                             id=denyID)
+                                denyRoles.append(findRole)
 
-                            # Check for deny permissions.
-                            if properties[KEY_ROLE_DENY]:
-                                denyPerms.append(PERMS_SEND_N)
-                                for denyID in properties[KEY_ROLE_DENY]:
-                                    findRole = discord.utils.get(serverObj.roles,
-                                                                 id=denyID)
-                                    denyRoles.append(findRole)
+                        denyList = itertools.zip_longest(denyRoles,
+                                                         denyPerms,
+                                                         fillvalue=PERMS_SEND_N)
 
-                            denyList = itertools.zip_longest(denyRoles,
-                                                             denyPerms,
-                                                             fillvalue=PERMS_SEND_N)
+                        chanName = properties[KEY_CH_NAME]
+                        chanObj = await self.bot.create_channel(serverObj,
+                                                                chanName,
+                                                                *list(allowList),
+                                                                *list(denyList))
 
-                            chanName = properties[KEY_CH_NAME]
-                            chanObj = await self.bot.create_channel(serverObj,
-                                                                    chanName,
-                                                                    *list(allowList),
-                                                                    *list(denyList))
+                        properties[KEY_CH_ID] = chanObj.id
 
-                            properties[KEY_CH_ID] = chanObj.id
+                        await self._sync_settings()
+                        print("TempChannels: Channel created at "+
+                              format(time.strftime("%H:%M:%S")))
 
-                            await self._sync_settings()
-                            print("TempChannels: Channel created at "+
-                                  format(time.strftime("%H:%M:%S")))
+                        if properties[KEY_NSFW]:
+                            # This is most definitely not the best way of doing it,
+                            # but since we don't have a NSFW method, we have this:
+                            body = {"nsfw" : True}
 
-                            if properties[KEY_NSFW]:
-                                # This is most definitely not the best way of doing it,
-                                # but since we don't have a NSFW method, we have this:
-                                body = {"nsfw" : True}
+                            async with aiohttp.ClientSession() as session:
+                                async with session.patch(PATH_CH.format(chanObj.id),
+                                                         headers=apiHeader,
+                                                         data=json.dumps(body)) as resp:
+                                    print(resp.status)
+                                    print(await resp.text())
 
-                                async with aiohttp.ClientSession() as session:
-                                    async with session.patch(PATH_CH.format(chanObj.id),
-                                                             headers=apiHeader,
-                                                             data=json.dumps(body)) as resp:
-                                        print(resp.status)
-                                        print(await resp.text())
+                        # Change topic.
+                        await self.bot.edit_channel(chanObj,
+                                                    topic=properties[KEY_CH_TOPIC],
+                                                    name=properties[KEY_CH_NAME])
 
-                            # Change topic.
-                            await self.bot.edit_channel(chanObj,
-                                                        topic=properties[KEY_CH_TOPIC],
-                                                        name=properties[KEY_CH_NAME])
+                        # Set parent category.  Must use this method because library
+                        # does not have a method for this yet.
+                        if properties[KEY_CH_CATEGORY] != 0:
+                            body = {"parent_id": properties[KEY_CH_CATEGORY]}
 
-                            # Set parent category.  Must use this method because library
-                            # does not have a method for this yet.
-                            if properties[KEY_CH_CATEGORY] != 0:
-                                body = {"parent_id": properties[KEY_CH_CATEGORY]}
+                            async with aiohttp.ClientSession() as session:
+                                async with session.patch(PATH_CH.format(chanObj.id),
+                                                         headers=apiHeader,
+                                                         data=json.dumps(body)) as resp:
+                                    print(resp.status)
+                                    print(await resp.text())
 
-                                async with aiohttp.ClientSession() as session:
-                                    async with session.patch(PATH_CH.format(chanObj.id),
-                                                             headers=apiHeader,
-                                                             data=json.dumps(body)) as resp:
-                                        print(resp.status)
-                                        print(await resp.text())
+                        # Move channel position.
+                        try:
+                            await self.bot.move_channel(chanObj,
+                                                        properties[KEY_CH_POS])
+                        except discord.DiscordException:
+                            print("TempChannels: Could not move channel position")
 
-                            # Move channel position.
-                            try:
-                                await self.bot.move_channel(chanObj,
-                                                            properties[KEY_CH_POS])
-                            except discord.DiscordException:
-                                print("TempChannels: Could not move channel position")
-
-                            # Set delete times, and save settings.
-                            duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
-                                        properties[KEY_DURATION_MINS] * 60)
-                            properties[KEY_STOP_TIME] = time.time() + duration
-                            properties[KEY_CH_CREATED] = True
-                            await self._sync_settings()
+                        # Set delete times, and save settings.
+                        duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
+                                    properties[KEY_DURATION_MINS] * 60)
+                        properties[KEY_STOP_TIME] = time.time() + duration
+                        properties[KEY_CH_CREATED] = True
+                        await self._sync_settings()
 
                     elif properties[KEY_CH_CREATED]:
                         # Channel created, see when we should delete it.
