@@ -60,7 +60,7 @@ DEFAULT_DICT = \
     KEY_CH_TOPIC: "Created with the TempChannels cog!",
     KEY_CH_POS: 0,
     KEY_CH_CREATED: False,
-    KEY_CH_CATEGORY: None,
+    KEY_CH_CATEGORY: 0,
     KEY_DURATION_HOURS: 0,
     KEY_DURATION_MINS: 1,
     KEY_START_HOUR: 20,
@@ -563,11 +563,17 @@ class TempChannels:
                         print("TempChannels: Channel created at "+
                               format(time.strftime("%H:%M:%S")))
 
+                        body = {}
                         if properties[KEY_NSFW]:
-                            # This is most definitely not the best way of doing it,
-                            # but since we don't have a NSFW method, we have this:
-                            body = {"nsfw" : True}
+                            body["nsfw"] = True
 
+                        if properties[KEY_CH_CATEGORY] != 0:
+                            body["parent_id"] = properties[KEY_CH_CATEGORY]
+
+                        if body:
+                            # Set nsfw and/or arent category. Must use this method
+                            # because this version of the discord.py library does not
+                            # have a method for this yet.
                             async with aiohttp.ClientSession() as session:
                                 async with session.patch(PATH_CH.format(chanObj.id),
                                                          headers=apiHeader,
@@ -579,18 +585,6 @@ class TempChannels:
                         await self.bot.edit_channel(chanObj,
                                                     topic=properties[KEY_CH_TOPIC],
                                                     name=properties[KEY_CH_NAME])
-
-                        # Set parent category.  Must use this method because library
-                        # does not have a method for this yet.
-                        if properties[KEY_CH_CATEGORY] != 0:
-                            body = {"parent_id": properties[KEY_CH_CATEGORY]}
-
-                            async with aiohttp.ClientSession() as session:
-                                async with session.patch(PATH_CH.format(chanObj.id),
-                                                         headers=apiHeader,
-                                                         data=json.dumps(body)) as resp:
-                                    print(resp.status)
-                                    print(await resp.text())
 
                         # Move channel position.
                         try:
