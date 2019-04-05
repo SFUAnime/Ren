@@ -26,10 +26,16 @@ KEY_DURATION_HOURS = "durationHours"
 KEY_DURATION_MINS = "durationMinutes"
 KEY_START_HOUR = "startHour"
 KEY_START_MIN = "startMinute"
+KEY_STOP_TIME = "stopTime"
 KEY_ENABLED = "enabled"
 KEY_NSFW = "nsfw"
 KEY_ROLE_ALLOW = "roleallow"
 KEY_ROLE_DENY = "roledeny"
+
+KEYS_REQUIRED = \
+[KEY_CH_ID, KEY_CH_TOPIC, KEY_CH_NAME, KEY_CH_POS, KEY_CH_CREATED, KEY_CH_CATEGORY,
+ KEY_DURATION_HOURS, KEY_DURATION_MINS, KEY_START_HOUR, KEY_START_MIN, KEY_ENABLED,
+ KEY_NSFW, KEY_ROLE_ALLOW, KEY_ROLE_DENY]
 
 LOGGER = None
 
@@ -37,8 +43,14 @@ MAX_CH_NAME = 25
 MAX_CH_POS = 100
 MAX_CH_TOPIC = 1024
 
+PATH_CH = "https://discordapp.com/api/channels/{}"
+PERMS_READ_Y = discord.PermissionOverwrite(read_messages=True, add_reactions=False)
+PERMS_READ_N = discord.PermissionOverwrite(read_messages=False, add_reactions=False)
+PERMS_SEND_N = discord.PermissionOverwrite(send_messages=False, add_reactions=False)
+
 SAVE_FOLDER = "data/lui-cogs/tempchannels/"
 SAVE_FILE = "settings.json"
+SLEEP_TIME = 15 # Background loop sleep time in seconds
 
 
 DEFAULT_DICT = \
@@ -469,121 +481,149 @@ class TempChannels:
     ###################
     # Background Loop #
     ###################
-    async def _check_channels(self):
+    async def checkChannels(self):
         """Loop to check whether or not we should create/delete the TempChannel"""
         while self == self.bot.get_cog("TempChannels"):
-            await asyncio.sleep(15)
-            # Create/maintain the channel during a valid time and duration, else delete it.
+            await asyncio.sleep(SLEEP_TIME)
+            # Create/maintain the channel during a valid time and duration, else
+            # delete it.
             try:
-                for server in self.settings:
-                    keys_settings = self.settings[server].keys()
-                    keys_required = [ "channelName", "channelPosition", "channelCategory", "channelTopic", "channelCreated", "startHour", "startMinute", "durationHours", "durationMinutes", "nsfw", "roleallow", "roledeny", "enabled"]
+                for sid, properties in self.settings.items():
                     missing = False
-                    for key in keys_required:
-                        if key not in keys_settings:
+                    for key in KEYS_REQUIRED:
+                        if key not in properties.keys():
                             missing = True
-                            print("TempChannels: Key {} is missing in settings! Run [p]tc default.".format(key))
-                    if missing:
+                            print("TempChannels: Key {} is missing in settings! Run "
+                                  "[p]tc default.".format(key))
+                    if missing or not properties[KEY_ENABLED]:
                         continue
 
-                    if not self.settings[server]["enabled"]:
-                        continue
+                    if int(time.strftime("%H")) == properties[KEY_START_HOUR] and \
+                            int(time.strftime("%M")) == properties[KEY_START_MIN] and \
+                            not properties[KEY_CH_CREATED]:
+                        # See if it is the starting time.
 
-                    if ( int(time.strftime("%H")) == self.settings[server]["startHour"]) and (int(time.strftime("%M")) == self.settings[server]["startMinute"]) and (self.settings[server]["channelCreated"] is False):
-                        # Create the channel, and store the ID, and time to delete channel in the settings.
-
-                        if self.settings[server]["channel"] is None:
+                        if not properties[KEY_CH_ID]:
+                            # If the channel doesn't exist, let's create it, and then
+                            # store the following in the settings:
+                            # - Channel ID.
+                            # - Time to delete channel.
                             # Start with permissions
-                            allow_list = []
-                            deny_list = []
-                            allow_perms = [ discord.PermissionOverwrite(read_messages=True, send_messages=False) ]
-                            allow_roles = [ self.bot.user ]
-                            deny_perms = []
-                            deny_roles = []
+                            allowList = []
+                            denyList = []
+                            allowPerms = [discord.PermissionOverwrite(read_messages=True,
+                                                                      send_messages=False)]
+                            allowRoles = [self.bot.user] # Always allow the bot to read.
+                            denyPerms = []
+                            denyRoles = []
 
-                            if len(self.settings[server]["roleallow"]) > 0:
-                            # If we have allow roles, automatically deny @everyone read messages.
-                                deny_perms.append(discord.PermissionOverwrite(read_messages=False, add_reactions=False))
-                                deny_roles.append(self.bot.get_server(server).default_role)
-                                for override_roles in self.settings[server]["roleallow"]:
-                                    find_role = discord.utils.get(self.bot.get_server(server).roles, name=override_roles)
-                                    allow_roles.append(find_role)
+                            apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
+                                         "content-type": "application/json"}
 
-                            allow_list = itertools.zip_longest(allow_roles, allow_perms, fillvalue=discord.PermissionOverwrite(read_messages=True, add_reactions=False))
+                            serverObj = self.bot.get_server(sid)
 
+                            if properties[KEY_ROLE_ALLOW]:
+                            # If we have allow roles, automatically deny @everyone the "Read
+                            # Messages" permission.
+                                denyPerms.append(PERMS_READ_N)
+                                denyRoles.append(serverObj.default_role)
+                                for allowID in properties[KEY_ROLE_ALLOW]:
+                                    findRole = discord.utils.get(serverObj.roles,
+                                                                 id=allowID)
+                                    allowRoles.append(findRole)
+
+                            allowList = itertools.zip_longest(allowRoles,
+                                                              allowPerms,
+                                                              fillvalue=PERMS_READ_Y)
 
                             # Check for deny permissions.
-                            if len(self.settings[server]["roledeny"]) > 0:
-                                deny_perms.append(discord.PermissionOverwrite(send_messages=False, add_reactions=False))
-                                for override_roles2 in self.settings[server]["roledeny"]:
-                                    find_role2 = discord.utils.get(self.bot.get_server(server).roles, name=override_roles2)
-                                    deny_roles.append(find_role2)
-                            deny_list = itertools.zip_longest(deny_roles, deny_perms, fillvalue=discord.PermissionOverwrite(send_messages=False))
+                            if properties[KEY_ROLE_DENY]:
+                                denyPerms.append(PERMS_SEND_N)
+                                for denyID in properties[KEY_ROLE_DENY]:
+                                    findRole = discord.utils.get(serverObj.roles,
+                                                                 id=denyID)
+                                    denyRoles.append(findRole)
 
-                            if self.settings[server]["nsfw"]:
-                                created_channel = await self.bot.create_channel(self.bot.get_server(server), "nsfw-{}".format(self.settings[server]["channelName"]), *list(allow_list), *list(deny_list))
+                            denyList = itertools.zip_longest(denyRoles,
+                                                             denyPerms,
+                                                             fillvalue=PERMS_SEND_N)
 
-                                # This is most definitely not the best way of doing it, but since no NSFW method, we have this:
-                                header = { "Authorization" : "Bot {}".format(self.bot.settings.token), "content-type" : "application/json" }
-                                body = { "nsfw" : True }
+                            chanName = properties[KEY_CH_NAME]
+                            chanObj = await self.bot.create_channel(serverObj,
+                                                                    chanName,
+                                                                    *list(allowList),
+                                                                    *list(denyList))
+
+                            properties[KEY_CH_ID] = chanObj.id
+
+                            await self._sync_settings()
+                            print("TempChannels: Channel created at "+
+                                  format(time.strftime("%H:%M:%S")))
+
+                            if properties[KEY_NSFW]:
+                                # This is most definitely not the best way of doing it,
+                                # but since we don't have a NSFW method, we have this:
+                                body = {"nsfw" : True}
 
                                 async with aiohttp.ClientSession() as session:
-                                    async with session.patch('https://discordapp.com/api/channels/{}'.format(created_channel.id),headers=header,data=json.dumps(body)) as resp:
+                                    async with session.patch(PATH_CH.format(chanObj.id),
+                                                             headers=apiHeader,
+                                                             data=json.dumps(body)) as resp:
                                         print(resp.status)
                                         print(await resp.text())
-                            else: # Not NSFW
-                                created_channel = await self.bot.create_channel(self.bot.get_server(server), self.settings[server]["channelName"], *list(allow_list), *list(deny_list))
-
-                            self.settings[server]["channel"] = created_channel.id
-                            await self._sync_settings()
-                            print("TempChannel: Channel created at "+format(time.strftime("%H:%M:%S")))
 
                             # Change topic.
-                            await self.bot.edit_channel(created_channel, topic=self.settings[server]["channelTopic"],name=self.settings[server]["channelName"])
+                            await self.bot.edit_channel(chanObj,
+                                                        topic=properties[KEY_CH_TOPIC],
+                                                        name=properties[KEY_CH_NAME])
 
-                            # Set parent category.  Must use this method because library does not
-                            # have a method for this yet.
-                            if self.settings[server]["channelCategory"] != 0:
-                                header = { "Authorization" : "Bot {}".format(self.bot.settings.token), "content-type" : "application/json" }
-                                body = { "parent_id" : self.settings[server]["channelCategory"] }
+                            # Set parent category.  Must use this method because library
+                            # does not have a method for this yet.
+                            if properties[KEY_CH_CATEGORY] != 0:
+                                body = {"parent_id": properties[KEY_CH_CATEGORY]}
 
                                 async with aiohttp.ClientSession() as session:
-                                    async with session.patch('https://discordapp.com/api/channels/{}'.format(created_channel.id),headers=header,data=json.dumps(body)) as resp:
+                                    async with session.patch(PATH_CH.format(chanObj.id),
+                                                             headers=apiHeader,
+                                                             data=json.dumps(body)) as resp:
                                         print(resp.status)
                                         print(await resp.text())
 
                             # Move channel position.
                             try:
-                                await self.bot.move_channel(created_channel, self.settings[server]["channelPosition"])
-                            except:
-                                print("TempChannel: Could not move channel position")
+                                await self.bot.move_channel(chanObj,
+                                                            properties[KEY_CH_POS])
+                            except discord.DiscordException:
+                                print("TempChannels: Could not move channel position")
 
                             # Set delete times, and save settings.
-                            self.settings[server]["stopTime"] = time.time() + (self.settings[server]["durationHours"]*60*60) + (self.settings[server]["durationMinutes"]*60)
-                            self.settings[server]["channelCreated"] = True
+                            duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
+                                        properties[KEY_DURATION_MINS] * 60)
+                            properties[KEY_STOP_TIME] = time.time() + duration
+                            properties[KEY_CH_CREATED] = True
                             await self._sync_settings()
 
-                    elif self.settings[server]["channelCreated"]:
+                    elif properties[KEY_CH_CREATED]:
                         # Channel created, see when we should delete it.
                         await self._sync_settings()
-                        if time.time() >= self.settings[server]["stopTime"]:
+                        if time.time() >= properties[KEY_STOP_TIME]:
                             try:
-                                if self.settings[server]["channel"] is not None:
-                                    try:
-                                        await self.bot.delete_channel(self.bot.get_channel(self.settings[server]["channel"]))
-                                        self.settings[server]["channel"] = None
-                                    except Exception as e:
-                                        print("TempChannel: "+e)
-                            except:
-                                self.settings[server]["channel"] = None
-                            print("TempChannel: Channel deleted at "+format(time.strftime("%H:%M:%S")))
-                            self.settings[server]["channelCreated"] = False
+                                if properties[KEY_CH_ID]:
+                                    chanObj = self.bot.get_channel(properties[KEY_CH_ID])
+                                    await self.bot.delete_channel(chanObj)
+                                    properties[KEY_CH_ID] = None
+                            except discord.DiscordException as error:
+                                print("TempChannels: {}".format(error))
+                                properties[KEY_CH_ID] = None
+                            print("TempChannels: Channel deleted at "+
+                                  format(time.strftime("%H:%M:%S")))
+                            properties[KEY_CH_CREATED] = False
                             await self._sync_settings()
-            except Exception as e:
-                print("TempChannels: No servers. {}".format(e))
+            except Exception as error:
+                print("TempChannels: Error! {}".format(error))
 
 def setup(bot):
     checkFilesystem()
     tempchannels = TempChannels(bot)
     bot.add_cog(tempchannels)
-    bot.loop.create_task(tempchannels._check_channels())
+    bot.loop.create_task(tempchannels.checkChannels())
