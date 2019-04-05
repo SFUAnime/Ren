@@ -4,9 +4,10 @@ Creates a temporary channel.
 """
 import asyncio
 from copy import deepcopy
-import os
-import json # Will need this to use in conjunction with aiohttp below.
 import itertools
+import json # Will need this to use in conjunction with aiohttp below.
+import logging
+import os
 from threading import Lock
 import time
 import aiohttp # Using this to build own request to Discord API for NSFW.
@@ -118,6 +119,9 @@ class TempChannels:
         """
         with self.lock:
             self.settings[ctx.message.server.id] = deepcopy(DEFAULT_DICT)
+            LOGGER.info("%s (%s) set defaults for %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, ctx.message.author.id)
 
             await self._sync_settings()
         await self.bot.say(":white_check_mark: TempChannel: Setting default settings.")
@@ -154,7 +158,7 @@ class TempChannels:
 
             await self.bot.say(msg)
         except KeyError as error:
-            # LOGGER.error(error)
+            LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: TempChannel: Cannot "
                                "display settings.  Please set default settings by "
                                "typing `{}tempchannels default` first, and then "
@@ -177,8 +181,14 @@ class TempChannels:
             isSet = True
         await self._sync_settings()
         if isSet:
+            LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, ctx.message.author.id)
             await self.bot.say(":white_check_mark: TempChannel: Enabled.")
         else:
+            LOGGER.info("%s (%s) DISABLED the temp channel for %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, ctx.message.author.id)
             await self.bot.say(":negative_squared_cross_mark: TempChannel: Disabled.")
 
     @_tempchannels.command(name="nsfw", pass_context=True, no_pm=True)
@@ -198,9 +208,15 @@ class TempChannels:
             isSet = True
         await self._sync_settings()
         if isSet:
+            LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, ctx.message.author.id)
             await self.bot.say(":white_check_mark: TempChannel: NSFW "
                                "requirement enabled.")
         else:
+            LOGGER.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, ctx.message.author.id)
             await self.bot.say(":negative_squared_cross_mark: TempChannel: NSFW "
                                "requirement disabled.")
 
@@ -465,15 +481,19 @@ class TempChannels:
                     chanObj = self.bot.get_channel(self.settings[sid][KEY_CH_ID])
                     await self.bot.delete_channel(chanObj)
                 except discord.DiscordException as error:
-                    print("TempChannel: {}".format(error))
+                    LOGGER.error("Could not delete channel!", exc_info=True)
+                finally:
+                    self.settings[sid][KEY_CH_ID] = None
+                    self.settings[sid][KEY_CH_CREATED] = False
+                    await self._sync_settings()
+                    LOGGER.info("Channel #%s (%s) in %s (%s) was deleted by %s (%s).",
+                                chanObj.name, chanObj.id,
+                                ctx.message.server.name, ctx.message.server.id,
+                                ctx.message.author.name, ctx.message.author.id)
                 await self.bot.say(":white_check_mark: TempChannel: Channel deleted")
             else:
                 await self.bot.say(":negative_squared_cross_mark: TempChannel: No "
                                    "temporary channel to delete.")
-            print("TempChannel: Channel deleted at "+format(time.strftime("%H:%M:%S")))
-            self.settings[sid][KEY_CH_ID] = None
-            self.settings[sid][KEY_CH_CREATED] = False
-            await self._sync_settings()
         else:
             await self.bot.say(":negative_squared_cross_mark: TempChannel: There is no "
                                "temp channel to delete!")
@@ -489,12 +509,15 @@ class TempChannels:
             # delete it.
             try:
                 for sid, properties in self.settings.items():
+                    serverObj = self.bot.get_server(sid)
+
                     missing = False
+
                     for key in KEYS_REQUIRED:
                         if key not in properties.keys():
                             missing = True
-                            print("TempChannels: Key {} is missing in settings! Run "
-                                  "[p]tc default.".format(key))
+                            LOGGER.error("Key %s is missing in settings! Run [p]tc "
+                                         "default first!", key)
                     if missing or not properties[KEY_ENABLED]:
                         continue
 
@@ -522,8 +545,6 @@ class TempChannels:
 
                         apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
                                      "content-type": "application/json"}
-
-                        serverObj = self.bot.get_server(sid)
 
                         if properties[KEY_ROLE_ALLOW]:
                         # If we have allow roles, automatically deny @everyone the "Read
@@ -560,8 +581,9 @@ class TempChannels:
                         properties[KEY_CH_ID] = chanObj.id
 
                         await self._sync_settings()
-                        print("TempChannels: Channel created at "+
-                              format(time.strftime("%H:%M:%S")))
+                        LOGGER.info("Channel #%s (%s) in %s (%s) was created.",
+                                    chanObj.name, chanObj.id,
+                                    serverObj.name, serverObj.id)
 
                         body = {}
                         if properties[KEY_NSFW]:
@@ -578,8 +600,8 @@ class TempChannels:
                                 async with session.patch(PATH_CH.format(chanObj.id),
                                                          headers=apiHeader,
                                                          data=json.dumps(body)) as resp:
-                                    print(resp.status)
-                                    print(await resp.text())
+                                    LOGGER.debug("API status code: %s", resp.status)
+                                    LOGGER.debug("API response: %s", await resp.text())
 
                         # Change topic.
                         await self.bot.edit_channel(chanObj,
@@ -591,7 +613,8 @@ class TempChannels:
                             await self.bot.move_channel(chanObj,
                                                         properties[KEY_CH_POS])
                         except discord.DiscordException:
-                            print("TempChannels: Could not move channel position")
+                            LOGGER.error("Could not move channel position for %s (%s)!",
+                                         serverObj.name, serverObj.id, exc_info=True)
 
                         # Set delete times, and save settings.
                         duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
@@ -610,17 +633,33 @@ class TempChannels:
                                     await self.bot.delete_channel(chanObj)
                                     properties[KEY_CH_ID] = None
                             except discord.DiscordException as error:
-                                print("TempChannels: {}".format(error))
+                                LOGGER.error("Something went wrong for server %s (%s)!",
+                                             serverObj.name, serverObj.id, exc_info=True)
                                 properties[KEY_CH_ID] = None
-                            print("TempChannels: Channel deleted at "+
-                                  format(time.strftime("%H:%M:%S")))
+
+                            LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
+                                        chanObj.name, chanObj.id,
+                                        serverObj.name, serverObj.id)
+
                             properties[KEY_CH_CREATED] = False
                             await self._sync_settings()
             except Exception as error:
-                print("TempChannels: Error! {}".format(error))
+                LOGGER.error("Something went terribly wrong!", exc_info=True)
 
 def setup(bot):
+    """Add the cog to the bot."""
+    global LOGGER # pylint: disable=global-statement
     checkFilesystem()
     tempchannels = TempChannels(bot)
+    LOGGER = logging.getLogger("red.TempChannels")
+    if LOGGER.level == 0:
+        # Prevents the LOGGER from being loaded again in case of module reload.
+        LOGGER.setLevel(logging.INFO)
+        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+                                      encoding="utf-8",
+                                      mode="a")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
+                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        LOGGER.addHandler(handler)
     bot.add_cog(tempchannels)
     bot.loop.create_task(tempchannels.checkChannels())
