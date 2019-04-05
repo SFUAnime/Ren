@@ -444,25 +444,27 @@ class TempChannels:
     @checks.serverowner()
     async def _tempchannels_delete(self, ctx):
         """Deletes the temp channel, if it exists."""
-        if self.settings[ctx.message.server.id]["channelCreated"]:
+        sid = ctx.message.server.id
+        await self._sync_settings()
+        if self.settings[sid][KEY_CH_CREATED]:
             # Channel created, see when we should delete it.
-            await self._sync_settings()
-            try:
-                if self.settings[ctx.message.server.id]["channel"] is not None:
-                    try:
-                        await self.bot.delete_channel(self.bot.get_channel(self.settings[ctx.message.server.id]["channel"]))
-                        self.settings[ctx.message.server.id]["channel"] = None
-                    except Exception as e:
-                        print("TempChannel: "+e)
-                    await self.bot.say(":white_check_mark: TempChannel: Channel deleted")
-                else:
-                    await self.bot.say(":negative_squared_cross_mark: TempChannel: No temp channel to delete.")
-            except:
-                self.settings[ctx.message.server.id]["channel"] = None
-                await self.bot.say(":negative_squared_cross_mark: No temp channel to delete.")
+            if self.settings[sid][KEY_CH_ID]:
+                try:
+                    chanObj = self.bot.get_channel(self.settings[sid][KEY_CH_ID])
+                    await self.bot.delete_channel(chanObj)
+                except discord.DiscordException as error:
+                    print("TempChannel: {}".format(error))
+                await self.bot.say(":white_check_mark: TempChannel: Channel deleted")
+            else:
+                await self.bot.say(":negative_squared_cross_mark: TempChannel: No "
+                                   "temporary channel to delete.")
             print("TempChannel: Channel deleted at "+format(time.strftime("%H:%M:%S")))
-            self.settings[ctx.message.server.id]["channelCreated"] = False
+            self.settings[sid][KEY_CH_ID] = None
+            self.settings[sid][KEY_CH_CREATED] = False
             await self._sync_settings()
+        else:
+            await self.bot.say(":negative_squared_cross_mark: TempChannel: There is no "
+                               "temp channel to delete!")
 
     ###################
     # Background Loop #
