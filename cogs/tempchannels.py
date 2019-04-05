@@ -93,22 +93,22 @@ class TempChannels:
         self.lock = Lock()
         self.settings = self.config.get(KEY_SETTINGS)
 
-    async def _sync_settings(self):
+    async def _syncSettings(self):
+        """Force settings to file and reload"""
         await self.config.put(KEY_SETTINGS, self.settings)
         self.settings = self.config.get(KEY_SETTINGS)
 
     @commands.group(name="tempchannels", pass_context=True, no_pm=True, aliases=["tc"])
-    @checks.serverowner()
-    async def _tempchannels(self, ctx):
+    @checks.mod_or_permissions(manage_messages=True)
+    async def tempChannels(self, ctx):
         """
         Temporary text-channel creation (only 1 at the moment).
         """
         if ctx.invoked_subcommand is None:
             await self.bot.send_cmd_help(ctx)
 
-    @_tempchannels.command(name="default", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempChannelsDefault(self, ctx):
+    @tempChannels.command(name="default", pass_context=True, no_pm=True)
+    async def tempChannelsDefault(self, ctx):
         """RUN FIRST: Sets default settings.
         - Start at 00:00.
         - Duration of channel is 1 minute.
@@ -123,14 +123,13 @@ class TempChannels:
                         ctx.message.author.name, ctx.message.author.id,
                         ctx.message.server.name, ctx.message.author.id)
 
-            await self._sync_settings()
+            await self._syncSettings()
         await self.bot.say(":white_check_mark: TempChannel: Setting default settings.")
 
-    @_tempchannels.command(name="show", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannels_show(self,ctx):
+    @tempChannels.command(name="show", pass_context=True, no_pm=True)
+    async def tempChannelsShow(self,ctx):
         """Show current settings."""
-        await self._sync_settings()
+        await self._syncSettings()
         try:
             tempCh = self.settings[ctx.message.server.id]
             msg = (":information_source: TempChannel - Current Settings\n```"
@@ -164,9 +163,8 @@ class TempChannels:
                                "typing `{}tempchannels default` first, and then "
                                "try again.".format(ctx.prefix))
 
-    @_tempchannels.command(name="toggle", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsToggle(self, ctx):
+    @tempChannels.command(name="toggle", pass_context=True, no_pm=True)
+    async def tempChannelsToggle(self, ctx):
         """Toggle the creation/deletion of the temporary channel."""
         try:
             sid = ctx.message.server.id
@@ -179,7 +177,7 @@ class TempChannels:
         except KeyError:
             self.settings[sid][KEY_ENABLED] = True
             isSet = True
-        await self._sync_settings()
+        await self._syncSettings()
         if isSet:
             LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
                         ctx.message.author.name, ctx.message.author.id,
@@ -191,9 +189,8 @@ class TempChannels:
                         ctx.message.server.name, ctx.message.author.id)
             await self.bot.say(":negative_squared_cross_mark: TempChannel: Disabled.")
 
-    @_tempchannels.command(name="nsfw", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsNSFW(self, ctx):
+    @tempChannels.command(name="nsfw", pass_context=True, no_pm=True)
+    async def tempChannelsNSFW(self, ctx):
         """Toggle NSFW requirements"""
         try:
             sid = ctx.message.server.id
@@ -206,7 +203,7 @@ class TempChannels:
         except KeyError:
             self.settings[sid][KEY_NSFW] = True
             isSet = True
-        await self._sync_settings()
+        await self._syncSettings()
         if isSet:
             LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
                         ctx.message.author.name, ctx.message.author.id,
@@ -220,9 +217,8 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel: NSFW "
                                "requirement disabled.")
 
-    @_tempchannels.command(name="setstart", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetStart(self, ctx, hour: int, minute: int):
+    @tempChannels.command(name="start", pass_context=True, no_pm=True)
+    async def tempChannelsStart(self, ctx, hour: int, minute: int):
         """Set the temp channel creation time. Use 24 hour time.
 
         Parameters:
@@ -245,15 +241,13 @@ class TempChannels:
 
         self.settings[sid][KEY_START_HOUR] = hour
         self.settings[sid][KEY_START_MIN] = minute
-        await self._sync_settings()
+        await self._syncSettings()
         await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
                            "set to {0:002d}:{1:002d}.".format(hour,minute))
 
-    @_tempchannels.command(name="setduration", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetDuration(self, ctx, hours: int, minutes: int):
-        """
-        Sets the duration of the temp channel.  Maximum 100 hours.
+    @tempChannels.command(name="duration", pass_context=True, no_pm=True)
+    async def tempChannelsDuration(self, ctx, hours: int, minutes: int):
+        """Set the duration of the temp channel.  Max 100 hours.
 
         Parameters:
         -----------
@@ -272,26 +266,25 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
                                "Please enter valid hours!")
             return
-        elif (minutes >= 60) or (minutes < 0):
+        if (minutes >= 60) or (minutes < 0):
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
                                "Please enter valid minutes!")
             return
-        elif (hours >= 99) and (minutes >= 60):
+        if (hours >= 99) and (minutes >= 60):
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
                                "Please enter a valid duration!")
             return
 
         self.settings[sid][KEY_DURATION_HOURS] = hours
         self.settings[sid][KEY_DURATION_MINS] = minutes
-        await self._sync_settings()
+        await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to "
                            "**{0} hours, {1} minutes**.".format(hours, minutes))
 
-    @_tempchannels.command(name="settopic", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetTopic(self, ctx, *, topic: str):
-        """Sets the topic of the channel."""
+    @tempChannels.command(name="topic", pass_context=True, no_pm=True)
+    async def tempChannelsTopic(self, ctx, *, topic: str):
+        """Set the topic of the channel."""
         if len(topic) > MAX_CH_TOPIC:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Topic: "
                                "Topic is too long.  Try again.")
@@ -300,15 +293,14 @@ class TempChannels:
         sid = ctx.message.server.id
 
         self.settings[sid][KEY_CH_TOPIC] = topic
-        await self._sync_settings()
+        await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n"
                            "```{0}```".format(topic))
 
-    @_tempchannels.command(name="setname", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetName(self, ctx, name: str):
-        """Sets the #name of the channel."""
+    @tempChannels.command(name="name", pass_context=True, no_pm=True)
+    async def tempChannelsName(self, ctx, name: str):
+        """Set the #name of the channel."""
         if len(name) > MAX_CH_NAME:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Name: "
                                "Name is too long.  Try again.")
@@ -317,15 +309,14 @@ class TempChannels:
         sid = ctx.message.server.id
 
         self.settings[sid][KEY_CH_NAME] = name
-        await self._sync_settings()
+        await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set "
                            "to: ``{0}``".format(name))
 
-    @_tempchannels.command(name="setposition", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetPosition(self, ctx, position: int):
-        """Sets the position of the text channel in the list."""
+    @tempChannels.command(name="position", pass_context=True, no_pm=True, aliases=["pos"])
+    async def tempChannelsPosition(self, ctx, position: int):
+        """Set the position of the text channel in the list."""
         if position > MAX_CH_POS or position < 0:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Position: "
                                "Invalid position.  Try again.")
@@ -334,16 +325,14 @@ class TempChannels:
         sid = ctx.message.server.id
 
         self.settings[sid][KEY_CH_POS] = position
-        await self._sync_settings()
+        await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Position: This channel "
                            "will be at position {0}".format(position))
 
-    @_tempchannels.command(name="setcategory", pass_context=True, no_pm=True)
-    @checks.serverowner()
-    async def _tempchannelsSetCategory(self, ctx, categoryID: int):
-        """
-        Sets the parent category of the text channel (ID ONLY).
+    @tempChannels.command(name="category", pass_context=True, no_pm=True)
+    async def tempChannelsCategory(self, ctx, categoryID: int):
+        """Set the parent category of the text channel (ID ONLY).
 
         Since the library does not support categories yet, we will use IDs.
         To retreive an ID:
@@ -369,7 +358,7 @@ class TempChannels:
         sid = ctx.message.server.id
 
         self.settings[sid][KEY_CH_CATEGORY] = categoryID
-        await self._sync_settings()
+        await self._syncSettings()
 
         if categoryID == 0:
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
@@ -378,9 +367,9 @@ class TempChannels:
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
                                "category set to ID `{}`.".format(categoryID))
 
-    @_tempchannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
+    @tempChannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
     @checks.serverowner()
-    async def _tempchannelsAllowAdd(self, ctx, *, role: discord.Role):
+    async def tempChannelsAllowAdd(self, ctx, *, role: discord.Role):
         """Add a role to allow access to the channel.
 
         Parameters:
@@ -399,9 +388,9 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
                                "**`{0}`** is already allowed.".format(role.name))
 
-    @_tempchannels.command(name="allowremove", pass_context=True, no_pm=True, aliases=["ar"])
+    @tempChannels.command(name="allowremove", pass_context=True, no_pm=True, aliases=["ar"])
     @checks.serverowner()
-    async def _tempchannelsAllowRemove(self, ctx, *, role: discord.Role):
+    async def tempChannelsAllowRemove(self, ctx, *, role: discord.Role):
         """Remove a role from being able access the temporary channel.
 
         Parameters:
@@ -415,16 +404,15 @@ class TempChannels:
                 role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
                                "**`{0}`** wasn't on the list.".format(role.name))
-            return
         else:
             self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
-            await self._sync_settings()
+            await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
                                "removed from the list.".format(role.name))
 
-    @_tempchannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
+    @tempChannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
     @checks.serverowner()
-    async def _tempchannelsDenyAdd(self, ctx, *, role: discord.Role):
+    async def tempChannelsDenyAdd(self, ctx, *, role: discord.Role):
         """Add a role to block sending message to the channel.
 
         This role should be HIGHER in the role hierarchy than the roles in
@@ -446,9 +434,9 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
                                "**`{0}`** is already denied.".format(role))
 
-    @_tempchannels.command(name="denyremove", pass_context=True, no_pm=True, aliases=["dr"])
+    @tempChannels.command(name="denyremove", pass_context=True, no_pm=True, aliases=["dr"])
     @checks.serverowner()
-    async def _tempchannelsDenyRemove(self, ctx, *, role: discord.Role):
+    async def tempChannelsDenyRemove(self, ctx, *, role: discord.Role):
         """Remove role from being blocked sending to the channel.
 
         Parameters:
@@ -464,16 +452,16 @@ class TempChannels:
                                "**`{0}`** wasn't on the list.".format(role.name))
         else:
             self.settings[sid][KEY_ROLE_DENY].remove(role.id)
-            await self._sync_settings()
+            await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
                                "removed from the list.".format(role.name))
 
-    @_tempchannels.command(name="delete", pass_context=True, no_pm=True)
+    @tempChannels.command(name="delete", pass_context=True, no_pm=True)
     @checks.serverowner()
-    async def _tempchannels_delete(self, ctx):
+    async def tempChannelsDelete(self, ctx):
         """Deletes the temp channel, if it exists."""
         sid = ctx.message.server.id
-        await self._sync_settings()
+        await self._syncSettings()
         if self.settings[sid][KEY_CH_CREATED]:
             # Channel created, see when we should delete it.
             if self.settings[sid][KEY_CH_ID]:
@@ -485,7 +473,7 @@ class TempChannels:
                 finally:
                     self.settings[sid][KEY_CH_ID] = None
                     self.settings[sid][KEY_CH_CREATED] = False
-                    await self._sync_settings()
+                    await self._syncSettings()
                     LOGGER.info("Channel #%s (%s) in %s (%s) was deleted by %s (%s).",
                                 chanObj.name, chanObj.id,
                                 ctx.message.server.name, ctx.message.server.id,
@@ -580,7 +568,7 @@ class TempChannels:
 
                         properties[KEY_CH_ID] = chanObj.id
 
-                        await self._sync_settings()
+                        await self._syncSettings()
                         LOGGER.info("Channel #%s (%s) in %s (%s) was created.",
                                     chanObj.name, chanObj.id,
                                     serverObj.name, serverObj.id)
@@ -621,11 +609,11 @@ class TempChannels:
                                     properties[KEY_DURATION_MINS] * 60)
                         properties[KEY_STOP_TIME] = time.time() + duration
                         properties[KEY_CH_CREATED] = True
-                        await self._sync_settings()
+                        await self._syncSettings()
 
                     elif properties[KEY_CH_CREATED]:
                         # Channel created, see when we should delete it.
-                        await self._sync_settings()
+                        await self._syncSettings()
                         if time.time() >= properties[KEY_STOP_TIME]:
                             try:
                                 if properties[KEY_CH_ID]:
