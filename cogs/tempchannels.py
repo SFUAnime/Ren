@@ -129,7 +129,6 @@ class TempChannels:
     @tempChannels.command(name="show", pass_context=True, no_pm=True)
     async def tempChannelsShow(self,ctx):
         """Show current settings."""
-        await self._syncSettings()
         try:
             tempCh = self.settings[ctx.message.server.id]
             msg = (":information_source: TempChannel - Current Settings\n```"
@@ -166,18 +165,19 @@ class TempChannels:
     @tempChannels.command(name="toggle", pass_context=True, no_pm=True)
     async def tempChannelsToggle(self, ctx):
         """Toggle the creation/deletion of the temporary channel."""
-        try:
-            sid = ctx.message.server.id
-            if self.settings[sid][KEY_ENABLED]:
-                self.settings[sid][KEY_ENABLED] = False
-                isSet = False
-            else:
+        with self.lock:
+            try:
+                sid = ctx.message.server.id
+                if self.settings[sid][KEY_ENABLED]:
+                    self.settings[sid][KEY_ENABLED] = False
+                    isSet = False
+                else:
+                    self.settings[sid][KEY_ENABLED] = True
+                    isSet = True
+            except KeyError:
                 self.settings[sid][KEY_ENABLED] = True
                 isSet = True
-        except KeyError:
-            self.settings[sid][KEY_ENABLED] = True
-            isSet = True
-        await self._syncSettings()
+            await self._syncSettings()
         if isSet:
             LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
                         ctx.message.author.name, ctx.message.author.id,
@@ -192,18 +192,19 @@ class TempChannels:
     @tempChannels.command(name="nsfw", pass_context=True, no_pm=True)
     async def tempChannelsNSFW(self, ctx):
         """Toggle NSFW requirements"""
-        try:
-            sid = ctx.message.server.id
-            if self.settings[sid][KEY_NSFW]:
-                self.settings[sid][KEY_NSFW] = False
-                isSet = False
-            else:
+        with self.lock:
+            try:
+                sid = ctx.message.server.id
+                if self.settings[sid][KEY_NSFW]:
+                    self.settings[sid][KEY_NSFW] = False
+                    isSet = False
+                else:
+                    self.settings[sid][KEY_NSFW] = True
+                    isSet = True
+            except KeyError:
                 self.settings[sid][KEY_NSFW] = True
                 isSet = True
-        except KeyError:
-            self.settings[sid][KEY_NSFW] = True
-            isSet = True
-        await self._syncSettings()
+            await self._syncSettings()
         if isSet:
             LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
                         ctx.message.author.name, ctx.message.author.id,
@@ -239,9 +240,10 @@ class TempChannels:
                                "Time: Please enter a valid time.")
             return
 
-        self.settings[sid][KEY_START_HOUR] = hour
-        self.settings[sid][KEY_START_MIN] = minute
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_START_HOUR] = hour
+            self.settings[sid][KEY_START_MIN] = minute
+            await self._syncSettings()
         await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
                            "set to {0:002d}:{1:002d}.".format(hour,minute))
 
@@ -275,9 +277,10 @@ class TempChannels:
                                "Please enter a valid duration!")
             return
 
-        self.settings[sid][KEY_DURATION_HOURS] = hours
-        self.settings[sid][KEY_DURATION_MINS] = minutes
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_DURATION_HOURS] = hours
+            self.settings[sid][KEY_DURATION_MINS] = minutes
+            await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to "
                            "**{0} hours, {1} minutes**.".format(hours, minutes))
@@ -292,8 +295,9 @@ class TempChannels:
 
         sid = ctx.message.server.id
 
-        self.settings[sid][KEY_CH_TOPIC] = topic
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_CH_TOPIC] = topic
+            await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n"
                            "```{0}```".format(topic))
@@ -308,8 +312,9 @@ class TempChannels:
 
         sid = ctx.message.server.id
 
-        self.settings[sid][KEY_CH_NAME] = name
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_CH_NAME] = name
+            await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set "
                            "to: ``{0}``".format(name))
@@ -324,8 +329,9 @@ class TempChannels:
 
         sid = ctx.message.server.id
 
-        self.settings[sid][KEY_CH_POS] = position
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_CH_POS] = position
+            await self._syncSettings()
 
         await self.bot.say(":white_check_mark: TempChannel - Position: This channel "
                            "will be at position {0}".format(position))
@@ -357,8 +363,9 @@ class TempChannels:
 
         sid = ctx.message.server.id
 
-        self.settings[sid][KEY_CH_CATEGORY] = categoryID
-        await self._syncSettings()
+        with self.lock:
+            self.settings[sid][KEY_CH_CATEGORY] = categoryID
+            await self._syncSettings()
 
         if categoryID == 0:
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
@@ -381,7 +388,9 @@ class TempChannels:
         sid = ctx.message.server.id
 
         if role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
-            self.settings[sid][KEY_ROLE_ALLOW].append(role.id)
+            with self.lock:
+                self.settings[sid][KEY_ROLE_ALLOW].append(role.id)
+                await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`"
                                "** will be allowed access.".format(role.name))
         else:
@@ -405,8 +414,9 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
                                "**`{0}`** wasn't on the list.".format(role.name))
         else:
-            self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
-            await self._syncSettings()
+            with self.lock:
+                self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
+                await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
                                "removed from the list.".format(role.name))
 
@@ -426,7 +436,9 @@ class TempChannels:
         sid = ctx.message.server.id
 
         if role.id not in self.settings[sid][KEY_ROLE_DENY]:
-            self.settings[sid][KEY_ROLE_DENY].append(role.id)
+            with self.lock:
+                self.settings[sid][KEY_ROLE_DENY].append(role.id)
+                await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role: **`{0}`** will "
                                "be denied message sending, provided this role is higher "
                                "than any of the ones in the allowed list.".format(role.name))
@@ -451,8 +463,9 @@ class TempChannels:
             await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
                                "**`{0}`** wasn't on the list.".format(role.name))
         else:
-            self.settings[sid][KEY_ROLE_DENY].remove(role.id)
-            await self._syncSettings()
+            with self.lock:
+                self.settings[sid][KEY_ROLE_DENY].remove(role.id)
+                await self._syncSettings()
             await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
                                "removed from the list.".format(role.name))
 
@@ -468,12 +481,13 @@ class TempChannels:
                 try:
                     chanObj = self.bot.get_channel(self.settings[sid][KEY_CH_ID])
                     await self.bot.delete_channel(chanObj)
-                except discord.DiscordException as error:
+                except discord.DiscordException:
                     LOGGER.error("Could not delete channel!", exc_info=True)
                 finally:
-                    self.settings[sid][KEY_CH_ID] = None
-                    self.settings[sid][KEY_CH_CREATED] = False
-                    await self._syncSettings()
+                    with self.lock:
+                        self.settings[sid][KEY_CH_ID] = None
+                        self.settings[sid][KEY_CH_CREATED] = False
+                        await self._syncSettings()
                     LOGGER.info("Channel #%s (%s) in %s (%s) was deleted by %s (%s).",
                                 chanObj.name, chanObj.id,
                                 ctx.message.server.name, ctx.message.server.id,
@@ -495,144 +509,144 @@ class TempChannels:
             await asyncio.sleep(SLEEP_TIME)
             # Create/maintain the channel during a valid time and duration, else
             # delete it.
-            try:
-                for sid, properties in self.settings.items():
-                    serverObj = self.bot.get_server(sid)
+            with self.lock:
+                try:
+                    for sid, properties in self.settings.items():
+                        serverObj = self.bot.get_server(sid)
 
-                    missing = False
+                        missing = False
 
-                    for key in KEYS_REQUIRED:
-                        if key not in properties.keys():
-                            missing = True
-                            LOGGER.error("Key %s is missing in settings! Run [p]tc "
-                                         "default first!", key)
-                    if missing or not properties[KEY_ENABLED]:
-                        continue
+                        for key in KEYS_REQUIRED:
+                            if key not in properties.keys():
+                                missing = True
+                                LOGGER.error("Key %s is missing in settings! Run [p]tc "
+                                             "default first!", key)
+                        if missing or not properties[KEY_ENABLED]:
+                            continue
 
-                    if int(time.strftime("%H")) == properties[KEY_START_HOUR] and \
-                            int(time.strftime("%M")) == properties[KEY_START_MIN] and \
-                            not properties[KEY_CH_CREATED] and \
-                            not properties[KEY_CH_ID]:
-                        # See if ALL of the following is satisfied.
-                        # - It is the starting time.
-                        # - The channel creation flag is not set.
-                        # - The channel ID doesn't exist.
-                        #
-                        # If it is satisfied, let's create a channel, and then
-                        # store the following in the settings:
-                        # - Channel ID.
-                        # - Time to delete channel.
-                        # Start with permissions
-                        allowList = []
-                        denyList = []
-                        allowPerms = [discord.PermissionOverwrite(read_messages=True,
-                                                                  send_messages=False)]
-                        allowRoles = [self.bot.user] # Always allow the bot to read.
-                        denyPerms = []
-                        denyRoles = []
+                        if int(time.strftime("%H")) == properties[KEY_START_HOUR] and \
+                                int(time.strftime("%M")) == properties[KEY_START_MIN] and \
+                                not properties[KEY_CH_CREATED] and \
+                                not properties[KEY_CH_ID]:
+                            # See if ALL of the following is satisfied.
+                            # - It is the starting time.
+                            # - The channel creation flag is not set.
+                            # - The channel ID doesn't exist.
+                            #
+                            # If it is satisfied, let's create a channel, and then
+                            # store the following in the settings:
+                            # - Channel ID.
+                            # - Time to delete channel.
+                            # Start with permissions
+                            allowList = []
+                            denyList = []
+                            allowPerms = [discord.PermissionOverwrite(read_messages=True,
+                                                                      send_messages=False)]
+                            allowRoles = [self.bot.user] # Always allow the bot to read.
+                            denyPerms = []
+                            denyRoles = []
 
-                        apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
-                                     "content-type": "application/json"}
+                            apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
+                                         "content-type": "application/json"}
 
-                        if properties[KEY_ROLE_ALLOW]:
-                        # If we have allow roles, automatically deny @everyone the "Read
-                        # Messages" permission.
-                            denyPerms.append(PERMS_READ_N)
-                            denyRoles.append(serverObj.default_role)
-                            for allowID in properties[KEY_ROLE_ALLOW]:
-                                findRole = discord.utils.get(serverObj.roles,
-                                                             id=allowID)
-                                allowRoles.append(findRole)
+                            if properties[KEY_ROLE_ALLOW]:
+                            # If we have allow roles, automatically deny @everyone the "Read
+                            # Messages" permission.
+                                denyPerms.append(PERMS_READ_N)
+                                denyRoles.append(serverObj.default_role)
+                                for allowID in properties[KEY_ROLE_ALLOW]:
+                                    findRole = discord.utils.get(serverObj.roles,
+                                                                 id=allowID)
+                                    allowRoles.append(findRole)
 
-                        allowList = itertools.zip_longest(allowRoles,
-                                                          allowPerms,
-                                                          fillvalue=PERMS_READ_Y)
+                            allowList = itertools.zip_longest(allowRoles,
+                                                              allowPerms,
+                                                              fillvalue=PERMS_READ_Y)
 
-                        # Check for deny permissions.
-                        if properties[KEY_ROLE_DENY]:
-                            denyPerms.append(PERMS_SEND_N)
-                            for denyID in properties[KEY_ROLE_DENY]:
-                                findRole = discord.utils.get(serverObj.roles,
-                                                             id=denyID)
-                                denyRoles.append(findRole)
+                            # Check for deny permissions.
+                            if properties[KEY_ROLE_DENY]:
+                                denyPerms.append(PERMS_SEND_N)
+                                for denyID in properties[KEY_ROLE_DENY]:
+                                    findRole = discord.utils.get(serverObj.roles,
+                                                                 id=denyID)
+                                    denyRoles.append(findRole)
 
-                        denyList = itertools.zip_longest(denyRoles,
-                                                         denyPerms,
-                                                         fillvalue=PERMS_SEND_N)
+                            denyList = itertools.zip_longest(denyRoles,
+                                                             denyPerms,
+                                                             fillvalue=PERMS_SEND_N)
 
-                        chanName = properties[KEY_CH_NAME]
-                        chanObj = await self.bot.create_channel(serverObj,
-                                                                chanName,
-                                                                *list(allowList),
-                                                                *list(denyList))
+                            chanName = properties[KEY_CH_NAME]
+                            chanObj = await self.bot.create_channel(serverObj,
+                                                                    chanName,
+                                                                    *list(allowList),
+                                                                    *list(denyList))
 
-                        properties[KEY_CH_ID] = chanObj.id
+                            properties[KEY_CH_ID] = chanObj.id
 
-                        await self._syncSettings()
-                        LOGGER.info("Channel #%s (%s) in %s (%s) was created.",
-                                    chanObj.name, chanObj.id,
-                                    serverObj.name, serverObj.id)
-
-                        body = {}
-                        if properties[KEY_NSFW]:
-                            body["nsfw"] = True
-
-                        if properties[KEY_CH_CATEGORY] != 0:
-                            body["parent_id"] = properties[KEY_CH_CATEGORY]
-
-                        if body:
-                            # Set nsfw and/or arent category. Must use this method
-                            # because this version of the discord.py library does not
-                            # have a method for this yet.
-                            async with aiohttp.ClientSession() as session:
-                                async with session.patch(PATH_CH.format(chanObj.id),
-                                                         headers=apiHeader,
-                                                         data=json.dumps(body)) as resp:
-                                    LOGGER.debug("API status code: %s", resp.status)
-                                    LOGGER.debug("API response: %s", await resp.text())
-
-                        # Change topic.
-                        await self.bot.edit_channel(chanObj,
-                                                    topic=properties[KEY_CH_TOPIC],
-                                                    name=properties[KEY_CH_NAME])
-
-                        # Move channel position.
-                        try:
-                            await self.bot.move_channel(chanObj,
-                                                        properties[KEY_CH_POS])
-                        except discord.DiscordException:
-                            LOGGER.error("Could not move channel position for %s (%s)!",
-                                         serverObj.name, serverObj.id, exc_info=True)
-
-                        # Set delete times, and save settings.
-                        duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
-                                    properties[KEY_DURATION_MINS] * 60)
-                        properties[KEY_STOP_TIME] = time.time() + duration
-                        properties[KEY_CH_CREATED] = True
-                        await self._syncSettings()
-
-                    elif properties[KEY_CH_CREATED]:
-                        # Channel created, see when we should delete it.
-                        await self._syncSettings()
-                        if time.time() >= properties[KEY_STOP_TIME]:
-                            try:
-                                if properties[KEY_CH_ID]:
-                                    chanObj = self.bot.get_channel(properties[KEY_CH_ID])
-                                    await self.bot.delete_channel(chanObj)
-                                    properties[KEY_CH_ID] = None
-                            except discord.DiscordException as error:
-                                LOGGER.error("Something went wrong for server %s (%s)!",
-                                             serverObj.name, serverObj.id, exc_info=True)
-                                properties[KEY_CH_ID] = None
-
-                            LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
+                            LOGGER.info("Channel #%s (%s) in %s (%s) was created.",
                                         chanObj.name, chanObj.id,
                                         serverObj.name, serverObj.id)
 
-                            properties[KEY_CH_CREATED] = False
-                            await self._sync_settings()
-            except Exception as error:
-                LOGGER.error("Something went terribly wrong!", exc_info=True)
+                            body = {}
+                            if properties[KEY_NSFW]:
+                                body["nsfw"] = True
+
+                            if properties[KEY_CH_CATEGORY] != 0:
+                                body["parent_id"] = properties[KEY_CH_CATEGORY]
+
+                            if body:
+                                # Set nsfw and/or arent category. Must use this method
+                                # because this version of the discord.py library does not
+                                # have a method for this yet.
+                                async with aiohttp.ClientSession() as session:
+                                    async with session.patch(PATH_CH.format(chanObj.id),
+                                                             headers=apiHeader,
+                                                             data=json.dumps(body)) as resp:
+                                        LOGGER.debug("API status code: %s", resp.status)
+                                        LOGGER.debug("API response: %s", await resp.text())
+
+                            # Change topic.
+                            await self.bot.edit_channel(chanObj,
+                                                        topic=properties[KEY_CH_TOPIC],
+                                                        name=properties[KEY_CH_NAME])
+
+                            # Move channel position.
+                            try:
+                                await self.bot.move_channel(chanObj,
+                                                            properties[KEY_CH_POS])
+                            except discord.DiscordException:
+                                LOGGER.error("Could not move channel position for %s (%s)!",
+                                             serverObj.name, serverObj.id, exc_info=True)
+
+                            # Set delete times, and save settings.
+                            duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
+                                        properties[KEY_DURATION_MINS] * 60)
+                            properties[KEY_STOP_TIME] = time.time() + duration
+                            properties[KEY_CH_CREATED] = True
+                            await self._syncSettings()
+
+                        elif properties[KEY_CH_CREATED]:
+                            # Channel created, see when we should delete it.
+                            await self._syncSettings()
+                            if time.time() >= properties[KEY_STOP_TIME]:
+                                try:
+                                    if properties[KEY_CH_ID]:
+                                        chanObj = self.bot.get_channel(properties[KEY_CH_ID])
+                                        await self.bot.delete_channel(chanObj)
+                                        properties[KEY_CH_ID] = None
+                                except discord.DiscordException:
+                                    LOGGER.error("Something went wrong for server %s (%s)!",
+                                                 serverObj.name, serverObj.id, exc_info=True)
+                                    properties[KEY_CH_ID] = None
+
+                                LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
+                                            chanObj.name, chanObj.id,
+                                            serverObj.name, serverObj.id)
+
+                                properties[KEY_CH_CREATED] = False
+                                await self._syncSettings()
+                except Exception: # pylint: disable=broad-except
+                    LOGGER.error("Something went terribly wrong!", exc_info=True)
 
 def setup(bot):
     """Add the cog to the bot."""
