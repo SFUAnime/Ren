@@ -127,10 +127,16 @@ class TempChannels:
         await self.bot.say(":white_check_mark: TempChannel: Setting default settings.")
 
     @tempChannels.command(name="show", pass_context=True, no_pm=True)
-    async def tempChannelsShow(self,ctx):
+    async def tempChannelsShow(self, ctx):
         """Show current settings."""
         try:
             tempCh = self.settings[ctx.message.server.id]
+            rolesAllow = [discord.utils.get(ctx.message.server.roles,
+                                            id=rid) for rid in tempCh[KEY_ROLE_ALLOW]]
+            rolesAllow = [roleName.name for roleName in rolesAllow if roleName]
+            rolesDeny = [discord.utils.get(ctx.message.server.roles,
+                                           id=rid) for rid in tempCh[KEY_ROLE_DENY]]
+            rolesDeny = [roleName.name for roleName in rolesDeny if roleName]
             msg = (":information_source: TempChannel - Current Settings\n```"
                    "Enabled?       {}\n"
                    "NSFW Prompt:   {}\n"
@@ -144,8 +150,8 @@ class TempChannels:
                    "Duration:      {}h {}m"
                    "```".format("Yes" if tempCh[KEY_ENABLED] else "No",
                                 "Yes" if tempCh[KEY_NSFW] else "No",
-                                tempCh[KEY_ROLE_ALLOW],
-                                tempCh[KEY_ROLE_DENY],
+                                rolesAllow,
+                                rolesDeny,
                                 tempCh[KEY_CH_NAME],
                                 tempCh[KEY_CH_TOPIC],
                                 tempCh[KEY_CH_POS],
