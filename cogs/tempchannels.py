@@ -283,6 +283,9 @@ class TempChannels:
             self.settings[sid][KEY_START_HOUR] = hour
             self.settings[sid][KEY_START_MIN] = minute
             await self._syncSettings()
+        LOGGER.info("%s (%s) set the start time to %002d:%002d on %s (%s)",
+                    ctx.message.author.name, ctx.message.author.id,
+                    hour, minute, ctx.message.server.name, sid)
         await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
                            "set to {0:002d}:{1:002d}.".format(hour, minute))
 
@@ -320,6 +323,9 @@ class TempChannels:
             self.settings[sid][KEY_DURATION_HOURS] = hours
             self.settings[sid][KEY_DURATION_MINS] = minutes
             await self._syncSettings()
+        LOGGER.info("%s (%s) set the duration to %s hours, %s minutes on %s (%s)",
+                    ctx.message.author.name, ctx.message.author.id,
+                    hours, minutes, ctx.message.server.name, sid)
 
         await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to "
                            "**{0} hours, {1} minutes**.".format(hours, minutes))
@@ -337,6 +343,9 @@ class TempChannels:
         with self.lock:
             self.settings[sid][KEY_CH_TOPIC] = topic
             await self._syncSettings()
+        LOGGER.info("%s (%s) set the channel topic to the following on %s (%s): %s",
+                    ctx.message.author.name, ctx.message.author.id,
+                    ctx.message.server.name, sid, topic)
 
         await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n"
                            "```{0}```".format(topic))
@@ -354,6 +363,9 @@ class TempChannels:
         with self.lock:
             self.settings[sid][KEY_CH_NAME] = name
             await self._syncSettings()
+        LOGGER.info("%s (%s) set the channel name to ""%s"" on %s (%s)",
+                    ctx.message.author.name, ctx.message.author.id,
+                    name, ctx.message.server.name, sid)
 
         await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set "
                            "to: ``{0}``".format(name))
@@ -371,6 +383,9 @@ class TempChannels:
         with self.lock:
             self.settings[sid][KEY_CH_POS] = position
             await self._syncSettings()
+        LOGGER.info("%s (%s) changed the position to %s on %s (%s)",
+                    ctx.message.author.name, ctx.message.author.id,
+                    position, ctx.message.server.name, sid)
 
         await self.bot.say(":white_check_mark: TempChannel - Position: This channel "
                            "will be at position {0}".format(position))
@@ -407,9 +422,15 @@ class TempChannels:
             await self._syncSettings()
 
         if categoryID == 0:
+            LOGGER.info("%s (%s) disabled category nesting on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
                                "category disabled.")
         else:
+            LOGGER.info("%s (%s) set the parent category ID to %s on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        categoryID, ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
                                "category set to ID `{}`.".format(categoryID))
 
@@ -430,6 +451,9 @@ class TempChannels:
             with self.lock:
                 self.settings[sid][KEY_ROLE_ALLOW].append(role.id)
                 await self._syncSettings()
+            LOGGER.info("%s (%s) added role %s to the allow list on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        role.name, ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`"
                                "** will be allowed access.".format(role.name))
         else:
@@ -456,6 +480,9 @@ class TempChannels:
             with self.lock:
                 self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
                 await self._syncSettings()
+            LOGGER.info("%s (%s) removed role %s from the allow list on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        role.name, ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
                                "removed from the list.".format(role.name))
 
@@ -478,6 +505,9 @@ class TempChannels:
             with self.lock:
                 self.settings[sid][KEY_ROLE_DENY].append(role.id)
                 await self._syncSettings()
+            LOGGER.info("%s (%s) added role %s to the deny list on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        role.name, ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Role: **`{0}`** will "
                                "be denied message sending, provided this role is higher "
                                "than any of the ones in the allowed list.".format(role.name))
@@ -505,6 +535,9 @@ class TempChannels:
             with self.lock:
                 self.settings[sid][KEY_ROLE_DENY].remove(role.id)
                 await self._syncSettings()
+            LOGGER.info("%s (%s) removed role %s from the deny list on %s (%s)",
+                        ctx.message.author.name, ctx.message.author.id,
+                        role.name, ctx.message.server.name, sid)
             await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
                                "removed from the list.".format(role.name))
 
