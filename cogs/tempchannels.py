@@ -542,15 +542,15 @@ class TempChannels:
     ###################
     # Background Loop #
     ###################
-    async def checkChannels(self):
+    async def checkChannels(self): # pylint: disable=too-many-branches,too-many-statements
         """Loop to check whether or not we should create/delete the TempChannel"""
         while self == self.bot.get_cog("TempChannels"):
             await asyncio.sleep(SLEEP_TIME)
             # Create/maintain the channel during a valid time and duration, else
             # delete it.
             with self.lock:
-                try:
-                    for sid, properties in self.settings.items():
+                for sid, properties in self.settings.items():
+                    try:
                         serverObj = self.bot.get_server(sid)
 
                         missing = False
@@ -559,8 +559,9 @@ class TempChannels:
                             if key not in properties.keys():
                                 missing = True
                                 LOGGER.error("Key %s is missing in settings for server "
-                                             "%s (%s)! Run [p]tc default first, and try "
-                                             "again!", key, serverObj.name, serverObj.id)
+                                             "%s (%s)! Run [p]tc default first!",
+                                             key, serverObj.name, serverObj.id)
+
                         if missing or not properties[KEY_ENABLED]:
                             continue
 
@@ -647,30 +648,24 @@ class TempChannels:
                                         properties[KEY_DURATION_MINS] * 60)
                             properties[KEY_STOP_TIME] = time.time() + duration
                             properties[KEY_CH_CREATED] = True
-                            await self._syncSettings()
 
                         elif properties[KEY_CH_CREATED]:
                             # Channel created, see when we should delete it.
-                            await self._syncSettings()
                             if time.time() >= properties[KEY_STOP_TIME]:
-                                try:
-                                    if properties[KEY_CH_ID]:
-                                        chanObj = self.bot.get_channel(properties[KEY_CH_ID])
-                                        await self.bot.delete_channel(chanObj)
-                                except discord.DiscordException:
-                                    LOGGER.error("Something went wrong for server %s (%s)!",
-                                                 serverObj.name, serverObj.id, exc_info=True)
-                                finally:
-                                    properties[KEY_CH_ID] = None
+                                chanObj = self.bot.get_channel(properties[KEY_CH_ID])
+                                properties[KEY_CH_ID] = None
+                                properties[KEY_CH_CREATED] = False
+
+                                if chanObj:
+                                    await self.bot.delete_channel(chanObj)
 
                                 LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
                                             chanObj.name, chanObj.id,
                                             serverObj.name, serverObj.id)
-
-                                properties[KEY_CH_CREATED] = False
-                                await self._syncSettings()
-                except Exception: # pylint: disable=broad-except
-                    LOGGER.error("Something went terribly wrong!", exc_info=True)
+                        await self._syncSettings()
+                    except Exception: # pylint: disable=broad-except
+                        LOGGER.error("Something went terribly wrong for server %s (%s)!",
+                                     exc_info=True)
 
 def setup(bot):
     """Add the cog to the bot."""
