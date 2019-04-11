@@ -160,7 +160,7 @@ class Tags:
                 raise RuntimeError('Tag not found.')
             raise RuntimeError('Tag not found. Did you mean...\n' + '\n'.join(possible_matches))
 
-    async def user_overlimit(self, ctx):
+    async def user_exceeds_tag_limit(self, ctx):
         """Check to see if user has too many tags.
 
         Returns:
@@ -190,8 +190,8 @@ class Tags:
                         if tag.owner_id == owner.id)
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if len(tags) >= limit:
-            await self.bot.say("You have too many tags.  The maximum number tags per user "
-                               "is {}, please delete some first!".format(limit))
+            await self.bot.say("You have too many commands. The maximum number of commands "
+                               "per user is {}, please delete some first!".format(limit))
             return True
         return False
 
@@ -256,7 +256,7 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
-        if await self.user_overlimit(ctx):
+        if await self.user_exceeds_tag_limit(ctx):
             return
 
         content = self.clean_tag_content(content)
@@ -370,7 +370,7 @@ class Tags:
         its name and its content. This works similar to the tag
         create command.
         """
-        if await self.user_overlimit(ctx):
+        if await self.user_exceeds_tag_limit(ctx):
             return
 
         message = ctx.message
