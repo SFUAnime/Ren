@@ -435,7 +435,6 @@ class TempChannels:
                                "category set to ID `{}`.".format(categoryID))
 
     @tempChannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
-    @checks.serverowner()
     async def tempChannelsAllowAdd(self, ctx, *, role: discord.Role):
         """Add a role to allow access to the channel.
 
@@ -461,7 +460,6 @@ class TempChannels:
                                "**`{0}`** is already allowed.".format(role.name))
 
     @tempChannels.command(name="allowremove", pass_context=True, no_pm=True, aliases=["ar"])
-    @checks.serverowner()
     async def tempChannelsAllowRemove(self, ctx, *, role: discord.Role):
         """Remove a role from being able access the temporary channel.
 
@@ -487,7 +485,6 @@ class TempChannels:
                                "removed from the list.".format(role.name))
 
     @tempChannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
-    @checks.serverowner()
     async def tempChannelsDenyAdd(self, ctx, *, role: discord.Role):
         """Add a role to block sending message to the channel.
 
@@ -516,7 +513,6 @@ class TempChannels:
                                "**`{0}`** is already denied.".format(role))
 
     @tempChannels.command(name="denyremove", pass_context=True, no_pm=True, aliases=["dr"])
-    @checks.serverowner()
     async def tempChannelsDenyRemove(self, ctx, *, role: discord.Role):
         """Remove role from being blocked sending to the channel.
 
@@ -542,7 +538,6 @@ class TempChannels:
                                "removed from the list.".format(role.name))
 
     @tempChannels.command(name="delete", pass_context=True, no_pm=True)
-    @checks.serverowner()
     async def tempChannelsDelete(self, ctx):
         """Deletes the temp channel, if it exists."""
         sid = ctx.message.server.id
