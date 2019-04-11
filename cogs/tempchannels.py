@@ -73,6 +73,7 @@ DEFAULT_DICT = \
 }
 
 def checkFilesystem():
+    """Check if the folders/files are created."""
     if not os.path.exists(SAVE_FOLDER):
         print("Temporary Channels: Creating folder: {} ...".format(SAVE_FOLDER))
         os.makedirs(SAVE_FOLDER)
@@ -82,6 +83,38 @@ def checkFilesystem():
         defaultDict = {KEY_SETTINGS: {}}
         dataIO.save_json(SAVE_FOLDER+SAVE_FILE, defaultDict)
         print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
+
+def _createPermList(serverRoleList, roleIdList, perms):
+    """Create a list to use with discord permissions.
+
+    Parameters:
+    -----------
+    serverRoleList: [discord.Role]
+        The entire iterable of the roles for a particular server.  Use the one given
+        from discord.Server.roles.
+    roleIdList: [int]
+        The list of role IDs that we want the same permissions for.
+    perms: discord.PermissionsOverwrite
+        The permissions for these roles, all of which will have the same permissions
+
+    Returns:
+    --------
+    permList: [(discord.Role, discord.PermissionsOverwrite)]
+        A list of tuples that can directly be given to discord.Client.create_channel().
+    """
+    roleList = []
+    tupleList = []
+    for roleID in roleIdList:
+        findRole = discord.utils.get(serverRoleList,
+                                     id=roleID)
+        if findRole:
+            roleList.append(findRole)
+
+    tupleList = itertools.zip_longest(roleList,
+                                      [],
+                                      fillvalue=perms)
+    return tupleList
+
 
 class TempChannels:
     """Creates a temporary channel."""
@@ -251,7 +284,7 @@ class TempChannels:
             self.settings[sid][KEY_START_MIN] = minute
             await self._syncSettings()
         await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
-                           "set to {0:002d}:{1:002d}.".format(hour,minute))
+                           "set to {0:002d}:{1:002d}.".format(hour, minute))
 
     @tempChannels.command(name="duration", pass_context=True, no_pm=True)
     async def tempChannelsDuration(self, ctx, hours: int, minutes: int):
@@ -525,8 +558,9 @@ class TempChannels:
                         for key in KEYS_REQUIRED:
                             if key not in properties.keys():
                                 missing = True
-                                LOGGER.error("Key %s is missing in settings! Run [p]tc "
-                                             "default first!", key)
+                                LOGGER.error("Key %s is missing in settings for server "
+                                             "%s (%s)! Run [p]tc default first, and try "
+                                             "again!", key, serverObj.name, serverObj.id)
                         if missing or not properties[KEY_ENABLED]:
                             continue
 
@@ -544,46 +578,31 @@ class TempChannels:
                             # - Channel ID.
                             # - Time to delete channel.
                             # Start with permissions
-                            allowList = []
-                            denyList = []
-                            allowPerms = [discord.PermissionOverwrite(read_messages=True,
-                                                                      send_messages=False)]
-                            allowRoles = [self.bot.user] # Always allow the bot to read.
-                            denyPerms = []
-                            denyRoles = []
 
                             apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
                                          "content-type": "application/json"}
+                            # Always allow the bot to read.
+                            allowList = [(self.bot.user, PERMS_READ_Y)]
+                            denyList = []
+                            body = {}
 
                             if properties[KEY_ROLE_ALLOW]:
                             # If we have allow roles, automatically deny @everyone the "Read
                             # Messages" permission.
-                                denyPerms.append(PERMS_READ_N)
-                                denyRoles.append(serverObj.default_role)
-                                for allowID in properties[KEY_ROLE_ALLOW]:
-                                    findRole = discord.utils.get(serverObj.roles,
-                                                                 id=allowID)
-                                    allowRoles.append(findRole)
-
-                            allowList = itertools.zip_longest(allowRoles,
-                                                              allowPerms,
-                                                              fillvalue=PERMS_READ_Y)
+                                denyList.append((serverObj.default_role,
+                                                 PERMS_READ_N))
+                                allowList.extend(_createPermList(serverObj.roles,
+                                                                 properties[KEY_ROLE_ALLOW],
+                                                                 PERMS_READ_Y))
 
                             # Check for deny permissions.
                             if properties[KEY_ROLE_DENY]:
-                                denyPerms.append(PERMS_SEND_N)
-                                for denyID in properties[KEY_ROLE_DENY]:
-                                    findRole = discord.utils.get(serverObj.roles,
-                                                                 id=denyID)
-                                    denyRoles.append(findRole)
+                                denyList.extend(_createPermList(serverObj.roles,
+                                                                properties[KEY_ROLE_DENY],
+                                                                PERMS_SEND_N))
 
-                            denyList = itertools.zip_longest(denyRoles,
-                                                             denyPerms,
-                                                             fillvalue=PERMS_SEND_N)
-
-                            chanName = properties[KEY_CH_NAME]
                             chanObj = await self.bot.create_channel(serverObj,
-                                                                    chanName,
+                                                                    properties[KEY_CH_NAME],
                                                                     *list(allowList),
                                                                     *list(denyList))
 
@@ -593,7 +612,6 @@ class TempChannels:
                                         chanObj.name, chanObj.id,
                                         serverObj.name, serverObj.id)
 
-                            body = {}
                             if properties[KEY_NSFW]:
                                 body["nsfw"] = True
 
@@ -639,10 +657,10 @@ class TempChannels:
                                     if properties[KEY_CH_ID]:
                                         chanObj = self.bot.get_channel(properties[KEY_CH_ID])
                                         await self.bot.delete_channel(chanObj)
-                                        properties[KEY_CH_ID] = None
                                 except discord.DiscordException:
                                     LOGGER.error("Something went wrong for server %s (%s)!",
                                                  serverObj.name, serverObj.id, exc_info=True)
+                                finally:
                                     properties[KEY_CH_ID] = None
 
                                 LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
