@@ -13,6 +13,9 @@ import datetime
 import discord
 import difflib
 
+DEFAULT_MAX = 50 # Default max number of tags per user.
+KEY_MAX = "max"
+
 class TagInfo:
     __slots__ = ('name', 'content', 'owner_id', 'uses', 'location', 'created_at')
 
@@ -157,6 +160,41 @@ class Tags:
                 raise RuntimeError('Tag not found.')
             raise RuntimeError('Tag not found. Did you mean...\n' + '\n'.join(possible_matches))
 
+    async def user_overlimit(self, ctx):
+        """Check to see if user has too many tags.
+
+        Returns:
+        --------
+        bool
+            True if too many tags, False if okay.
+        """
+        owner = ctx.message.author
+        server = ctx.message.server
+
+        if owner.id == ctx.bot.settings.owner:
+            # No limit for bot owner
+            return False
+
+        if server:
+            # No limit for mods and admins of server.
+            mod_role = ctx.bot.settings.get_server_mod(server).lower()
+            admin_role = ctx.bot.settings.get_server_admin(server).lower()
+            roles = [role.name for role in owner.roles]
+            if admin_role in roles or mod_role in roles:
+                return False
+
+        tags = [tag.name for tag in self.config.get('generic', {}).values()
+                if tag.owner_id == owner.id]
+        if server:
+            tags.extend(tag.name for tag in self.config.get(server.id, {}).values()
+                        if tag.owner_id == owner.id)
+        limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+        if len(tags) >= limit:
+            await self.bot.say("You have too many tags.  The maximum number tags per user "
+                               "is {}, please delete some first!".format(limit))
+            return True
+        return False
+
     @commands.group(pass_context=True, invoke_without_command=True)
     async def tag(self, ctx, *, name : str):
         """Allows you to tag text for later retrieval.
@@ -192,6 +230,24 @@ class Tags:
         if len(lookup) > 100:
             raise RuntimeError('Tag name is a maximum of 100 characters.')
 
+    @tag.command(pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def max(self, ctx, num_tags: int=None):
+        """Set the max number of tags per user. Leave blank to show current setting.
+
+        This limit does not apply to admins or mods.
+        """
+        if not num_tags:
+            limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+            await self.bot.say("The current tag limit per user is {}.".format(limit))
+            return
+        if num_tags < 0:
+            await self.bot.say("Please set a value greater than 0.")
+            return
+
+        await self.settings.put(KEY_MAX, num_tags)
+        await self.bot.say("The tag limit was set to {}".format(num_tags))
+
     @tag.command(pass_context=True, aliases=['add'], no_pm=True)
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
     async def create(self, ctx, name : str, *, content : str):
@@ -200,6 +256,9 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
+        if await self.user_overlimit(ctx):
+            return
+
         content = self.clean_tag_content(content)
         lookup = name.lower().strip()
         try:
@@ -311,6 +370,9 @@ class Tags:
         its name and its content. This works similar to the tag
         create command.
         """
+        if await self.user_overlimit(ctx):
+            return
+
         message = ctx.message
         location = self.get_database_location(message)
         db = self.config.get(location, {})
