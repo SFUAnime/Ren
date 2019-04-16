@@ -396,7 +396,7 @@ class Birthday:
     ########################################
     # Event loop - Try an absolute timeout #
     ########################################
-    async def checkBirthday(self, args**):
+    async def checkBirthday(self, *args): # ignore args pylint: disable=unused-argument
         """Check birthday list once."""
         await self._dailySweep()
         await self._dailyAdd()
@@ -426,19 +426,24 @@ class Birthday:
                                                                id=self.settings[sid][KEY_BDAY_ROLE])
                                 userObject = discord.utils.get(serverObject.members, id=userId)
 
-                                # Remove the role
-                                try:
-                                    await self.bot.remove_roles(userObject, roleObject)
-                                    LOGGER.info("Removed role from %s#%s (%s)",
-                                                userObject.name,
-                                                userObject.discriminator,
-                                                userObject.id)
-                                except discord.errors.Forbidden as error:
-                                    LOGGER.error("Could not remove role from %s#%s (%s)!",
-                                                 userObject.name,
-                                                 userObject.discriminator,
-                                                 userObject.id)
-                                    LOGGER.error(error)
+                                if userObject:
+                                    # Remove the role
+                                    try:
+                                        await self.bot.remove_roles(userObject, roleObject)
+                                        LOGGER.info("Removed role from %s#%s (%s)",
+                                                    userObject.name,
+                                                    userObject.discriminator,
+                                                    userObject.id)
+                                    except discord.errors.Forbidden as error:
+                                        LOGGER.error("Could not remove role from %s#%s (%s)!",
+                                                     userObject.name,
+                                                     userObject.discriminator,
+                                                     userObject.id)
+                                        LOGGER.error(error)
+                                else:
+                                    # Do not remove role, wait until user rejoins, in case
+                                    # another cog saves roles.
+                                    continue
 
                                 # Update the list.
                                 self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
