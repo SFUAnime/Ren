@@ -16,11 +16,12 @@ from discord.ext import commands
 from cogs.utils import config, chat_formatting
 from cogs.utils.dataIO import dataIO
 
-ACTIVE_TIME = 20
+DEFAULT_TIMEOUT = 20
 LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
 KEY_BLACKLIST = "blacklist"
+KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 SAVE_FOLDER = "data/lui-cogs/highlight/"
 SAVE_FILE = "settings.json"
@@ -72,11 +73,15 @@ class Highlight:
             self.highlights[guildId] = {}
 
         if userId not in self.highlights[guildId].keys():
-            self.highlights[guildId][userId] = {KEY_WORDS: [], KEY_BLACKLIST: []}
+            self.highlights[guildId][userId] = {KEY_WORDS: [], KEY_BLACKLIST: [],
+                                                KEY_TIMEOUT: DEFAULT_TIMEOUT}
             return
 
         if KEY_BLACKLIST not in self.highlights[guildId][userId].keys():
             self.highlights[guildId][userId][KEY_BLACKLIST] = []
+
+        if KEY_TIMEOUT not in self.highlights[guildId][userId].keys():
+            self.highlights[guildId][userId][KEY_TIMEOUT] = DEFAULT_TIMEOUT
 
     @commands.group(name="highlight", pass_context=True, no_pm=True,
                     aliases=["hl"])
@@ -427,12 +432,12 @@ def _isActive(userId, originalMessage, messages):
     Returns:
     --------
     bool
-        True, if the user has spoken ACTIVE_TIME seconds before originalMessage.
+        True, if the user has spoken DEFAULT_TIMEOUT seconds before originalMessage.
         False, otherwise.
     """
     for msg in messages:
         deltaSinceMsg = originalMessage.timestamp - msg.timestamp
-        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=ACTIVE_TIME):
+        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=DEFAULT_TIMEOUT):
             return True
     return False
 
