@@ -316,6 +316,39 @@ class Highlight:
             await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleepThenDelete(confMsg, 5)
 
+    @highlight.command(name="timeout", pass_context=True, no_pm=True)
+    async def setTimeout(self, ctx, seconds: int):
+        """Set the timeout between consecutive highlight triggers.
+
+        This applies to consecutive highlights within the same channel.
+        If your words are triggered within this timeout period, you will
+        only be notified once.
+
+        Parameters:
+        -----------
+        seconds: int
+            The timeout between consecutive triggers within a channel, in seconds.
+            Minimum timeout is 0 (always trigger).
+            Maximum timeout is 3600 seconds (1 hour).
+        """
+        if seconds < 0 or seconds > 3600:
+            await self.bot.say("Please specifiy a timeout between 0 and 3600 seconds!")
+            return
+
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+            userName = ctx.message.author.name
+
+            self._registerUser(guildId, userId)
+            self.highlights[guildId][userId][KEY_TIMEOUT] = seconds
+
+            confMsg = await self.bot.say("Timeout set to {} seconds.".format(seconds))
+            await self.settings.put(KEY_GUILDS, self.highlights)
+            await self.bot.delete_message(ctx.message)
+        await self._sleepThenDelete(confMsg, 5)
+
+
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
 
