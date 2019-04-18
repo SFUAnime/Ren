@@ -46,6 +46,7 @@ class Highlight:
                                       cogname="lui-cogs/highlight")
         self.highlights = self.settings.get(KEY_GUILDS)
         self.highlights = {} if not self.highlights else self.highlights
+        self.lastTriggered = {}
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
@@ -314,6 +315,70 @@ class Highlight:
                                                      userName))
             await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleepThenDelete(confMsg, 5)
+
+    def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
+        """See if a user has been recently triggered.
+
+        Parameters:
+        -----------
+        msg: discord.Message
+            The message that we wish to check the time, server ID, and channel ID
+            against.
+        uid: int
+            The user ID of the user we want to check.
+        timeout: int
+            The user timeout, in seconds.
+
+        Returns:
+        --------
+        bool
+            True if the user has been triggered recently in the specific channel.
+            False if the user has not been triggered recently.
+        """
+        sid = msg.server.id
+        cid = msg.channel.id
+
+        if sid not in self.lastTriggered.keys():
+            return False
+        if cid not in self.lastTriggered[sid].keys():
+            return False
+        if uid not in self.lastTriggered[sid][cid].keys():
+            return False
+
+        timeoutVal = timedelta(timeout)
+        lastTrig = self.lastTriggered[sid][cid][uid]
+        if msg.timestamp - lastTrig < timeoutVal:
+            # User has been triggered recently.
+            return True
+        # User hasn't been triggered recently, so we can trigger them, if
+        # applicable.
+        return False
+
+    def _triggeredUpdate(self, msg, uid):
+        """Updates the last time a user had their words triggered in a channel.
+
+        Parameters:
+        -----------
+        msg: discord.Message
+            The message that triggered an update for a user.  Should contain the
+            timestamp, server ID, and channel ID to update.
+        uid: int
+            The user ID of the user we want to update.
+
+        Returns:
+        --------
+        None, updates self.lastTriggered[sid][cid][uid] with the newest datetime.
+        """
+        sid = msg.server.id
+        cid = msg.channel.id
+
+        # TODO make new lock and acquire.
+        if sid not in self.lastTriggered.keys():
+            self.lastTriggered[sid] = {}
+        if cid not in self.lastTriggered[sid].keys():
+            self.lastTriggered[sid][cid] = {}
+        self.lastTriggered[sid][cid][uid] = msg.timestamp
+
 
     async def checkHighlights(self, msg):
         """Background listener to check if a highlight has been triggered."""
