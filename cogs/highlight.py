@@ -378,8 +378,10 @@ class Highlight:
         if uid not in self.lastTriggered[sid][cid].keys():
             return False
 
-        timeoutVal = timedelta(timeout)
+        timeoutVal = timedelta(seconds=timeout)
         lastTrig = self.lastTriggered[sid][cid][uid]
+        LOGGER.debug("Timeout %s, last triggered %s, message timestamp %s",
+                     timeoutVal, lastTrig, msg.timestamp)
         if msg.timestamp - lastTrig < timeoutVal:
             # User has been triggered recently.
             return True
@@ -457,7 +459,10 @@ class Highlight:
             for word in data[KEY_WORDS]:
                 active = _isActive(currentUserId, msg, activeMessages)
                 match = _isWordMatch(word, msg.content)
-                if match and not active and userId != currentUserId:
+                timeout = data[KEY_TIMEOUT] if KEY_TIMEOUT in data.keys() else DEFAULT_TIMEOUT
+                triggeredRecently = self._triggeredRecently(msg, currentUserId, timeout)
+                if match and not active and not triggeredRecently \
+                        and userId != currentUserId:
                     hiliteUser = msg.server.get_member(currentUserId)
                     if not hiliteUser:
                         # Handle case where user is no longer in the server of interest.
@@ -466,6 +471,7 @@ class Highlight:
                     if not perms.read_messages:
                         # Handle case where user cannot see the channel.
                         break
+                    self._triggeredUpdate(msg, currentUserId)
                     tasks.append(self._notifyUser(hiliteUser, msg, word))
 
         await asyncio.gather(*tasks) # pylint: disable=no-member
@@ -514,9 +520,8 @@ class Highlight:
             LOGGER.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
                          user.name, user.discriminator, user.id)
 
-def _isActive(userId, originalMessage, messages):
-    """Checks to see if the user has been active on a channel,
-    given a message from a channel.
+def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
+    """Checks to see if the user has been active on a channel, given a message.
 
     Parameters:
     -----------
@@ -526,16 +531,20 @@ def _isActive(userId, originalMessage, messages):
         The original message whose base timestamp we wish to check against.
     messages: [ discord.Message ]
         A list of discord message objects that we wish to check the user against.
+    timeout: int
+        The amount of time to ignore, in seconds. The difference in time between
+        the user's last message and the current message must be GREATER THAN this
+        to be considered "active".
 
     Returns:
     --------
     bool
-        True, if the user has spoken DEFAULT_TIMEOUT seconds before originalMessage.
+        True, if the user has spoken timeout seconds before originalMessage.
         False, otherwise.
     """
     for msg in messages:
         deltaSinceMsg = originalMessage.timestamp - msg.timestamp
-        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=DEFAULT_TIMEOUT):
+        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=timeout):
             return True
     return False
 
