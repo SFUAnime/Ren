@@ -46,7 +46,9 @@ class Highlight:
                                       cogname="lui-cogs/highlight")
         self.highlights = self.settings.get(KEY_GUILDS)
         self.highlights = {} if not self.highlights else self.highlights
+
         self.lastTriggered = {}
+        self.triggeredLock = Lock()
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
@@ -338,7 +340,6 @@ class Highlight:
         with self.lock:
             guildId = ctx.message.server.id
             userId = ctx.message.author.id
-            userName = ctx.message.author.name
 
             self._registerUser(guildId, userId)
             self.highlights[guildId][userId][KEY_TIMEOUT] = seconds
@@ -407,12 +408,12 @@ class Highlight:
         sid = msg.server.id
         cid = msg.channel.id
 
-        # TODO make new lock and acquire.
-        if sid not in self.lastTriggered.keys():
-            self.lastTriggered[sid] = {}
-        if cid not in self.lastTriggered[sid].keys():
-            self.lastTriggered[sid][cid] = {}
-        self.lastTriggered[sid][cid][uid] = msg.timestamp
+        with self.triggeredLock:
+            if sid not in self.lastTriggered.keys():
+                self.lastTriggered[sid] = {}
+            if cid not in self.lastTriggered[sid].keys():
+                self.lastTriggered[sid][cid] = {}
+            self.lastTriggered[sid][cid][uid] = msg.timestamp
 
 
     async def checkHighlights(self, msg):
