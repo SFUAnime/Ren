@@ -190,8 +190,6 @@ class Tags:
                         if tag.owner_id == owner.id)
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if len(tags) >= limit:
-            await self.bot.say("You have too many commands. The maximum number of commands "
-                               "per user is {}, please delete some first!".format(limit))
             return True
         return False
 
@@ -257,6 +255,8 @@ class Tags:
         create can only be accessed in the server that it was created in.
         """
         if await self.user_exceeds_tag_limit(ctx):
+            await self.bot.say("You have too many commands. The maximum number of commands "
+                               "per user is {}, please delete some first!".format(limit))
             return
 
         content = self.clean_tag_content(content)
@@ -371,6 +371,8 @@ class Tags:
         create command.
         """
         if await self.user_exceeds_tag_limit(ctx):
+            await self.bot.say("You have too many commands. The maximum number of commands "
+                               "per user is {}, please delete some first!".format(limit))
             return
 
         message = ctx.message
