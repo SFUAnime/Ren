@@ -493,7 +493,7 @@ class Highlight:
         msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
                                                                    message.channel.id,
                                                                    message.id)
-        notifyMsg = ("In {1.channel.mention}, you were mentioned with highlight word "
+        notifyMsg = ("In #{1.channel.name}, you were mentioned with highlight word "
                      "**{0}**:".format(word, message))
         embedMsg = ""
         msgStillThere = False
