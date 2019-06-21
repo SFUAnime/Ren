@@ -488,7 +488,7 @@ class Economy:
             #Adding info site.
                 siteInfo = "\nFull rankings at https://ren.injabie3.moe/economy"
                 sleepTime = 60
-                msgId = await self.bot.say(box(page, lang="py") + siteInfo)
+                msgId = await self.bot.say(box(page, lang="text") + siteInfo)
                 await asyncio.sleep(sleepTime)
                 await self.bot.delete_message(msgId)
         else:
