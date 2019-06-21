@@ -7,11 +7,18 @@ from .utils import config, checks, formats
 from .utils.paginator import Pages
 
 from discord.ext import commands
+import csv
 import json
 import re
 import datetime
 import discord
 import difflib
+from threading import Lock
+
+DEFAULT_MAX = 50 # Default max number of tags per user.
+KEY_MAX = "max"
+DUMP_IN = "data/tags/tags.json"
+DUMP_OUT = "data/tags/export.csv"
 
 class TagInfo:
     __slots__ = ('name', 'content', 'owner_id', 'uses', 'location', 'created_at')
@@ -118,6 +125,7 @@ class Tags:
         self.config = config.Config('tags.json', cogname='tags', encoder=TagEncoder, object_hook=tag_decoder,
                                                  loop=bot.loop, load_later=True)
         self.settings = config.Config('settings.json', cogname='tags')
+        self.lock = Lock()
                                                  
     def get_database_location(self, message):
         return 'generic' if message.channel.is_private else message.server.id
@@ -157,6 +165,39 @@ class Tags:
                 raise RuntimeError('Tag not found.')
             raise RuntimeError('Tag not found. Did you mean...\n' + '\n'.join(possible_matches))
 
+    async def user_exceeds_tag_limit(self, ctx):
+        """Check to see if user has too many tags.
+
+        Returns:
+        --------
+        bool
+            True if too many tags, False if okay.
+        """
+        owner = ctx.message.author
+        server = ctx.message.server
+
+        if owner.id == ctx.bot.settings.owner:
+            # No limit for bot owner
+            return False
+
+        if server:
+            # No limit for mods and admins of server.
+            mod_role = ctx.bot.settings.get_server_mod(server).lower()
+            admin_role = ctx.bot.settings.get_server_admin(server).lower()
+            roles = [role.name for role in owner.roles]
+            if admin_role in roles or mod_role in roles:
+                return False
+
+        tags = [tag.name for tag in self.config.get('generic', {}).values()
+                if tag.owner_id == owner.id]
+        if server:
+            tags.extend(tag.name for tag in self.config.get(server.id, {}).values()
+                        if tag.owner_id == owner.id)
+        limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+        if len(tags) >= limit:
+            return True
+        return False
+
     @commands.group(pass_context=True, invoke_without_command=True)
     async def tag(self, ctx, *, name : str):
         """Allows you to tag text for later retrieval.
@@ -192,6 +233,62 @@ class Tags:
         if len(lookup) > 100:
             raise RuntimeError('Tag name is a maximum of 100 characters.')
 
+    @tag.command(pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def max(self, ctx, num_tags: int=None):
+        """Set the max number of tags per user. Leave blank to show current setting.
+
+        This limit does not apply to admins or mods.
+        """
+        if not num_tags:
+            limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+            await self.bot.say("The current tag limit per user is {}.".format(limit))
+            return
+        if num_tags < 0:
+            await self.bot.say("Please set a value greater than 0.")
+            return
+
+        await self.settings.put(KEY_MAX, num_tags)
+        await self.bot.say("The tag limit was set to {}".format(num_tags))
+
+    @tag.command(pass_context=True, no_pm=True)
+    @checks.mod_or_permissions()
+    async def dump(self, ctx):
+        """Dumps server-specific tags to a CSV file, sorted by number of uses."""
+        sid = ctx.message.server.id
+        with self.lock:
+            with open(DUMP_IN, "r") as inputFile, open(DUMP_OUT, "w") as outputFile:
+                tags = json.load(inputFile)
+                if sid not in tags.keys():
+                    await self.bot.say("There are no tags on this server!")
+
+                csvWriter = csv.writer(outputFile)
+                headerCreated = False
+
+                # Convert to list, and sort by ascending number of uses.
+                tags = [contents for contents in tags[sid].values()]
+                tags = sorted(tags, key=lambda k: k["uses"])
+
+                # We only care about server tags
+                for tag in tags:
+                    tag["created_at"] = datetime.datetime.fromtimestamp(tag["created_at"])
+
+                    if not headerCreated:
+                        header = list(tag.keys()) + ["owner_name"]
+                        csvWriter.writerow(header)
+                        headerCreated = True
+
+                    owner = discord.utils.get(ctx.message.server.members, id=tag["owner_id"])
+                    if not owner:
+                        owner = "Unknown"
+                    else:
+                        owner = owner.name
+
+                    data = list(tag.values()) + [owner]
+                    csvWriter.writerow(data)
+
+            await self.bot.send_file(ctx.message.channel, DUMP_OUT)
+
     @tag.command(pass_context=True, aliases=['add'], no_pm=True)
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
     async def create(self, ctx, name : str, *, content : str):
@@ -200,6 +297,11 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
+        if await self.user_exceeds_tag_limit(ctx):
+            await self.bot.say("You have too many commands. The maximum number of commands "
+                               "per user is {}, please delete some first!".format(limit))
+            return
+
         content = self.clean_tag_content(content)
         lookup = name.lower().strip()
         try:
@@ -311,6 +413,11 @@ class Tags:
         its name and its content. This works similar to the tag
         create command.
         """
+        if await self.user_exceeds_tag_limit(ctx):
+            await self.bot.say("You have too many commands. The maximum number of commands "
+                               "per user is {}, please delete some first!".format(limit))
+            return
+
         message = ctx.message
         location = self.get_database_location(message)
         db = self.config.get(location, {})

@@ -16,11 +16,12 @@ from discord.ext import commands
 from cogs.utils import config, chat_formatting
 from cogs.utils.dataIO import dataIO
 
-ACTIVE_TIME = 20
+DEFAULT_TIMEOUT = 20
 LOGGER = None
 MAX_WORDS = 5
 KEY_GUILDS = "guilds"
 KEY_BLACKLIST = "blacklist"
+KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 SAVE_FOLDER = "data/lui-cogs/highlight/"
 SAVE_FILE = "settings.json"
@@ -45,6 +46,9 @@ class Highlight:
                                       cogname="lui-cogs/highlight")
         self.highlights = self.settings.get(KEY_GUILDS)
         self.highlights = {} if not self.highlights else self.highlights
+
+        self.lastTriggered = {}
+        self.triggeredLock = Lock()
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
 
@@ -72,11 +76,15 @@ class Highlight:
             self.highlights[guildId] = {}
 
         if userId not in self.highlights[guildId].keys():
-            self.highlights[guildId][userId] = {KEY_WORDS: [], KEY_BLACKLIST: []}
+            self.highlights[guildId][userId] = {KEY_WORDS: [], KEY_BLACKLIST: [],
+                                                KEY_TIMEOUT: DEFAULT_TIMEOUT}
             return
 
         if KEY_BLACKLIST not in self.highlights[guildId][userId].keys():
             self.highlights[guildId][userId][KEY_BLACKLIST] = []
+
+        if KEY_TIMEOUT not in self.highlights[guildId][userId].keys():
+            self.highlights[guildId][userId][KEY_TIMEOUT] = DEFAULT_TIMEOUT
 
     @commands.group(name="highlight", pass_context=True, no_pm=True,
                     aliases=["hl"])
@@ -310,6 +318,104 @@ class Highlight:
             await self.settings.put(KEY_GUILDS, self.highlights)
         await self._sleepThenDelete(confMsg, 5)
 
+    @highlight.command(name="timeout", pass_context=True, no_pm=True)
+    async def setTimeout(self, ctx, seconds: int):
+        """Set the timeout between consecutive highlight triggers.
+
+        This applies to consecutive highlights within the same channel.
+        If your words are triggered within this timeout period, you will
+        only be notified once.
+
+        Parameters:
+        -----------
+        seconds: int
+            The timeout between consecutive triggers within a channel, in seconds.
+            Minimum timeout is 0 (always trigger).
+            Maximum timeout is 3600 seconds (1 hour).
+        """
+        if seconds < 0 or seconds > 3600:
+            await self.bot.say("Please specifiy a timeout between 0 and 3600 seconds!")
+            return
+
+        with self.lock:
+            guildId = ctx.message.server.id
+            userId = ctx.message.author.id
+
+            self._registerUser(guildId, userId)
+            self.highlights[guildId][userId][KEY_TIMEOUT] = seconds
+
+            confMsg = await self.bot.say("Timeout set to {} seconds.".format(seconds))
+            await self.settings.put(KEY_GUILDS, self.highlights)
+            await self.bot.delete_message(ctx.message)
+        await self._sleepThenDelete(confMsg, 5)
+
+
+    def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
+        """See if a user has been recently triggered.
+
+        Parameters:
+        -----------
+        msg: discord.Message
+            The message that we wish to check the time, server ID, and channel ID
+            against.
+        uid: int
+            The user ID of the user we want to check.
+        timeout: int
+            The user timeout, in seconds.
+
+        Returns:
+        --------
+        bool
+            True if the user has been triggered recently in the specific channel.
+            False if the user has not been triggered recently.
+        """
+        sid = msg.server.id
+        cid = msg.channel.id
+
+        if sid not in self.lastTriggered.keys():
+            return False
+        if cid not in self.lastTriggered[sid].keys():
+            return False
+        if uid not in self.lastTriggered[sid][cid].keys():
+            return False
+
+        timeoutVal = timedelta(seconds=timeout)
+        lastTrig = self.lastTriggered[sid][cid][uid]
+        LOGGER.debug("Timeout %s, last triggered %s, message timestamp %s",
+                     timeoutVal, lastTrig, msg.timestamp)
+        if msg.timestamp - lastTrig < timeoutVal:
+            # User has been triggered recently.
+            return True
+        # User hasn't been triggered recently, so we can trigger them, if
+        # applicable.
+        return False
+
+    def _triggeredUpdate(self, msg, uid):
+        """Updates the last time a user had their words triggered in a channel.
+
+        Parameters:
+        -----------
+        msg: discord.Message
+            The message that triggered an update for a user.  Should contain the
+            timestamp, server ID, and channel ID to update.
+        uid: int
+            The user ID of the user we want to update.
+
+        Returns:
+        --------
+        None, updates self.lastTriggered[sid][cid][uid] with the newest datetime.
+        """
+        sid = msg.server.id
+        cid = msg.channel.id
+
+        with self.triggeredLock:
+            if sid not in self.lastTriggered.keys():
+                self.lastTriggered[sid] = {}
+            if cid not in self.lastTriggered[sid].keys():
+                self.lastTriggered[sid][cid] = {}
+            self.lastTriggered[sid][cid][uid] = msg.timestamp
+
+
     async def checkHighlights(self, msg):
         """Background listener to check if a highlight has been triggered."""
         if isinstance(msg.channel, discord.PrivateChannel):
@@ -354,7 +460,10 @@ class Highlight:
             for word in data[KEY_WORDS]:
                 active = _isActive(currentUserId, msg, activeMessages)
                 match = _isWordMatch(word, msg.content)
-                if match and not active and userId != currentUserId:
+                timeout = data[KEY_TIMEOUT] if KEY_TIMEOUT in data.keys() else DEFAULT_TIMEOUT
+                triggeredRecently = self._triggeredRecently(msg, currentUserId, timeout)
+                if match and not active and not triggeredRecently \
+                        and userId != currentUserId:
                     hiliteUser = msg.server.get_member(currentUserId)
                     if not hiliteUser:
                         # Handle case where user is no longer in the server of interest.
@@ -363,6 +472,7 @@ class Highlight:
                     if not perms.read_messages:
                         # Handle case where user cannot see the channel.
                         break
+                    self._triggeredUpdate(msg, currentUserId)
                     tasks.append(self._notifyUser(hiliteUser, msg, word))
 
         await asyncio.gather(*tasks) # pylint: disable=no-member
@@ -383,7 +493,7 @@ class Highlight:
         msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
                                                                    message.channel.id,
                                                                    message.id)
-        notifyMsg = ("In {1.channel.mention}, you were mentioned with highlight word "
+        notifyMsg = ("In #{1.channel.name}, you were mentioned with highlight word "
                      "**{0}**:".format(word, message))
         embedMsg = ""
         msgStillThere = False
@@ -411,9 +521,8 @@ class Highlight:
             LOGGER.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
                          user.name, user.discriminator, user.id)
 
-def _isActive(userId, originalMessage, messages):
-    """Checks to see if the user has been active on a channel,
-    given a message from a channel.
+def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
+    """Checks to see if the user has been active on a channel, given a message.
 
     Parameters:
     -----------
@@ -423,16 +532,20 @@ def _isActive(userId, originalMessage, messages):
         The original message whose base timestamp we wish to check against.
     messages: [ discord.Message ]
         A list of discord message objects that we wish to check the user against.
+    timeout: int
+        The amount of time to ignore, in seconds. The difference in time between
+        the user's last message and the current message must be GREATER THAN this
+        to be considered "active".
 
     Returns:
     --------
     bool
-        True, if the user has spoken ACTIVE_TIME seconds before originalMessage.
+        True, if the user has spoken timeout seconds before originalMessage.
         False, otherwise.
     """
     for msg in messages:
         deltaSinceMsg = originalMessage.timestamp - msg.timestamp
-        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=ACTIVE_TIME):
+        if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=timeout):
             return True
     return False
 

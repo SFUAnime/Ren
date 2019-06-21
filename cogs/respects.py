@@ -161,7 +161,10 @@ class Respects:
                                                 before=ctx.message):
                 prevMsgs.append(msg.id)
 
-            exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
+            if self.settings[sid][cid][KEY_MSG]:
+                exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
+            else:
+                exceedMessages = False
             exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > self.timeBetween
 
             if exceedMessages and exceedTime:

@@ -247,7 +247,7 @@ class Birthday:
 
             self.saveSettings()
         except Exception as error: # pylint: disable=broad-except
-            LOGGER.error("could not save settings!")
+            LOGGER.error("Could not save settings!")
             LOGGER.error(error)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Set**: "
                                "Could not save the birthday for **{0}** to the list. "
@@ -258,6 +258,10 @@ class Birthday:
                                        "set **{0}**'s birthday to **{1:%B} {1:%d}**. "
                                        "The role will be assigned automatically on this "
                                        "day.".format(forUser.name, userBirthday))
+
+        # Explicitly check to see if user should be added to role, if the month
+        # and day just so happen to be the same as it is now.
+        await self.checkBirthday()
 
         await asyncio.sleep(5) # pylint: disable=no-member
 
@@ -392,13 +396,17 @@ class Birthday:
     ########################################
     # Event loop - Try an absolute timeout #
     ########################################
+    async def checkBirthday(self, *args): # ignore args pylint: disable=unused-argument
+        """Check birthday list once."""
+        await self._dailySweep()
+        await self._dailyAdd()
+
     async def birthdayLoop(self):
         """The main event loop that will call the add and sweep methods"""
         while self == self.bot.get_cog("Birthday"):
             if self.lastChecked.day != datetime.now().day:
                 self.lastChecked = datetime.now()
-                await self._dailySweep()
-                await self._dailyAdd()
+                await self.checkBirthday()
             await asyncio.sleep(60) # pylint: disable=no-member
 
     async def _dailySweep(self):
@@ -418,19 +426,24 @@ class Birthday:
                                                                id=self.settings[sid][KEY_BDAY_ROLE])
                                 userObject = discord.utils.get(serverObject.members, id=userId)
 
-                                # Remove the role
-                                try:
-                                    await self.bot.remove_roles(userObject, roleObject)
-                                    LOGGER.info("Removed role from %s#%s (%s)",
-                                                userObject.name,
-                                                userObject.discriminator,
-                                                userObject.id)
-                                except discord.errors.Forbidden as error:
-                                    LOGGER.error("Could not remove role from %s#%s (%s)!",
-                                                 userObject.name,
-                                                 userObject.discriminator,
-                                                 userObject.id)
-                                    LOGGER.error(error)
+                                if userObject:
+                                    # Remove the role
+                                    try:
+                                        await self.bot.remove_roles(userObject, roleObject)
+                                        LOGGER.info("Removed role from %s#%s (%s)",
+                                                    userObject.name,
+                                                    userObject.discriminator,
+                                                    userObject.id)
+                                    except discord.errors.Forbidden as error:
+                                        LOGGER.error("Could not remove role from %s#%s (%s)!",
+                                                     userObject.name,
+                                                     userObject.discriminator,
+                                                     userObject.id)
+                                        LOGGER.error(error)
+                                else:
+                                    # Do not remove role, wait until user rejoins, in case
+                                    # another cog saves roles.
+                                    continue
 
                                 # Update the list.
                                 self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
@@ -477,7 +490,7 @@ class Birthday:
                                                            id=userId)
 
                             # Skip if user is no longer in server.
-                            if userObject is None:
+                            if not userObject:
                                 continue
 
                             try:
@@ -547,4 +560,5 @@ def setup(bot):
         handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
                                                datefmt="[%d/%m/%Y %H:%M:%S]"))
         LOGGER.addHandler(handler)
+    bot.add_listener(customCog.checkBirthday, "on_member_join")
     bot.add_cog(customCog)
