@@ -487,7 +487,7 @@ class Economy:
             for page in pagify(highscore, shorten_by=12):
             #Adding info site.
                 siteInfo = "\nFull rankings at https://ren.injabie3.moe/economy"
-                sleepTime = 5 
+                sleepTime = 60 
                 msgObj = await self.bot.say(box(page, lang="text") + siteInfo)
                 await asyncio.sleep(sleepTime)
                 try:
