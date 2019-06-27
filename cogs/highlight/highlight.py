@@ -47,7 +47,7 @@ class Highlight:
 
     async def _sleepThenDelete(self, msg, time):
         await asyncio.sleep(time) # pylint: disable=no-member
-        await self.bot.delete_message(msg)
+        await msg.delete()
 
     def _registerUser(self, guildId, userId):
         """Checks to see if user is registered, and if not, registers the user.
@@ -79,35 +79,30 @@ class Highlight:
         if KEY_TIMEOUT not in self.highlights[guildId][userId].keys():
             self.highlights[guildId][userId][KEY_TIMEOUT] = DEFAULT_TIMEOUT
 
-    @commands.group(name="highlight", pass_context=True, no_pm=True,
-                    aliases=["hl"])
+    @commands.group(name="highlight", aliases=["hl"])
+    @commands.guild_only()
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of at-mentions"""
-        if not ctx.invoked_subcommand:
-            await self.bot.send_cmd_help(ctx)
 
-    @highlight.command(name="add", pass_context=True, no_pm=True)
+    @highlight.command(name="add")
+    @commands.guild_only()
     async def addHighlight(self, ctx, *, word: str):
         """Add a word to be highlighted in the current guild"""
         with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
             userName = ctx.message.author.name
 
-            self._registerUser(guildId, userId)
-            userWords = self.highlights[guildId][userId][KEY_WORDS]
+            async with self.config.member(ctx.author).words() as userWords:
 
-            if len(userWords) <= MAX_WORDS and word not in userWords:
-                # user can only have MAX_WORDS words
-                userWords.append(word)
-                confMsg = await self.bot.say("Highlight word added, {}".format(userName))
-            else:
-                confMsg = await self.bot.say("Sorry {}, you already have {} words "
+                if len(userWords) <= MAX_WORDS and word not in userWords:
+                    # user can only have MAX_WORDS words
+                    userWords.append(word)
+                    confMsg = await ctx.send("Highlight word added, {}".format(userName))
+                else:
+                    confMsg = await ctx.send("Sorry {}, you already have {} words "
                                              "highlighted, or you are trying to add "
                                              "a duplicate word".format(userName,
                                                                        MAX_WORDS))
-            await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILDS, self.highlights)
+        await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="del", pass_context=True, no_pm=True,
