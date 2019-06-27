@@ -51,6 +51,7 @@ class Highlight:
         self.triggeredLock = Lock()
         # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
+        self.logger = None
 
     async def _sleepThenDelete(self, msg, time):
         await asyncio.sleep(time) # pylint: disable=no-member
