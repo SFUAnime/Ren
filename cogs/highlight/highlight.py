@@ -92,7 +92,6 @@ class Highlight:
             userName = ctx.message.author.name
 
             async with self.config.member(ctx.author).words() as userWords:
-
                 if len(userWords) <= MAX_WORDS and word not in userWords:
                     # user can only have MAX_WORDS words
                     userWords.append(word)
@@ -105,26 +104,21 @@ class Highlight:
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
-    @highlight.command(name="del", pass_context=True, no_pm=True,
-                       aliases=["delete", "remove", "rm"])
+    @highlight.command(name="del", aliases=["delete", "remove", "rm"])
+    @commands.guild_only()
     async def removeHighlight(self, ctx, *, word: str):
         """Remove a highlighted word in the current guild"""
         with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
             userName = ctx.message.author.name
 
-            self._registerUser(guildId, userId)
-            userWords = self.highlights[guildId][userId][KEY_WORDS]
-
-            if word in userWords:
-                userWords.remove(word)
-                confMsg = await self.bot.say("Highlight word removed, {}".format(userName))
-            else:
-                confMsg = await self.bot.say("Sorry {}, you don't have this word "
+            async with self.config.member(ctx.author).words() as userWords:
+                if word in userWords:
+                    userWords.remove(word)
+                    confMsg = await ctx.send("Highlight word removed, {}".format(userName))
+                else:
+                    confMsg = await ctx.send("Sorry {}, you don't have this word "
                                              "highlighted".format(userName))
-            await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILDS, self.highlights)
+        await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
