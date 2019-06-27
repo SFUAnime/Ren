@@ -12,40 +12,32 @@ from threading import Lock
 import asyncio
 from aiohttp import errors as aiohttpErrors
 import discord
-from discord.ext import commands
-from cogs.utils import config, chat_formatting
-from cogs.utils.dataIO import dataIO
+from redbot.core import Config, commands
+from redbot.core.bot import Red
+from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
 LOGGER = None
 MAX_WORDS = 5
-KEY_GUILDS = "guilds"
 KEY_BLACKLIST = "blacklist"
 KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
-SAVE_FOLDER = "data/lui-cogs/highlight/"
-SAVE_FILE = "settings.json"
 
-def checkFilesystem():
-    """Check if the folders/files are created."""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Highlight: Creating folder: {} ...".format(SAVE_FOLDER))
-        os.makedirs(SAVE_FOLDER)
-
-    theFile = SAVE_FOLDER + SAVE_FILE
-    if not dataIO.is_valid_json(theFile):
-        print("Creating default highlight settings.json...")
-        dataIO.save_json(theFile, {})
+BASE_GUILD_MEMBER = \
+{
+ KEY_BLACKLIST: [],
+ KEY_TIMEOUT: DEFAULT_TIMEOUT,
+ KEY_WORDS: []
+}
 
 class Highlight:
     """Slack-like feature to be notified based on specific words."""
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
+        super().__init__()
         self.bot = bot
         self.lock = Lock()
-        self.settings = config.Config("settings.json",
-                                      cogname="lui-cogs/highlight")
-        self.highlights = self.settings.get(KEY_GUILDS)
-        self.highlights = {} if not self.highlights else self.highlights
+        self.config = Config.get_conf(self, identifier=5842647)
+        self.config.register_member(**BASE_GUILD_MEMBER)
 
         self.lastTriggered = {}
         self.triggeredLock = Lock()
@@ -572,21 +564,3 @@ def _isWordMatch(word, string):
         LOGGER.error("Regex error: %s", word)
         LOGGER.error(error)
         return False
-
-def setup(bot):
-    """Add the cog to the bot."""
-    checkFilesystem()
-    hilite = Highlight(bot)
-    global LOGGER # pylint: disable=global-statement
-    LOGGER = logging.getLogger("red.Highlight")
-    if LOGGER.level == 0:
-        # Prevents the LOGGER from being loaded again in case of module reload.
-        LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename="data/lui-cogs/highlight/info.log",
-                                      encoding="utf-8",
-                                      mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
-        LOGGER.addHandler(handler)
-    bot.add_listener(hilite.checkHighlights, 'on_message')
-    bot.add_cog(hilite)
