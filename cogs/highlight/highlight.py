@@ -144,15 +144,14 @@ class Highlight:
                                          "currently".format(userName))
         await self._sleepThenDelete(confMsg, 5)
 
-    @highlight.group(name="blacklist", pass_context=True, no_pm=True,
-                     aliases=["bl"])
-    async def userBlacklist(self, ctx):
+    @highlight.group(name="blacklist", aliases=["bl"])
+    @commands.guild_only()
+    async def userBlacklist(self, ctx: Context):
         """Blacklist certain users from triggering your words."""
-        if str(ctx.invoked_subcommand).lower() == "highlight blacklist":
-            await self.bot.send_cmd_help(ctx)
 
-    @userBlacklist.command(name="add", pass_context=True, no_pm=True)
-    async def userBlAdd(self, ctx, user: discord.Member):
+    @userBlacklist.command(name="add")
+    @commands.guild_only()
+    async def userBlAdd(self, ctx: Context, user: discord.Member):
         """Add a user to your blacklist.
 
         Parameters:
@@ -161,21 +160,16 @@ class Highlight:
             The user you wish to block from triggering your highlight words.
         """
         with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
             userName = ctx.message.author.name
 
-            self._registerUser(guildId, userId)
-            userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
-
-            if user.id not in userBl:
-                userBl.append(user.id)
-                confMsg = await self.bot.say("{} added to the blacklist, "
-                                             "{}".format(user.name, userName))
-            else:
-                confMsg = await self.bot.say("This user is already on the blacklist!")
-            await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILDS, self.highlights)
+            async with self.config.member(ctx.author).blacklist() as userBl:
+                if user.id not in userBl:
+                    userBl.append(user.id)
+                    confMsg = await self.bot.say("{} added to the blacklist, "
+                                                 "{}".format(user.name, userName))
+                else:
+                    confMsg = await self.bot.say("This user is already on the blacklist!")
+        await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
     @userBlacklist.command(name="del", pass_context=True, no_pm=True,
