@@ -14,6 +14,7 @@ from aiohttp import errors as aiohttpErrors
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
@@ -121,28 +122,25 @@ class Highlight:
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
-    @highlight.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
-    async def listHighlight(self, ctx):
+    @highlight.command(name="list", aliases=["ls"])
+    @commands.guild_only()
+    async def listHighlight(self, ctx: Context):
         """List your highighted words for the current guild"""
-        guildId = ctx.message.server.id
-        userId = ctx.message.author.id
         userName = ctx.message.author.name
 
-        self._registerUser(guildId, userId)
-        userWords = self.highlights[guildId][userId][KEY_WORDS]
+        async with self.config.member(ctx.author).words() as userWords:
+            if userWords:
+                msg = ""
+                for word in userWords:
+                    msg += "{}\n".format(word)
 
-        if userWords:
-            msg = ""
-            for word in userWords:
-                msg += "{}\n".format(word)
-
-            embed = discord.Embed(description=msg,
-                                  colour=discord.Colour.red())
-            embed.set_author(name=ctx.message.author.name,
-                             icon_url=ctx.message.author.avatar_url)
-            confMsg = await self.bot.say(embed=embed)
-        else:
-            confMsg = await self.bot.say("Sorry {}, you have no highlighted words "
+                embed = discord.Embed(description=msg,
+                                      colour=discord.Colour.red())
+                embed.set_author(name=ctx.message.author.name,
+                                 icon_url=ctx.message.author.avatar_url)
+                confMsg = await ctx.send(embed=embed)
+            else:
+                confMsg = await ctx.send("Sorry {}, you have no highlighted words "
                                          "currently".format(userName))
         await self._sleepThenDelete(confMsg, 5)
 
