@@ -172,9 +172,9 @@ class Highlight:
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
-    @userBlacklist.command(name="del", pass_context=True, no_pm=True,
-                           aliases=["delete", "remove", "rm"])
-    async def userBlRemove(self, ctx, user: discord.Member):
+    @userBlacklist.command(name="del", aliases=["delete", "remove", "rm"])
+    @commands.guild_only()
+    async def userBlRemove(self, ctx: Context, user: discord.Member):
         """Remove a user from your blacklist.
 
         Parameters:
@@ -182,44 +182,38 @@ class Highlight:
         user: discord.Member
             The user you wish to remove from your blacklist.
         """
-        with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
-            userName = ctx.message.author.name
+        userName = ctx.message.author.name
 
-            self._registerUser(guildId, userId)
-            userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
+        async with self.config.member(ctx.author).blacklist() as userBl:
 
-            if user.id in userBl:
-                userBl.remove(user.id)
-                confMsg = await self.bot.say("{} removed from blacklist, "
-                                             "{}".format(user.name, userName))
-            else:
-                confMsg = await self.bot.say("This user is not on the blacklist!")
-            await self.bot.delete_message(ctx.message)
-            await self.settings.put(KEY_GUILDS, self.highlights)
+        if user.id in userBl:
+            userBl.remove(user.id)
+            confMsg = await ctx.send("{} removed from blacklist, "
+                                     "{}".format(user.name, userName))
+        else:
+            confMsg = await ctx.send("This user is not on the blacklist!")
+        await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
-    @userBlacklist.command(name="clear", pass_context=True, no_pm=True,
-                           aliases=["cls"])
-    async def userBlClear(self, ctx):
+    @userBlacklist.command(name="clear", aliases=["cls"])
+    @commands.guild_only()
+    async def userBlClear(self, ctx: Context):
         """Clear your user blacklist.  Will ask for confirmation."""
-        await self.bot.say("Are you sure you want to clear your blacklist?  Type "
-                           "`yes` to continue, otherwise type something else.")
-        response = await self.bot.wait_for_message(timeout=10, author=ctx.message.author,
-                                                   channel=ctx.message.channel)
+        await ctx.send("Are you sure you want to clear your blacklist?  Type "
+                       "`yes` to continue, otherwise type something else.")
+
+        def check(msg):
+            return (msg.author == ctx.message.author and
+                    msg.channel == ctx.message.channel)
+
+        response = await self.bot.wait_for("message", timeout=10, check=check)
 
         if response.content.lower() == "yes":
-            with self.lock:
-                guildId = ctx.message.server.id
-                userId = ctx.message.author.id
-
-                self._registerUser(guildId, userId)
-                self.highlights[guildId][userId][KEY_BLACKLIST].clear()
-                await self.settings.put(KEY_GUILDS, self.highlights)
-                await self.bot.say("Your highlight blacklist was cleared.")
+            async with self.config.member(ctx.author).blacklist() as userBl:
+                userBl.clear()
+            await ctx.send("Your highlight blacklist was cleared.")
         else:
-            await self.bot.say("Not clearing your blacklist.")
+            await ctx.send("Not clearing your blacklist.")
 
     @userBlacklist.command(name="list", pass_context=True, no_pm=True,
                            aliases=["ls"])
