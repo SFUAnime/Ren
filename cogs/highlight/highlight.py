@@ -89,19 +89,18 @@ class Highlight:
     @commands.guild_only()
     async def addHighlight(self, ctx, *, word: str):
         """Add a word to be highlighted in the current guild"""
-        with self.lock:
-            userName = ctx.message.author.name
+        userName = ctx.message.author.name
 
-            async with self.config.member(ctx.author).words() as userWords:
-                if len(userWords) <= MAX_WORDS and word not in userWords:
-                    # user can only have MAX_WORDS words
-                    userWords.append(word)
-                    confMsg = await ctx.send("Highlight word added, {}".format(userName))
-                else:
-                    confMsg = await ctx.send("Sorry {}, you already have {} words "
-                                             "highlighted, or you are trying to add "
-                                             "a duplicate word".format(userName,
-                                                                       MAX_WORDS))
+        async with self.config.member(ctx.author).words() as userWords:
+            if len(userWords) <= MAX_WORDS and word not in userWords:
+                # user can only have MAX_WORDS words
+                userWords.append(word)
+                confMsg = await ctx.send("Highlight word added, {}".format(userName))
+            else:
+                confMsg = await ctx.send("Sorry {}, you already have {} words "
+                                         "highlighted, or you are trying to add "
+                                         "a duplicate word".format(userName,
+                                                                   MAX_WORDS))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
@@ -109,16 +108,15 @@ class Highlight:
     @commands.guild_only()
     async def removeHighlight(self, ctx, *, word: str):
         """Remove a highlighted word in the current guild"""
-        with self.lock:
-            userName = ctx.message.author.name
+        userName = ctx.message.author.name
 
-            async with self.config.member(ctx.author).words() as userWords:
-                if word in userWords:
-                    userWords.remove(word)
-                    confMsg = await ctx.send("Highlight word removed, {}".format(userName))
-                else:
-                    confMsg = await ctx.send("Sorry {}, you don't have this word "
-                                             "highlighted".format(userName))
+        async with self.config.member(ctx.author).words() as userWords:
+            if word in userWords:
+                userWords.remove(word)
+                confMsg = await ctx.send("Highlight word removed, {}".format(userName))
+            else:
+                confMsg = await ctx.send("Sorry {}, you don't have this word "
+                                         "highlighted".format(userName))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
@@ -159,16 +157,15 @@ class Highlight:
         user: discord.Member
             The user you wish to block from triggering your highlight words.
         """
-        with self.lock:
-            userName = ctx.message.author.name
+        userName = ctx.message.author.name
 
-            async with self.config.member(ctx.author).blacklist() as userBl:
-                if user.id not in userBl:
-                    userBl.append(user.id)
-                    confMsg = await self.bot.say("{} added to the blacklist, "
-                                                 "{}".format(user.name, userName))
-                else:
-                    confMsg = await self.bot.say("This user is already on the blacklist!")
+        async with self.config.member(ctx.author).blacklist() as userBl:
+            if user.id not in userBl:
+                userBl.append(user.id)
+                confMsg = await self.bot.say("{} added to the blacklist, "
+                                             "{}".format(user.name, userName))
+            else:
+                confMsg = await self.bot.say("This user is already on the blacklist!")
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
