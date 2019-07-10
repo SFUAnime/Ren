@@ -315,7 +315,7 @@ class Birthday:
 
             # The year below is just there to accommodate leap year.  Not used anywhere else.
             userBirthday = datetime(2020, user[KEY_BDAY_MONTH], user[KEY_BDAY_DAY])
-            text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
+            text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.mention)
             display.append(text)
 
         page = Pages(self.bot, message=ctx.message, entries=display)
