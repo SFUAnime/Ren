@@ -167,6 +167,12 @@ class Tags:
 
     async def user_exceeds_tag_limit(self, server, user: discord.Member):
         """Check to see if user has too many tags.
+        Accepts:
+        --------
+        server
+            A specific server to check for too many tags
+        user
+            The user being checked for being over the limit
 
         Returns:
         --------
@@ -579,20 +585,25 @@ class Tags:
             await self.bot.say("The person you are trying to transfer a tag to already has too many commands!")
             return
 
-        await self.bot.say("{} please confirm by saying \"yes\" that you would like to recieve "
+        await self.bot.say("{} please confirm by saying \"yes\" that you would like to receive "
                            "this tag from {}.".format(user.mention, ctx.message.author.mention))
         response = await self.bot.wait_for_message(timeout=15, author=user)
         if not response:
             await self.bot.say("No comfirmation from {}. Transfer has been cancelled.".format(user.name))
-        elif response.content.startswith("yes"):
-            #The user has answered yes; transfering tag
-            db = self.config.get(tag.location)
-            tag.owner_id = user.id
-            await self.config.put(tag.location, db)
-            await self.bot.say("Tag successfully transfered from {} to {}.".format(ctx.message.author.mention, user.mention))
+            return
+        elif response.channel == ctx.message.channel:
+            if response.content.startswith("yes"):
+                #The user has answered yes; transfering tag
+                db = self.config.get(tag.location)
+                tag.owner_id = user.id
+                await self.config.put(tag.location, db)
+                await self.bot.say("Tag successfully transferred from the current owner "
+                                   "to {}.".format(user.mention))
+            else:
+                await self.bot.say("Tag has been rejected by {}. Transfer has been "
+                                   "cancelled.".format(user.name))
         else:
-            await self.bot.say("Tag has been rejected by {}. Transfer has been "
-                               "cancelled.".format(user.name))
+            await self.bot.say("Message has been detected in another channel. Please try again")
 
     @tag.command(pass_context=True, aliases=['delete','del'])
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
