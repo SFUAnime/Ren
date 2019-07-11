@@ -592,7 +592,7 @@ class Tags:
             await self.bot.say("Tag successfully transfered from {} to {}.".format(ctx.message.author.mention, user.mention))
         else:
             await self.bot.say("Tag has been rejected by {}. Transfer has been "
-            "cancelled.".format(user.name))
+                               "cancelled.".format(user.name))
 
     @tag.command(pass_context=True, aliases=['delete','del'])
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
