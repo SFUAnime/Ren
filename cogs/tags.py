@@ -295,6 +295,7 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
+
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if await self.user_exceeds_tag_limit(ctx.message.server, ctx.message.author):
             await self.bot.say("You have too many commands. The maximum number of commands "
@@ -413,6 +414,7 @@ class Tags:
         create command.
         """
         if await self.user_exceeds_tag_limit(ctx):
+            limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
             await self.bot.say("You have too many commands. The maximum number of commands "
                                "per user is {}, please delete some first!".format(limit))
             return
