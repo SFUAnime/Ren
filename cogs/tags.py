@@ -165,34 +165,38 @@ class Tags:
                 raise RuntimeError('Tag not found.')
             raise RuntimeError('Tag not found. Did you mean...\n' + '\n'.join(possible_matches))
 
-    async def user_exceeds_tag_limit(self, ctx):
+    async def user_exceeds_tag_limit(self, server, user: discord.Member):
         """Check to see if user has too many tags.
+        Accepts:
+        --------
+        server
+            A specific server to check for too many tags
+        user
+            The user being checked for being over the limit
 
         Returns:
         --------
         bool
             True if too many tags, False if okay.
         """
-        owner = ctx.message.author
-        server = ctx.message.server
 
-        if owner.id == ctx.bot.settings.owner:
+        if user.id == self.bot.settings.owner:
             # No limit for bot owner
             return False
 
         if server:
             # No limit for mods and admins of server.
-            mod_role = ctx.bot.settings.get_server_mod(server).lower()
-            admin_role = ctx.bot.settings.get_server_admin(server).lower()
-            roles = [role.name for role in owner.roles]
+            mod_role = self.bot.settings.get_server_mod(server).lower()
+            admin_role = self.bot.settings.get_server_admin(server).lower()
+            roles = [role.name for role in user.roles]
             if admin_role in roles or mod_role in roles:
                 return False
 
         tags = [tag.name for tag in self.config.get('generic', {}).values()
-                if tag.owner_id == owner.id]
+                if tag.owner_id == user.id]
         if server:
             tags.extend(tag.name for tag in self.config.get(server.id, {}).values()
-                        if tag.owner_id == owner.id)
+                        if tag.owner_id == user.id)
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if len(tags) >= limit:
             return True
@@ -297,8 +301,9 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
-        if await self.user_exceeds_tag_limit(ctx):
-            limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+
+        limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
+        if await self.user_exceeds_tag_limit(ctx.message.server, ctx.message.author):
             await self.bot.say("You have too many commands. The maximum number of commands "
                                "per user is {}, please delete some first!".format(limit))
             return
@@ -541,6 +546,62 @@ class Tags:
         tag.content = content
         await self.config.put(tag.location, db)
         await self.bot.say('Tag successfully edited.')
+
+    @tag.command(pass_context=True, no_pm=True)
+    @checks.sensei_or_mod_or_permissions(manage_messages=True)
+    async def transfer(self, ctx, tag_name, user: discord.Member):
+        """
+        Transfers a tag that you have created to another user.
+        This can be done by the creator of the tag. Cannot transfer 
+        if the user being transfered to is over the tag limit.
+        """
+        lookup = tag_name.lower().strip()
+        server = ctx.message.server
+        try:
+            tag = self.get_tag(server, lookup, redirect=False)
+        except RuntimeError as e:
+            return await self.bot.say(e)
+        
+        adminRoleName = self.bot.settings.get_server_admin(server)
+        modRoleName = self.bot.settings.get_server_mod(server)
+    
+        adminRole = discord.utils.get(ctx.message.server.roles, name=adminRoleName)
+        modRole = discord.utils.get(ctx.message.server.roles, name=modRoleName)
+    
+        sensei = discord.utils.get(ctx.message.server.roles, name="Sensei")
+        
+        #checks for mod/admin/owner of the tag
+        if tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles and modRole not in ctx.message.author.roles:
+            await self.bot.say("Only the tag owner can transfer this tag.")
+            return
+
+        #checks if the user in question has permissions to create tags
+        if sensei not in user.roles and adminRole not in user.roles and modRole not in user.roles:
+            await self.bot.say("The person you are trying to transfer to cannot create commands.")
+            return
+
+        #checks if the user has exceeded the tag limit
+        if await self.user_exceeds_tag_limit(ctx.message.server, user):
+            await self.bot.say("The person you are trying to transfer a tag to already has too many commands!")
+            return
+
+        await self.bot.say("{} please confirm by saying \"yes\" that you would like to receive "
+                           "this tag from {}.".format(user.mention, ctx.message.author.mention))
+        response = await self.bot.wait_for_message(timeout=15, author=user,
+                                                   channel=ctx.message.channel)
+        if not response:
+            await self.bot.say("No confirmation from {}. Transfer has been cancelled.".format(user.name))
+            return
+        if response.content.startswith("yes"):
+            #The user has answered yes; transfering tag
+            db = self.config.get(tag.location)
+            tag.owner_id = user.id
+            await self.config.put(tag.location, db)
+            await self.bot.say("Tag successfully transferred from the current owner "
+                               "to {}.".format(user.mention))
+        else:
+            await self.bot.say("Tag has been rejected by {}. Transfer has been "
+                               "cancelled.".format(user.name))
 
     @tag.command(pass_context=True, aliases=['delete','del'])
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
