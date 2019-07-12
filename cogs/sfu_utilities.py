@@ -4,6 +4,7 @@
 """
 import os
 import datetime
+import glob
 import json
 import urllib.request
 from bs4 import BeautifulSoup
@@ -23,6 +24,7 @@ WEBCAM_AQPOND = ("http://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
 WEBCAM_SUB = ("http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
               "?nocache=0.3346598630889852&update=15000&timeout=1800000")
 ROAD_API = "http://www.sfu.ca/security/sfuroadconditions/api/3/current"
+WEBCAM_LOCAL = "/home/pi/scripts"
 
 CAMPUSES = "campuses"
 BUR = "burnaby"
@@ -48,12 +50,15 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
 
     @commands.command(name="cam", pass_context=True)
     async def cam(self, ctx, cam: str = ""):
-        """SFU webcam, defaults to Gaglardi.
+        """SFU webcam, defaults to SFU Summer Fest Cam 1
 
         Parameters:
         -----------
         cam: str
             One of the following short strings:
+            fest:   SFU Summer Festival Cam 1
+            fest2:  SFU Summer Festival Cam 2
+            gag:    Gaglardi
             trs:    Tower Road South
             trn:    Tower Road North
             udn:    University Drive North
@@ -78,17 +83,30 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
                 urllib.request.urlretrieve(WEBCAM_AQPOND, path)
             elif cam.lower() == "sub":
                 urllib.request.urlretrieve(WEBCAM_SUB, path)
+            elif cam.lower() == "fest":
+                files = glob.glob("{}/webcam-cam1/*".format(WEBCAM_LOCAL))
+                mostRecent = max(files, key=os.path.getctime)
+                path = mostRecent
+            elif cam.lower() == "fest2":
+                files = glob.glob("{}/webcam-cam2/*".format(WEBCAM_LOCAL))
+                mostRecent = max(files, key=os.path.getctime)
+                path = mostRecent
             elif cam.lower() == "help":
                 await self.bot.send_cmd_help(ctx)
                 return
-            else:
+            elif cam.lower() == "gag":
                 urllib.request.urlretrieve(WEBCAM_GAGLARDI, path)
+            else: # fest
+                files = glob.glob("{}/webcam-cam1/*".format(WEBCAM_LOCAL))
+                mostRecent = max(files, key=os.path.getctime)
+                path = mostRecent
         except urllib.request.ContentTooShortError:
             return None
         except urllib.error.HTTPError:
             await self.bot.say(":warning: This webcam is currently unavailable!")
             return
-        if os.stat(path).st_size == 0:
+        if os.stat(path).st_size == 0 or \
+                os.stat(path).st_ctime < datetime.datetime.now().timestamp() - 90:
             await self.bot.say(":warning: This webcam is currently unavailable!")
             return
 
