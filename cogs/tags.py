@@ -592,19 +592,16 @@ class Tags:
         if not response:
             await self.bot.say("No confirmation from {}. Transfer has been cancelled.".format(user.name))
             return
-        elif response.channel == ctx.message.channel:
-            if response.content.startswith("yes"):
-                #The user has answered yes; transfering tag
-                db = self.config.get(tag.location)
-                tag.owner_id = user.id
-                await self.config.put(tag.location, db)
-                await self.bot.say("Tag successfully transferred from the current owner "
-                                   "to {}.".format(user.mention))
-            else:
-                await self.bot.say("Tag has been rejected by {}. Transfer has been "
-                                   "cancelled.".format(user.name))
+        if response.content.startswith("yes"):
+            #The user has answered yes; transfering tag
+            db = self.config.get(tag.location)
+            tag.owner_id = user.id
+            await self.config.put(tag.location, db)
+            await self.bot.say("Tag successfully transferred from the current owner "
+                               "to {}.".format(user.mention))
         else:
-            await self.bot.say("Message has been detected in another channel. Please try again")
+            await self.bot.say("Tag has been rejected by {}. Transfer has been "
+                                   "cancelled.".format(user.name))
 
     @tag.command(pass_context=True, aliases=['delete','del'])
     @checks.sensei_or_mod_or_permissions(manage_messages=True)
