@@ -590,7 +590,7 @@ class Tags:
         response = await self.bot.wait_for_message(timeout=15, author=user,
                                                    channel=ctx.message.channel)
         if not response:
-            await self.bot.say("No comfirmation from {}. Transfer has been cancelled.".format(user.name))
+            await self.bot.say("No confirmation from {}. Transfer has been cancelled.".format(user.name))
             return
         elif response.channel == ctx.message.channel:
             if response.content.startswith("yes"):
