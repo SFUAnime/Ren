@@ -587,7 +587,8 @@ class Tags:
 
         await self.bot.say("{} please confirm by saying \"yes\" that you would like to receive "
                            "this tag from {}.".format(user.mention, ctx.message.author.mention))
-        response = await self.bot.wait_for_message(timeout=15, author=user)
+        response = await self.bot.wait_for_message(timeout=15, author=user,
+                                                   channel=ctx.message.channel)
         if not response:
             await self.bot.say("No comfirmation from {}. Transfer has been cancelled.".format(user.name))
             return
