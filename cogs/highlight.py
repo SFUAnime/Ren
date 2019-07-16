@@ -421,8 +421,8 @@ class Highlight: # pylint: disable=too-many-instance-attributes
     async def checkForDarkHourCreation(self, channel):
         """Background listener to check if dark-hour has been created"""
         chName = str(self.bot.get_channel(channel.id))
-        LOGGER.info("New Channel creation has been detected. Name: %s, ID: %s",
-                    chName, channel.id)
+        #LOGGER.info("New Channel creation has been detected. Name: %s, ID: %s",
+        #            chName, channel.id)
         if chName == "dark-hour":
             with self.lock:
                 self.channelBlId = channel.id
@@ -430,8 +430,9 @@ class Highlight: # pylint: disable=too-many-instance-attributes
             LOGGER.info("Dark hour has been detected and channel id %s"
                         " will be blacklisted from highlights.", channel.id)
         else:
-            LOGGER.info("New channel is not called dark hour and will not be "
-                        "blacklisted")
+            return
+            #LOGGER.info("New channel is not called dark hour and will not be "
+            #            "blacklisted")
 
     async def checkForDarkHourDeletion(self, channel):
         """Background listener to check if dark-hour has been deleted"""
@@ -440,8 +441,9 @@ class Highlight: # pylint: disable=too-many-instance-attributes
             LOGGER.info("Dark hour deletion has been detected and channelBlId has"
                         "been reset")
         else:
-            LOGGER.info("Deleted channel is not dark hour so dark hour ID remains"
-                        "unchanged")
+            return
+            #LOGGER.info("Deleted channel is not dark hour so dark hour ID remains"
+            #            "unchanged")
 
     async def checkHighlights(self, msg):
         """Background listener to check if a highlight has been triggered."""
