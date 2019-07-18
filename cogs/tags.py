@@ -301,6 +301,11 @@ class Tags:
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
+        aliasCog = self.bot.get_cog('Alias')
+        if aliasCog.part_of_existing_command(name, ctx.message.server.id):
+            await self.bot.say("This name cannot be used because there is already an internal "
+                               "command with this name.")
+            return
 
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if await self.user_exceeds_tag_limit(ctx.message.server, ctx.message.author):
@@ -586,13 +591,14 @@ class Tags:
             return
 
         await self.bot.say("{} please confirm by saying \"yes\" that you would like to receive "
-                           "this tag from {}.".format(user.mention, ctx.message.author.mention))
+                           "this tag from {}. \nAny other message in this channel by the recipient "
+                           "will be treated as no.".format(user.mention, ctx.message.author.mention))
         response = await self.bot.wait_for_message(timeout=15, author=user,
                                                    channel=ctx.message.channel)
         if not response:
             await self.bot.say("No confirmation from {}. Transfer has been cancelled.".format(user.name))
             return
-        if response.content.startswith("yes"):
+        if response.content.lower() == 'yes':
             #The user has answered yes; transfering tag
             db = self.config.get(tag.location)
             tag.owner_id = user.id
