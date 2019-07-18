@@ -436,7 +436,7 @@ class Highlight: # pylint: disable=too-many-instance-attributes
             LOGGER.info("New channel is not called dark hour and will not be "
                         "blacklisted")
 
-        async def checkForDarkHourDeletion(self, channel):
+    async def checkForDarkHourDeletion(self, channel):
         """Background listener to check if dark-hour has been deleted"""
         #filter private DMs
         if channel.is_private:
