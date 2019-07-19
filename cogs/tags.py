@@ -569,19 +569,20 @@ class Tags:
         
         adminRoleName = self.bot.settings.get_server_admin(server)
         modRoleName = self.bot.settings.get_server_mod(server)
-    
+        ownerID = self.bot.settings.owner
+
         adminRole = discord.utils.get(ctx.message.server.roles, name=adminRoleName)
         modRole = discord.utils.get(ctx.message.server.roles, name=modRoleName)
     
         sensei = discord.utils.get(ctx.message.server.roles, name="Sensei")
         
         #checks for mod/admin/owner of the tag
-        if tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles and modRole not in ctx.message.author.roles:
+        if tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles and modRole not in ctx.message.author.roles and ctx.message.author.id != ownerID:
             await self.bot.say("Only the tag owner can transfer this tag.")
             return
 
         #checks if the user in question has permissions to create tags
-        if sensei not in user.roles and adminRole not in user.roles and modRole not in user.roles:
+        if sensei not in user.roles and adminRole not in user.roles and modRole not in user.roles and user.id != ownerID:
             await self.bot.say("The person you are trying to transfer to cannot create commands.")
             return
 
