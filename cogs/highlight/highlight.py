@@ -211,38 +211,34 @@ class Highlight:
         else:
             await ctx.send("Not clearing your blacklist.")
 
-    @userBlacklist.command(name="list", pass_context=True, no_pm=True,
-                           aliases=["ls"])
-    async def userBlList(self, ctx):
+    @userBlacklist.command(name="list", aliases=["ls"])
+    @commands.guild_only()
+    async def userBlList(self, ctx: Context):
         """List the users on your blacklist."""
-        guildId = ctx.message.server.id
-        userId = ctx.message.author.id
         userName = ctx.message.author.name
 
-        self._registerUser(guildId, userId)
-        userBl = self.highlights[guildId][userId][KEY_BLACKLIST]
+        async with self.config.member(ctx.author).blacklist() as userBl:
+            if userBl:
+                msg = ""
+                for userId in userBl:
+                    userObj = discord.utils.get(ctx.message.guild.members, id=userId)
+                    if not userObj:
+                        continue
+                    msg += "{}\n".format(userObj.name)
+                if msg == "":
+                    msg = "You have blacklisted users that are no longer in the guild."
 
-        if userBl:
-            msg = ""
-            for userId in userBl:
-                userObj = discord.utils.get(ctx.message.server.members, id=userId)
-                if not userObj:
-                    continue
-                msg += "{}\n".format(userObj.name)
-            if msg == "":
-                msg = "You have blacklisted users that are no longer in the guild."
-
-            embed = discord.Embed(description=msg,
-                                  colour=discord.Colour.red())
-            embed.title = "Blacklisted users on {}".format(ctx.message.server.name)
-            embed.set_author(name=ctx.message.author.name,
-                             icon_url=ctx.message.author.avatar_url)
-            await self.bot.send_message(ctx.message.author, embed=embed)
-            confMsg = await self.bot.say("Please check your DMs.")
-        else:
-            confMsg = await self.bot.say("Sorry {}, you have no backlisted users "
+                embed = discord.Embed(description=msg,
+                                      colour=discord.Colour.red())
+                embed.title = "Blacklisted users on {}".format(ctx.message.server.name)
+                embed.set_author(name=userName,
+                                 icon_url=ctx.message.author.avatar_url)
+                await ctx.message.author.send(embed=embed)
+                confMsg = await ctx.send("Please check your DMs.")
+            else:
+                confMsg = await ctx.send("Sorry {}, you have no backlisted users "
                                          "currently".format(userName))
-        await self._sleepThenDelete(confMsg, 5)
+            await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="import", pass_context=True, no_pm=False)
     async def importHighlight(self, ctx, fromServer: str):
