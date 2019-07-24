@@ -182,13 +182,12 @@ class Highlight:
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).blacklist() as userBl:
-
-        if user.id in userBl:
-            userBl.remove(user.id)
-            confMsg = await ctx.send("{} removed from blacklist, "
-                                     "{}".format(user.name, userName))
-        else:
-            confMsg = await ctx.send("This user is not on the blacklist!")
+            if user.id in userBl:
+                userBl.remove(user.id)
+                confMsg = await ctx.send("{} removed from blacklist, "
+                                         "{}".format(user.name, userName))
+            else:
+                confMsg = await ctx.send("This user is not on the blacklist!")
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
