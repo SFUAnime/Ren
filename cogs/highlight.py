@@ -18,7 +18,7 @@ from cogs.utils.dataIO import dataIO
 
 DEFAULT_TIMEOUT = 20
 LOGGER = None
-MAX_WORDS = 5
+MAX_WORDS = 20
 KEY_GUILDS = "guilds"
 KEY_BLACKLIST = "blacklist"
 KEY_TIMEOUT = "timeout"
@@ -107,7 +107,7 @@ class Highlight: # pylint: disable=too-many-instance-attributes
             self._registerUser(guildId, userId)
             userWords = self.highlights[guildId][userId][KEY_WORDS]
 
-            if len(userWords) <= MAX_WORDS and word not in userWords:
+            if len(userWords) < MAX_WORDS and word not in userWords:
                 # user can only have MAX_WORDS words
                 userWords.append(word)
                 confMsg = await self.bot.say("Highlight word added, {}".format(userName))
