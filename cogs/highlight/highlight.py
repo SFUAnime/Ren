@@ -240,44 +240,6 @@ class Highlight:
                                          "currently".format(userName))
             await self._sleepThenDelete(confMsg, 5)
 
-    @highlight.command(name="import", pass_context=True, no_pm=False)
-    async def importHighlight(self, ctx, fromServer: str):
-        """Transfer highlights from a different guild to the current guild.
-        This OVERWRITES any words in the current guild.
-
-        Parameters:
-        -----------
-        fromServer: str
-            The name of the server you wish to import from.
-        """
-        with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
-            userName = ctx.message.author.name
-
-            self._registerUser(guildId, userId)
-
-            importGuild = discord.utils.get(self.bot.servers, name=fromServer)
-
-            if not importGuild:
-                await self.bot.say("The server you wanted to import from is not "
-                                   "in the list of servers I'm in.")
-                return
-
-            self._registerUser(importGuild.id, userId)
-
-            if not self.highlights[importGuild.id][userId][KEY_WORDS]:
-                await self.bot.say("You don't have any words from the server you "
-                                   "wish to import from!")
-                return
-            importWords = self.highlights[importGuild.id][userId][KEY_WORDS]
-            self.highlights[guildId][userId][KEY_WORDS] = deepcopy(importWords)
-            confMsg = await self.bot.say("Highlight words imported from {} for "
-                                         "{}".format(fromServer,
-                                                     userName))
-            await self.settings.put(KEY_GUILDS, self.highlights)
-        await self._sleepThenDelete(confMsg, 5)
-
     @highlight.command(name="timeout", pass_context=True, no_pm=True)
     async def setTimeout(self, ctx, seconds: int):
         """Set the timeout between consecutive highlight triggers.
