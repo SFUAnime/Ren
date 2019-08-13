@@ -302,8 +302,8 @@ class Highlight(commands.Cog):
         timeoutVal = timedelta(seconds=timeout)
         lastTrig = self.lastTriggered[sid][cid][uid]
         LOGGER.debug("Timeout %s, last triggered %s, message timestamp %s",
-                     timeoutVal, lastTrig, msg.timestamp)
-        if msg.timestamp - lastTrig < timeoutVal:
+                     timeoutVal, lastTrig, msg.created_at)
+        if msg.created_at - lastTrig < timeoutVal:
             # User has been triggered recently.
             return True
         # User hasn't been triggered recently, so we can trigger them, if
@@ -333,7 +333,7 @@ class Highlight(commands.Cog):
                 self.lastTriggered[sid] = {}
             if cid not in self.lastTriggered[sid].keys():
                 self.lastTriggered[sid][cid] = {}
-            self.lastTriggered[sid][cid][uid] = msg.timestamp
+            self.lastTriggered[sid][cid][uid] = msg.created_at
 
 
     async def checkHighlights(self, msg: discord.Message):
@@ -352,7 +352,7 @@ class Highlight(commands.Cog):
         # Don't send notification for filtered messages
         if not self.wordFilter:
             self.wordFilter = self.bot.get_cog("WordFilter")
-        elif self.wordFilter.containsFilterableWords(msg):
+        elif await self.wordFilter.containsFilterableWords(msg):
             return
 
         tasks = []
@@ -395,11 +395,11 @@ class Highlight(commands.Cog):
 
         await asyncio.gather(*tasks) # pylint: disable=no-member
 
-    async def _notifyUser(self, user, message, word):
+    async def _notifyUser(self, user: discord.Member, message: discord.Message, word: str):
         """Notify the user of the triggered highlight word."""
         msgs = []
         try:
-            async for msg in self.bot.logs_from(message.channel, limit=6, around=message):
+            async for msg in message.channel.history(limit=6, around=message):
                 msgs.append(msg)
         except aiohttp.ClientResponseError as error:
             LOGGER.error("Client response error within discord.py!", exc_info=True)
@@ -407,16 +407,14 @@ class Highlight(commands.Cog):
         except aiohttp.ServerDisconnectedError as error:
             LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
-        msgContext = sorted(msgs, key=lambda r: r.timestamp)
-        msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.guild.id,
-                                                                   message.channel.id,
-                                                                   message.id)
+        msgContext = sorted(msgs, key=lambda r: r.created_at)
+        msgUrl = message.jump_url
         notifyMsg = ("In #{1.channel.name}, you were mentioned with highlight word "
                      "**{0}**:".format(word, message))
         embedMsg = ""
         msgStillThere = False
         for msg in msgContext:
-            time = msg.timestamp
+            time = msg.created_at
             time = time.replace(tzinfo=timezone.utc).astimezone(tz=None).strftime('%H:%M:%S %Z')
             escapedMsg = chat_formatting.escape(msg.content, formatting=True)
             embedMsg += ("[{0}] {1.author.name}#{1.author.discriminator}: {2}"
@@ -428,11 +426,11 @@ class Highlight(commands.Cog):
         embed = discord.Embed(title=user.name, description=embedMsg,
                               colour=discord.Colour.red())
         embed.add_field(name="Context", value="[Click to Jump]({})".format(msgUrl))
-        time = message.timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None)
+        time = message.created_at.replace(tzinfo=timezone.utc).astimezone(tz=None)
         footer = "Triggered at | {}".format(time.strftime('%a, %d %b %Y %I:%M%p %Z'))
         embed.set_footer(text=footer)
         try:
-            await self.bot.send_message(user, content=notifyMsg, embed=embed)
+            await user.send(content=notifyMsg, embed=embed)
             LOGGER.info("%s#%s (%s) was successfully triggered.",
                         user.name, user.discriminator, user.id)
         except discord.errors.Forbidden as error:
@@ -467,7 +465,7 @@ def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
         False, otherwise.
     """
     for msg in messages:
-        deltaSinceMsg = originalMessage.timestamp - msg.timestamp
+        deltaSinceMsg = originalMessage.created_at - msg.created_at
         if msg.author.id == userId and deltaSinceMsg <= timedelta(seconds=timeout):
             return True
     return False
