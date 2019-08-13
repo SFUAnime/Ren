@@ -240,8 +240,9 @@ class Highlight:
                                          "currently".format(userName))
             await self._sleepThenDelete(confMsg, 5)
 
-    @highlight.command(name="timeout", pass_context=True, no_pm=True)
-    async def setTimeout(self, ctx, seconds: int):
+    @highlight.command(name="timeout")
+    @commands.guild_only()
+    async def setTimeout(self, ctx: Context, seconds: int):
         """Set the timeout between consecutive highlight triggers.
 
         This applies to consecutive highlights within the same channel.
@@ -256,19 +257,16 @@ class Highlight:
             Maximum timeout is 3600 seconds (1 hour).
         """
         if seconds < 0 or seconds > 3600:
-            await self.bot.say("Please specifiy a timeout between 0 and 3600 seconds!")
+            await ctx.send("Please specifiy a timeout between 0 and 3600 seconds!")
             return
 
-        with self.lock:
-            guildId = ctx.message.server.id
-            userId = ctx.message.author.id
+        guildId = ctx.message.server.id
+        userId = ctx.message.author.id
 
-            self._registerUser(guildId, userId)
-            self.highlights[guildId][userId][KEY_TIMEOUT] = seconds
+        await self.config.member(ctx.author).timeout.set(timeout)
 
-            confMsg = await self.bot.say("Timeout set to {} seconds.".format(seconds))
-            await self.settings.put(KEY_GUILDS, self.highlights)
-            await self.bot.delete_message(ctx.message)
+        confMsg = await self.bot.say("Timeout set to {} seconds.".format(seconds))
+        await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
 
