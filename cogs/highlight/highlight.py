@@ -162,10 +162,10 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).blacklist() as userBl:
             if user.id not in userBl:
                 userBl.append(user.id)
-                confMsg = await self.bot.say("{} added to the blacklist, "
-                                             "{}".format(user.name, userName))
+                confMsg = await ctx.send("{} added to the blacklist, "
+                                         "{}".format(user.name, userName))
             else:
-                confMsg = await self.bot.say("This user is already on the blacklist!")
+                confMsg = await ctx.send("This user is already on the blacklist!")
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
@@ -265,7 +265,7 @@ class Highlight(commands.Cog):
 
         await self.config.member(ctx.author).timeout.set(timeout)
 
-        confMsg = await self.bot.say("Timeout set to {} seconds.".format(seconds))
+        confMsg = await ctx.send("Timeout set to {} seconds.".format(seconds))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
