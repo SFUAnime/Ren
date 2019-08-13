@@ -41,7 +41,6 @@ class Highlight(commands.Cog):
 
         self.lastTriggered = {}
         self.triggeredLock = Lock()
-        # previously: dataIO.load_json("data/highlight/words.json")
         self.wordFilter = None
         self.logger = None
 
