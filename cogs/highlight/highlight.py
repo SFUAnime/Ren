@@ -18,7 +18,6 @@ from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
-LOGGER = None
 MAX_WORDS = 5
 KEY_BLACKLIST = "blacklist"
 KEY_TIMEOUT = "timeout"
@@ -263,7 +262,7 @@ class Highlight(commands.Cog):
         guildId = ctx.message.guild.id
         userId = ctx.message.author.id
 
-        await self.config.member(ctx.author).timeout.set(timeout)
+        await self.config.member(ctx.author).timeout.set(seconds)
 
         confMsg = await ctx.send("Timeout set to {} seconds.".format(seconds))
         await ctx.message.delete()
@@ -301,7 +300,7 @@ class Highlight(commands.Cog):
 
         timeoutVal = timedelta(seconds=timeout)
         lastTrig = self.lastTriggered[sid][cid][uid]
-        LOGGER.debug("Timeout %s, last triggered %s, message timestamp %s",
+        self.logger.debug("Timeout %s, last triggered %s, message timestamp %s",
                      timeoutVal, lastTrig, msg.created_at)
         if msg.created_at - lastTrig < timeoutVal:
             # User has been triggered recently.
@@ -362,11 +361,11 @@ class Highlight(commands.Cog):
             async for message in msg.channel.history(limit=50, before=msg):
                 activeMessages.append(message)
         except aiohttp.ClientResponseError as error:
-            LOGGER.error("Client response error within discord.py!", exc_info=True)
-            LOGGER.error(error)
+            self.logger.error("Client response error within discord.py!", exc_info=True)
+            self.logger.error(error)
         except aiohttp.ServerDisconnectedError:
-            LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
-            LOGGER.error(error)
+            self.logger.error("Server disconnect error within discord.py!", exc_info=True)
+            self.logger.error(error)
 
         # Iterate through every user's words on the guild, and notify all highlights
         guildData = await self.config.all_members(msg.guild)
@@ -402,11 +401,11 @@ class Highlight(commands.Cog):
             async for msg in message.channel.history(limit=6, around=message):
                 msgs.append(msg)
         except aiohttp.ClientResponseError as error:
-            LOGGER.error("Client response error within discord.py!", exc_info=True)
-            LOGGER.error(error)
+            self.logger.error("Client response error within discord.py!", exc_info=True)
+            self.logger.error(error)
         except aiohttp.ServerDisconnectedError as error:
-            LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
-            LOGGER.error(error)
+            self.logger.error("Server disconnect error within discord.py!", exc_info=True)
+            self.logger.error(error)
         msgContext = sorted(msgs, key=lambda r: r.created_at)
         msgUrl = message.jump_url
         notifyMsg = ("In #{1.channel.name}, you were mentioned with highlight word "
@@ -431,10 +430,10 @@ class Highlight(commands.Cog):
         embed.set_footer(text=footer)
         try:
             await user.send(content=notifyMsg, embed=embed)
-            LOGGER.info("%s#%s (%s) was successfully triggered.",
+            self.logger.info("%s#%s (%s) was successfully triggered.",
                         user.name, user.discriminator, user.id)
         except discord.errors.Forbidden as error:
-            LOGGER.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
+            self.logger.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
                          user.name, user.discriminator, user.id)
 
     # Event listeners
@@ -489,6 +488,6 @@ def _isWordMatch(word, string):
         regex = r'\b{}\b'.format(re.escape(word.lower()))
         return bool(re.search(regex, string.lower()))
     except Exception as error: # pylint: disable=broad-except
-        LOGGER.error("Regex error: %s", word)
-        LOGGER.error(error)
+        self.logger.error("Regex error: %s", word)
+        self.logger.error(error)
         return False
