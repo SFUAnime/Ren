@@ -31,7 +31,7 @@ BASE_GUILD_MEMBER = \
  KEY_WORDS: []
 }
 
-class Highlight:
+class Highlight(commands.Cog):
     """Slack-like feature to be notified based on specific words."""
     def __init__(self, bot: Red):
         super().__init__()
@@ -230,7 +230,7 @@ class Highlight:
 
                 embed = discord.Embed(description=msg,
                                       colour=discord.Colour.red())
-                embed.title = "Blacklisted users on {}".format(ctx.message.server.name)
+                embed.title = "Blacklisted users on {}".format(ctx.message.guild.name)
                 embed.set_author(name=userName,
                                  icon_url=ctx.message.author.avatar_url)
                 await ctx.message.author.send(embed=embed)
@@ -260,7 +260,7 @@ class Highlight:
             await ctx.send("Please specifiy a timeout between 0 and 3600 seconds!")
             return
 
-        guildId = ctx.message.server.id
+        guildId = ctx.message.guild.id
         userId = ctx.message.author.id
 
         await self.config.member(ctx.author).timeout.set(timeout)
@@ -276,7 +276,7 @@ class Highlight:
         Parameters:
         -----------
         msg: discord.Message
-            The message that we wish to check the time, server ID, and channel ID
+            The message that we wish to check the time, guild ID, and channel ID
             against.
         uid: int
             The user ID of the user we want to check.
@@ -289,7 +289,7 @@ class Highlight:
             True if the user has been triggered recently in the specific channel.
             False if the user has not been triggered recently.
         """
-        sid = msg.server.id
+        sid = msg.guild.id
         cid = msg.channel.id
 
         if sid not in self.lastTriggered.keys():
@@ -317,7 +317,7 @@ class Highlight:
         -----------
         msg: discord.Message
             The message that triggered an update for a user.  Should contain the
-            timestamp, server ID, and channel ID to update.
+            timestamp, guild ID, and channel ID to update.
         uid: int
             The user ID of the user we want to update.
 
@@ -325,7 +325,7 @@ class Highlight:
         --------
         None, updates self.lastTriggered[sid][cid][uid] with the newest datetime.
         """
-        sid = msg.server.id
+        sid = msg.guild.id
         cid = msg.channel.id
 
         with self.triggeredLock:
@@ -341,7 +341,7 @@ class Highlight:
         if not isinstance(msg.channel, discord.TextChannel):
             return
 
-        guildId = msg.server.id
+        guildId = msg.guild.id
         userId = msg.author.id
         user = msg.author
 
@@ -368,8 +368,9 @@ class Highlight:
             LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
 
-        # Iterate through every user's words on the server, and notify all highlights
-        async for currentUserId, data in self.config.all_members(msg.guild).items():
+        # Iterate through every user's words on the guild, and notify all highlights
+        guildData = await self.config.all_members(msg.guild)
+        for currentUserId, data in guildData.items():
             # Handle case where message author has been blacklisted by the user.
             if KEY_BLACKLIST in data.keys() and msg.author.id in data[KEY_BLACKLIST]:
                 continue
@@ -381,9 +382,9 @@ class Highlight:
                 triggeredRecently = self._triggeredRecently(msg, currentUserId, timeout)
                 if match and not active and not triggeredRecently \
                         and userId != currentUserId:
-                    hiliteUser = msg.server.get_member(currentUserId)
+                    hiliteUser = msg.guild.get_member(currentUserId)
                     if not hiliteUser:
-                        # Handle case where user is no longer in the server of interest.
+                        # Handle case where user is no longer in the guild of interest.
                         continue
                     perms = msg.channel.permissions_for(hiliteUser)
                     if not perms.read_messages:
