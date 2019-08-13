@@ -10,7 +10,7 @@ import os
 import re
 from threading import Lock
 import asyncio
-from aiohttp import errors as aiohttpErrors
+import aiohttp
 import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
@@ -361,10 +361,10 @@ class Highlight:
         try:
             async for message in msg.channel.history(limit=50, before=msg):
                 activeMessages.append(message)
-        except aiohttpErrors.ClientResponseError as error:
+        except aiohttp.ClientResponseError as error:
             LOGGER.error("Client response error within discord.py!", exc_info=True)
             LOGGER.error(error)
-        except aiohttpErrors.ServerDisconnectedError:
+        except aiohttp.ServerDisconnectedError:
             LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
 
@@ -400,10 +400,10 @@ class Highlight:
         try:
             async for msg in self.bot.logs_from(message.channel, limit=6, around=message):
                 msgs.append(msg)
-        except aiohttpErrors.ClientResponseError as error:
+        except aiohttp.ClientResponseError as error:
             LOGGER.error("Client response error within discord.py!", exc_info=True)
             LOGGER.error(error)
-        except aiohttpErrors.ServerDisconnectedError as error:
+        except aiohttp.ServerDisconnectedError as error:
             LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
         msgContext = sorted(msgs, key=lambda r: r.timestamp)
