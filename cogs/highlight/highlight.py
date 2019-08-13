@@ -336,9 +336,9 @@ class Highlight:
             self.lastTriggered[sid][cid][uid] = msg.timestamp
 
 
-    async def checkHighlights(self, msg):
+    async def checkHighlights(self, msg: discord.Message):
         """Background listener to check if a highlight has been triggered."""
-        if isinstance(msg.channel, discord.PrivateChannel):
+        if not isinstance(msg.channel, discord.TextChannel):
             return
 
         guildId = msg.server.id
@@ -357,22 +357,19 @@ class Highlight:
 
         tasks = []
 
-        if guildId not in self.highlights.keys():
-            # Skip if the guild is not initialized.
-            return
         activeMessages = []
         try:
-            async for message in self.bot.logs_from(msg.channel, limit=50, before=msg):
+            async for message in msg.channel.history(limit=50, before=msg):
                 activeMessages.append(message)
         except aiohttpErrors.ClientResponseError as error:
-            LOGGER.error("Client response error within discord.py!")
+            LOGGER.error("Client response error within discord.py!", exc_info=True)
             LOGGER.error(error)
         except aiohttpErrors.ServerDisconnectedError:
-            LOGGER.error("Server disconnect error within discord.py!")
+            LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
 
         # Iterate through every user's words on the server, and notify all highlights
-        for currentUserId, data in self.highlights[guildId].items():
+        async for currentUserId, data in self.config.all_members(msg.guild).items():
             # Handle case where message author has been blacklisted by the user.
             if KEY_BLACKLIST in data.keys() and msg.author.id in data[KEY_BLACKLIST]:
                 continue
@@ -404,13 +401,13 @@ class Highlight:
             async for msg in self.bot.logs_from(message.channel, limit=6, around=message):
                 msgs.append(msg)
         except aiohttpErrors.ClientResponseError as error:
-            LOGGER.error("Client response error within discord.py!")
+            LOGGER.error("Client response error within discord.py!", exc_info=True)
             LOGGER.error(error)
         except aiohttpErrors.ServerDisconnectedError as error:
-            LOGGER.error("Server disconnect error within discord.py!")
+            LOGGER.error("Server disconnect error within discord.py!", exc_info=True)
             LOGGER.error(error)
         msgContext = sorted(msgs, key=lambda r: r.timestamp)
-        msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.server.id,
+        msgUrl = "https://discordapp.com/channels/{}/{}/{}".format(message.guild.id,
                                                                    message.channel.id,
                                                                    message.id)
         notifyMsg = ("In #{1.channel.name}, you were mentioned with highlight word "
