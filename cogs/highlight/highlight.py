@@ -438,6 +438,11 @@ class Highlight:
             LOGGER.error("Could not notify %s#%s (%s)!  They probably has DMs disabled!",
                          user.name, user.discriminator, user.id)
 
+    # Event listeners
+    @commands.Cog.listener()
+    async def on_message(self, msg):
+        await self.checkHighlights(msg)
+
 def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
     """Checks to see if the user has been active on a channel, given a message.
 
