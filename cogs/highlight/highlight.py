@@ -266,12 +266,15 @@ class Highlight(commands.Cog):
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
-            if word not in ignoreWords:
+            if len(ignoreWords) < MAX_WORDS and word not in ignoreWords:
                 ignoreWords.append(word)
                 confMsg = await ctx.send("{} added to the ignore list, "
                                          "{}".format(word, userName))
             else:
-                confMsg = await ctx.send("This word is already being ignored!")
+                confMsg = await ctx.send("Sorry {}, you are already ignoring {} "
+                                         "words, or you are trying to add a "
+                                         "duplicate word".format(userName,
+                                                                 MAX_WORDS))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
