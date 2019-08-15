@@ -20,12 +20,14 @@ from redbot.core.utils import chat_formatting
 DEFAULT_TIMEOUT = 20
 MAX_WORDS = 5
 KEY_BLACKLIST = "blacklist"
+KEY_IGNORE = "ignoreWords"
 KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 
 BASE_GUILD_MEMBER = \
 {
  KEY_BLACKLIST: [],
+ KEY_IGNORE: [],
  KEY_TIMEOUT: DEFAULT_TIMEOUT,
  KEY_WORDS: []
 }
@@ -238,6 +240,50 @@ class Highlight(commands.Cog):
                 confMsg = await ctx.send("Sorry {}, you have no backlisted users "
                                          "currently".format(userName))
             await self._sleepThenDelete(confMsg, 5)
+
+    @highlight.group(name="ignore")
+    @commands.guild_only()
+    async def wordIgnore(self, ctx: Context):
+        """Ignore certain words to avoid having them trigger your DMs.
+
+        Suppose you have a word X in your highlighted words, and a word Y you are
+        ignoring.  Then, we have some scenarios as below:
+        - "X something something": triggers DM.
+        - "X Y": does NOT triggers DM.
+        - "X something something Y": does NOT trigger DM.
+        """
+
+    @wordIgnore.command(name="add")
+    @commands.guild_only()
+    async def wordIgnoreAdd(self, ctx: Context, *, word: str):
+        """Add words to your ignore list.
+
+        Parameters:
+        -----------
+        word: str
+            The word you wish to ignore.
+        """
+        userName = ctx.message.author.name
+
+        async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
+            if word not in ignoreWords:
+                ignoreWords.append(word)
+                confMsg = await ctx.send("{} added to the ignore list, "
+                                         "{}".format(word, userName))
+            else:
+                confMsg = await ctx.send("This word is already being ignored!")
+        await ctx.message.delete()
+        await self._sleepThenDelete(confMsg, 5)
+
+    @wordIgnore.command(name="del", aliases=["delete", "remove", "rm"])
+    @commands.guild_only()
+    async def wordIgnoreRemove(self, ctx: Context, *, word: str):
+        """Remove an ignored word from the list."""
+
+    @wordIgnore.command(name="list", aliases=["ls"])
+    @commands.guild_only()
+    async def wordIgnoreList(self, ctx: Context):
+        """List ignored words."""
 
     @highlight.command(name="timeout")
     @commands.guild_only()
