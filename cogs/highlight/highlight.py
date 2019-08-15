@@ -18,7 +18,7 @@ from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
-MAX_WORDS = 5
+MAX_WORDS = 20
 KEY_BLACKLIST = "blacklist"
 KEY_IGNORE = "ignoreWords"
 KEY_TIMEOUT = "timeout"
@@ -92,7 +92,7 @@ class Highlight(commands.Cog):
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).words() as userWords:
-            if len(userWords) <= MAX_WORDS and word not in userWords:
+            if len(userWords) < MAX_WORDS and word not in userWords:
                 # user can only have MAX_WORDS words
                 userWords.append(word)
                 confMsg = await ctx.send("Highlight word added, {}".format(userName))
