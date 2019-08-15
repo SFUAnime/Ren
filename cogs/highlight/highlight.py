@@ -279,11 +279,40 @@ class Highlight(commands.Cog):
     @commands.guild_only()
     async def wordIgnoreRemove(self, ctx: Context, *, word: str):
         """Remove an ignored word from the list."""
+        userName = ctx.message.author.name
+
+        async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
+            if word in ignoreWords:
+                ignoreWords.remove(word)
+                confMsg = await ctx.send("{} removed from the ignore list, "
+                                         "{}".format(word, userName))
+            else:
+                confMsg = await ctx.send("This word is not being ignored!")
+        await ctx.message.delete()
+        await self._sleepThenDelete(confMsg, 5)
 
     @wordIgnore.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def wordIgnoreList(self, ctx: Context):
         """List ignored words."""
+        userName = ctx.message.author.name
+
+        async with self.config.member(ctx.author).ignoreWords() as userWords:
+            if userWords:
+                msg = ""
+                for word in userWords:
+                    msg += "{}\n".format(word)
+
+                embed = discord.Embed(description=msg,
+                                      colour=discord.Colour.red())
+                embed.set_author(name=ctx.message.author.name,
+                                 icon_url=ctx.message.author.avatar_url)
+                await ctx.message.author.send(embed=embed)
+                confMsg = await ctx.send("Please check your DMs.")
+            else:
+                confMsg = await ctx.send("Sorry {}, you currently do not have any "
+                                         "ignored words.".format(userName))
+        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="timeout")
     @commands.guild_only()
@@ -313,7 +342,6 @@ class Highlight(commands.Cog):
         confMsg = await ctx.send("Timeout set to {} seconds.".format(seconds))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
-
 
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
