@@ -444,10 +444,27 @@ class Highlight(commands.Cog):
         # Iterate through every user's words on the guild, and notify all highlights
         guildData = await self.config.all_members(msg.guild)
         for currentUserId, data in guildData.items():
+            self.logger.debug("User ID: %s", currentUserId)
+            isWordIgnored = False
+
             # Handle case where message author has been blacklisted by the user.
             if KEY_BLACKLIST in data.keys() and msg.author.id in data[KEY_BLACKLIST]:
                 continue
 
+            # Handle case where message contains words being ignored byu the user.
+            if KEY_IGNORE in data.keys():
+                for word in data[KEY_IGNORE]:
+                    if _isWordMatch(word, msg.content):
+                        self.logger.debug("%s is being ignored, skipping user.", word)
+                        isWordIgnored = True
+                        break
+
+            if isWordIgnored:
+                continue
+
+            # If we reach this point, then the message is not from a user that has been
+            # blacklisted, nor does the message contain any ignored words, so now we can
+            # check to see if there is anything that needs to be highlighted.
             for word in data[KEY_WORDS]:
                 active = _isActive(currentUserId, msg, activeMessages)
                 match = _isWordMatch(word, msg.content)
