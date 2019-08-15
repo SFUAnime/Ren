@@ -134,7 +134,8 @@ class Highlight(commands.Cog):
                                       colour=discord.Colour.red())
                 embed.set_author(name=ctx.message.author.name,
                                  icon_url=ctx.message.author.avatar_url)
-                confMsg = await ctx.send(embed=embed)
+                await ctx.message.author.send(embed=embed)
+                confMsg = await ctx.send("Please check your DMs.")
             else:
                 confMsg = await ctx.send("Sorry {}, you have no highlighted words "
                                          "currently".format(userName))
