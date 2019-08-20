@@ -63,7 +63,7 @@ class Respects:
                 pass
             try:
                 await self.bot.delete_message(ctx.message)
-            except discord.Forbidden:
+            except (discord.Forbidden, discord.NotFound):
                 await self.bot.say("I currently cannot delete messages. Please give me the"
                                    " \"Manage Messages\" permission to allow this feature to"
                                    " work!")
@@ -206,7 +206,7 @@ class Respects:
             if self.settings[sid][cid][KEY_MSG]:
                 try:
                     await self.bot.delete_message(self.settings[sid][cid][KEY_MSG])
-                except discord.Forbidden:
+                except(discord.Forbidden, discord.NotFound):
                     await self.bot.say("I currently cannot delete messages, please give me \"Manage"
                                        " Message\" permissions to allow this feature to work!")
                 finally:
