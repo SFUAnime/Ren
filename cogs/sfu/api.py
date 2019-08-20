@@ -9,31 +9,36 @@ import html
 import re
 from datetime import date
 
+
 #Module for handling queries to the SFU Course Outlines API.
 #API URL: http://www.sfu.ca/bin/wcm/course-outlines
 
 #fetches data and returns a listionary
-async def get_outline(dept, num, sec, year = 'current', term = 'current'):
+async def get_outline(dept, num, sec, year='current', term='current'):
     #setup params
     params = "?{0}/{1}/{2}/{3}/{4}".format(year, term, dept, num, sec)
     # Modified to be asynchronous.
     async with aiohttp.ClientSession() as session:
-        async with session.get("http://www.sfu.ca/bin/wcm/course-outlines" + params) as resp:
+        async with session.get("http://www.sfu.ca/bin/wcm/course-outlines" +
+                               params) as resp:
             data = await resp.json()
     return data
 
+
 #fetches sections and returns a dictionary
-async def get_sections(dept, num, year = 'current', term = 'current'):
+async def get_sections(dept, num, year='current', term='current'):
     #setup params
     params = "?{0}/{1}/{2}/{3}/".format(year, term, dept, num)
     # Modified to be asynchronous.
     async with aiohttp.ClientSession() as session:
-        async with session.get("http://www.sfu.ca/bin/wcm/course-outlines" + params) as resp:
+        async with session.get("http://www.sfu.ca/bin/wcm/course-outlines" +
+                               params) as resp:
             data = await resp.json()
     return data
 
+
 #returns a string containing the first section number with "LEC" as the sectionCode
-async def find_section(dept, num, year = 'current', term = 'current'):
+async def find_section(dept, num, year='current', term='current'):
     #fetch data
     data = await get_sections(dept, num, year, term)
     try:
@@ -43,8 +48,13 @@ async def find_section(dept, num, year = 'current', term = 'current'):
     except Exception:
         return None
 
+
 #returns a course outline JSON Dictionary
-async def find_outline(dept, num, sec='placeholder', year = 'current', term = 'current'):
+async def find_outline(dept,
+                       num,
+                       sec='placeholder',
+                       year='current',
+                       term='current'):
     if sec == 'placeholder':
         sec = await find_section(dept, num, year, term)
         if sec == None:
@@ -54,8 +64,9 @@ async def find_outline(dept, num, sec='placeholder', year = 'current', term = 'c
     data = await get_outline(dept, num, sec, year, term)
     return data
 
+
 #pulls data from outline JSON Dict
-def extract(data:dict):
+def extract(data: dict):
     #data aliases
     try:
         info = data['info']
@@ -63,7 +74,10 @@ def extract(data:dict):
         schedule = data['courseSchedule']
 
     except Exception:
-        return ["Error: Maybe the class doesn't exist? \nreturned data:\n" + json.dumps(data)]
+        return [
+            "Error: Maybe the class doesn't exist? \nreturned data:\n" +
+            json.dumps(data)
+        ]
 
     #set up variable strings
     outlinepath = "{}".format(info['outlinePath'].upper())
@@ -78,23 +92,16 @@ def extract(data:dict):
     classtimes = ""
     for time in schedule:
         classtimes += "[{}] {} {} - {}, {} {}, {}\n".format(
-            time['sectionCode'],
-            time['days'],
-            time['startTime'],
-            time['endTime'],
-            time['buildingCode'],
-            time['roomNumber'],
+            time['sectionCode'], time['days'], time['startTime'],
+            time['endTime'], time['buildingCode'], time['roomNumber'],
             time['campus'])
     examtime = ""
     try:
         for time in data['examSchedule']:
             if time['isExam']:
                 examtime += "{} {} - {}\n{} {}, {}\n".format(
-                    time['startDate'].split(" 00", 1)[0],
-                    time['startTime'],
-                    time['endTime'],
-                    time['buildingCode'],
-                    time['roomNumber'],
+                    time['startDate'].split(" 00", 1)[0], time['startTime'],
+                    time['endTime'], time['buildingCode'], time['roomNumber'],
                     time['campus'])
     except Exception:
         #TBA I guess
@@ -108,11 +115,12 @@ def extract(data:dict):
         details = re.sub('<[^<]+?>', '', details)
         #truncate
         limit = 500
-        details = (details[:limit] + " ...") if len(details) > limit else details
+        details = (details[:limit] +
+                   " ...") if len(details) > limit else details
 
     except Exception:
         details = ""
-    
+
     if "prerequisites" in info.keys():
         prereq = info['prerequisites']
     else:
@@ -123,11 +131,15 @@ def extract(data:dict):
     else:
         coreq = ""
 
-    return [outlinepath, courseTitle, prof, classtimes, examtime, description, details, prereq, coreq]
+    return [
+        outlinepath, courseTitle, prof, classtimes, examtime, description,
+        details, prereq, coreq
+    ]
+
 
 #formats the outline JSON into readable string
-def format_outline(data:dict):
-    strings= extract(data)
+def format_outline(data: dict):
+    strings = extract(data)
 
     if len(strings) == 1:
         return strings[0]
@@ -152,13 +164,20 @@ def format_outline(data:dict):
 
     return doc
 
+
 #returns a fairly nicely formatted string for easy reading
-def print_outline(dept, num, sec='placeholder', year = 'current', term = 'current'):
+def print_outline(dept, num, sec='placeholder', year='current',
+                  term='current'):
     data = find_outline(dept, num, sec, year, term)
     return format_outline(data)
 
+
 #returns a dictionary with relevant information
-async def dict_outline(dept, num, sec='placeholder', year = 'current', term = 'current'):
+async def dict_outline(dept,
+                       num,
+                       sec='placeholder',
+                       year='current',
+                       term='current'):
     data = await find_outline(dept, num, sec, year, term)
     #print(data)
     strings = extract(data)
@@ -170,17 +189,18 @@ async def dict_outline(dept, num, sec='placeholder', year = 'current', term = 'c
         'Outline': strings[0],
         'Title': strings[1],
         'Instructor': strings[2],
-        'Class Times':strings[3],
-        'Exam Time':strings[4],
-        'Description':strings[5],
-        'Details':strings[6],
-        'Prerequisites':strings[7],
-        'Corequisites':strings[8]
+        'Class Times': strings[3],
+        'Exam Time': strings[4],
+        'Description': strings[5],
+        'Details': strings[6],
+        'Prerequisites': strings[7],
+        'Corequisites': strings[8]
     }
     return ret
 
+
 #eturns two lists with relevant information
-def list_outline(dept, num, sec='placeholder', year = 'current', term = 'current'):
+def list_outline(dept, num, sec='placeholder', year='current', term='current'):
     data = find_outline(dept, num, sec, year, term)
     #print(data)
     strings = extract(data)
@@ -189,16 +209,8 @@ def list_outline(dept, num, sec='placeholder', year = 'current', term = 'current
         return ['Error'], strings
     #if
 
-    keys =[
-        'Outline',
-        'Title',
-        'Instructor',
-        'Class Times',
-        'Exam Time',
-        'Description',
-        'Details',
-        'Prerequisites',
-        'Corequisites'
+    keys = [
+        'Outline', 'Title', 'Instructor', 'Class Times', 'Exam Time',
+        'Description', 'Details', 'Prerequisites', 'Corequisites'
     ]
     return keys, strings
-
