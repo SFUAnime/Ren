@@ -18,7 +18,8 @@ from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
-MAX_WORDS = 20
+MAX_WORDS_HIGHLIGHT = 20
+MAX_WORDS_IGNORE = 20
 KEY_BLACKLIST = "blacklist"
 KEY_IGNORE = "ignoreWords"
 KEY_TIMEOUT = "timeout"
@@ -99,15 +100,15 @@ class Highlight(commands.Cog):
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).words() as userWords:
-            if len(userWords) < MAX_WORDS and word not in userWords:
-                # user can only have MAX_WORDS words
+            if len(userWords) < MAX_WORDS_HIGHLIGHT and word not in userWords:
+                # user can only have MAX_WORDS_HIGHLIGHT words
                 userWords.append(word)
                 confMsg = await ctx.send("Highlight word added, {}".format(userName))
             else:
                 confMsg = await ctx.send("Sorry {}, you already have {} words "
                                          "highlighted, or you are trying to add "
                                          "a duplicate word".format(userName,
-                                                                   MAX_WORDS))
+                                                                   MAX_WORDS_HIGHLIGHT))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
@@ -273,7 +274,7 @@ class Highlight(commands.Cog):
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
-            if len(ignoreWords) < MAX_WORDS and word not in ignoreWords:
+            if len(ignoreWords) < MAX_WORDS_IGNORE and word not in ignoreWords:
                 ignoreWords.append(word)
                 confMsg = await ctx.send("{} added to the ignore list, "
                                          "{}".format(word, userName))
@@ -281,7 +282,7 @@ class Highlight(commands.Cog):
                 confMsg = await ctx.send("Sorry {}, you are already ignoring {} "
                                          "words, or you are trying to add a "
                                          "duplicate word".format(userName,
-                                                                 MAX_WORDS))
+                                                                 MAX_WORDS_IGNORE))
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
@@ -297,7 +298,7 @@ class Highlight(commands.Cog):
                 confMsg = await ctx.send("{} removed from the ignore list, "
                                          "{}".format(word, userName))
             else:
-                confMsg = await ctx.send("This word is not being ignored!")
+                confMsg = await ctx.send("You are not currently ignoring this word!")
         await ctx.message.delete()
         await self._sleepThenDelete(confMsg, 5)
 
