@@ -202,8 +202,9 @@ class Respects:
             if self.settings[sid][cid][KEY_MSG]:
                 try:
                     await self.bot.delete_message(self.settings[sid][cid][KEY_MSG])
-                except: # pylint: disable=bare-except
-                    pass
+                except:
+                    await self.bot.say("I currently cannot delete messages, please give me \"Manage"
+                                       " Message\" permissions to allow this feature to work!")
                 finally:
                     self.settings[sid][cid][KEY_MSG] = None
 
