@@ -23,6 +23,7 @@ KEY_BLACKLIST = "blacklist"
 KEY_IGNORE = "ignoreWords"
 KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
+KEY_IGNORE = "ignoreChannelID"
 
 BASE_GUILD_MEMBER = \
 {
@@ -30,6 +31,11 @@ BASE_GUILD_MEMBER = \
  KEY_IGNORE: [],
  KEY_TIMEOUT: DEFAULT_TIMEOUT,
  KEY_WORDS: []
+}
+
+BASE_GUILD = \
+{
+ KEY_IGNORE: None
 }
 
 class Highlight(commands.Cog):
@@ -40,6 +46,7 @@ class Highlight(commands.Cog):
         self.lock = Lock()
         self.config = Config.get_conf(self, identifier=5842647)
         self.config.register_member(**BASE_GUILD_MEMBER)
+        self.config.register_guild(**BASE_GUILD)
 
         self.lastTriggered = {}
         self.triggeredLock = Lock()
@@ -420,6 +427,11 @@ class Highlight(commands.Cog):
         guildId = msg.guild.id
         userId = msg.author.id
         user = msg.author
+        channelBlId = await self.config.guild(msg.channel.guild).ignoreChannelID()
+
+        # Prevents messages in a blacklisted channel from triggering highlight word
+        if channelBlId and msg.channel.id == channelBlId:
+            return
 
         # Prevent bots from triggering your highlight word.
         if user.bot:
@@ -534,6 +546,31 @@ class Highlight(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, msg):
         await self.checkHighlights(msg)
+
+    @commands.Cog.listener()
+    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):
+        """Background listener to check if dark-hour has been created"""
+        self.logger.info("New Channel creation has been detected. Name: %s, ID: %s",
+                         channel.name, channel.id)
+        if channel.name == "dark-hour":
+            await self.config.guild(channel.guild).ignoreChannelID.set(channel.id)
+            self.logger.info("Dark hour has been detected and channel id %s "
+                             "will be blacklisted from highlights.", channel.id)
+        else:
+            self.logger.info("New channel is not called dark hour and will not be "
+                             "blacklisted")
+
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+        """Background listener to check if dark-hour has been deleted"""
+        channelBlId = await self.config.guild(channel.guild).ignoreChannelID()
+        if channelBlId and channel.id == channelBlId:
+            await self.config.guild(channel.guild).ignoreChannelID.set(None)
+            self.logger.info("Dark hour deletion has been detected and channelBlId has "
+                             "been reset")
+        else:
+            self.logger.info("Deleted channel is not dark hour so dark hour ID remains "
+                             "unchanged")
 
 def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
     """Checks to see if the user has been active on a channel, given a message.
