@@ -1,20 +1,28 @@
-# Imported code from Brendan Chan.
-# https://github.com/brenfan/sfu-api/blob/master/python/courses.py
-# Changes made by Injabie3.
-# - Made it async to avoid blocking calls.
-# - Changed some try, except blocks to if, else blocks.
+"""API for SFU course information.
+
+Imported code from Brendan Chan.
+https://github.com/brenfan/sfu-api/blob/master/python/courses.py
+Changes made by Injabie3.
+- Made it async to avoid blocking calls.
+- Changed some try, except blocks to if, else blocks.
+"""
 import json
-import aiohttp
 import html
 import re
-from datetime import date
+import aiohttp
 
 
-#Module for handling queries to the SFU Course Outlines API.
-#API URL: http://www.sfu.ca/bin/wcm/course-outlines
-
-#fetches data and returns a listionary
+# Module for handling queries to the SFU Course Outlines API.
+# API URL: http://www.sfu.ca/bin/wcm/course-outlines
 async def get_outline(dept, num, sec, year='current', term='current'):
+    """Get course outline.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the relevant data about the course.
+    """
+
     #setup params
     params = "?{0}/{1}/{2}/{3}/{4}".format(year, term, dept, num, sec)
     # Modified to be asynchronous.
@@ -39,6 +47,16 @@ async def get_sections(dept, num, year='current', term='current'):
 
 #returns a string containing the first section number with "LEC" as the sectionCode
 async def find_section(dept, num, year='current', term='current'):
+    """Returns the section for a particular course.
+
+    Parameters:
+    -----------
+
+    Returns:
+    --------
+    str or None.
+        A string containing the section number, or None if not found.
+    """
     #fetch data
     data = await get_sections(dept, num, year, term)
     try:
@@ -57,7 +75,7 @@ async def find_outline(dept,
                        term='current'):
     if sec == 'placeholder':
         sec = await find_section(dept, num, year, term)
-        if sec == None:
+        if not sec:
             return None
 
     #print("sec = "  + sec)
@@ -66,7 +84,7 @@ async def find_outline(dept,
 
 
 #pulls data from outline JSON Dict
-def extract(data: dict):
+def _extract(data: dict):
     #data aliases
     try:
         info = data['info']
@@ -139,12 +157,13 @@ def extract(data: dict):
 
 #formats the outline JSON into readable string
 def format_outline(data: dict):
-    strings = extract(data)
+    strings = _extract(data)
 
     if len(strings) == 1:
         return strings[0]
 
-    outlinepath, courseTitle, prof, classtimes, examtime, description, details, prereq, coreq = strings
+    (outlinepath, courseTitle, prof, classtimes, examtime, description,
+     details, prereq, coreq) = strings
     #setup final formatting
     doc = ""
     doc += "Outline for: {}\n".format(outlinepath)
@@ -178,9 +197,49 @@ async def dict_outline(dept,
                        sec='placeholder',
                        year='current',
                        term='current'):
+    """Searches the SFU calendar for a course.
+
+    In the below, assume the course is ENSC 452 D100 in Spring 2019.
+
+    Parameters:
+    -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    sec: str
+        Section number. In the example, the section number is D100.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the following keys (with their values):
+        - Outline
+        - Title
+        - Instructor
+        - Class Times
+        - Exam Time
+        - Description
+        - Details
+        - Prerequisites
+        - Corequisites
+
+    Raises:
+    -------
+    ValueError
+        The course is invalid.
+    """
     data = await find_outline(dept, num, sec, year, term)
     #print(data)
-    strings = extract(data)
+    strings = _extract(data)
     #print(strings)
     if len(strings) == 1:
         raise ValueError({'Error': strings[0]})
@@ -201,13 +260,53 @@ async def dict_outline(dept,
 
 #eturns two lists with relevant information
 def list_outline(dept, num, sec='placeholder', year='current', term='current'):
+    """Searches the SFU calendar for a course.
+
+    In the below, assume the course is ENSC 452 D100 in Spring 2019.
+
+    Parameters:
+    -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    sec: str
+        Section number. In the example, the section number is D100.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
+
+    Returns:
+    --------
+    key, values: [ str ]
+        Two lists: First, a list containing the following keys, and then another
+        list with their corresponding values in the same position:
+        - Outline
+        - Title
+        - Instructor
+        - Class Times
+        - Exam Time
+        - Description
+        - Details
+        - Prerequisites
+        - Corequisites
+
+    Raises:
+    -------
+    ValueError
+        The course was not found.
+    """
     data = find_outline(dept, num, sec, year, term)
     #print(data)
-    strings = extract(data)
+    strings = _extract(data)
     #print(strings)
     if len(strings) == 1:
-        return ['Error'], strings
-    #if
+        raise ValueError({'Error': strings[0]})
 
     keys = [
         'Outline', 'Title', 'Instructor', 'Class Times', 'Exam Time',
