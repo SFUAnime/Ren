@@ -79,19 +79,22 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
             welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
             welcomeEmbed.colour = discord.Colour.red()
-            if self.settings[serverId][self.keyWelcomeImage]:
+            if self.keyWelcomeImage in self.settings[serverId].keys() and \
+                    self.settings[serverId][self.keyWelcomeImage]:
                 imageUrl = self.settings[serverId][self.keyWelcomeImage]
                 welcomeEmbed.set_image(url=imageUrl.replace(" ", "%20"))
             await self.bot.send_message(newUser, embed=welcomeEmbed)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
-            LOGGER.error("Could not send message, make sure the server has a title "
-                         "and message set!")
+            LOGGER.error("Could not send message, the user may have"
+                         "turned off DM's from this server."
+                         " Also, make sure the server has a title "
+                         "and message set!", exc_info=True)
             LOGGER.error(errorMsg)
             if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
                 channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
                 await self.bot.send_message(channel,
                                             ":bangbang: ``Server Welcome:`` User "
-                                            "{0.name}#{0.descriminator} ({0.id}) has"
+                                            "{0.name}#{0.discriminator} ({0.id}) has"
                                             " joined.  Could not send DM!".format(
                                                 newUser))
                 await self.bot.send_message(channel, errorMsg)
