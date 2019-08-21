@@ -18,6 +18,7 @@ from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
 
 DEFAULT_TIMEOUT = 20
+DELETE_TIME = 5
 MAX_WORDS_HIGHLIGHT = 20
 MAX_WORDS_IGNORE = 20
 KEY_BLACKLIST = "blacklist"
@@ -103,14 +104,14 @@ class Highlight(commands.Cog):
             if len(userWords) < MAX_WORDS_HIGHLIGHT and word not in userWords:
                 # user can only have MAX_WORDS_HIGHLIGHT words
                 userWords.append(word)
-                confMsg = await ctx.send("Highlight word added, {}".format(userName))
+                await ctx.send("Highlight word added, {}".format(userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("Sorry {}, you already have {} words "
-                                         "highlighted, or you are trying to add "
-                                         "a duplicate word".format(userName,
-                                                                   MAX_WORDS_HIGHLIGHT))
+                await ctx.send("Sorry {}, you already have {} words highlighted, or you "
+                               "are trying to add a duplicate word".format(userName,
+                                                                           MAX_WORDS_HIGHLIGHT),
+                               delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
@@ -121,12 +122,13 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).words() as userWords:
             if word in userWords:
                 userWords.remove(word)
-                confMsg = await ctx.send("Highlight word removed, {}".format(userName))
+                await ctx.send("Highlight word removed, {}".format(userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("Sorry {}, you don't have this word "
-                                         "highlighted".format(userName))
+                await ctx.send("Sorry {}, you don't have this word "
+                               "highlighted".format(userName),
+                               delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @highlight.command(name="list", aliases=["ls"])
     @commands.guild_only()
@@ -144,12 +146,16 @@ class Highlight(commands.Cog):
                                       colour=discord.Colour.red())
                 embed.set_author(name=ctx.message.author.name,
                                  icon_url=ctx.message.author.avatar_url)
-                await ctx.message.author.send(embed=embed)
-                confMsg = await ctx.send("Please check your DMs.")
+                try:
+                    await ctx.message.author.send(embed=embed)
+                except discord.Forbidden:
+                    await ctx.send("You do not have DMs enabled, please enable them!",
+                                   delete_after=DELETE_TIME)
+                else:
+                    await ctx.send("Please check your DMs.", delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("Sorry {}, you have no highlighted words "
-                                         "currently".format(userName))
-        await self._sleepThenDelete(confMsg, 5)
+                await ctx.send("Sorry {}, you have no highlighted words "
+                               "currently".format(userName), delete_after=DELETE_TIME)
 
     @highlight.group(name="blacklist", aliases=["bl"])
     @commands.guild_only()
@@ -171,12 +177,12 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).blacklist() as userBl:
             if user.id not in userBl:
                 userBl.append(user.id)
-                confMsg = await ctx.send("{} added to the blacklist, "
-                                         "{}".format(user.name, userName))
+                await ctx.send("{} added to the blacklist, {}".format(user.name, userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("This user is already on the blacklist!")
+                await ctx.send("This user is already on the blacklist!",
+                               delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @userBlacklist.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
@@ -193,12 +199,11 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).blacklist() as userBl:
             if user.id in userBl:
                 userBl.remove(user.id)
-                confMsg = await ctx.send("{} removed from blacklist, "
-                                         "{}".format(user.name, userName))
+                await ctx.send("{} removed from blacklist, {}".format(user.name, userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("This user is not on the blacklist!")
+                await ctx.send("This user is not on the blacklist!", delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @userBlacklist.command(name="clear", aliases=["cls"])
     @commands.guild_only()
@@ -242,12 +247,16 @@ class Highlight(commands.Cog):
                 embed.title = "Blacklisted users on {}".format(ctx.message.guild.name)
                 embed.set_author(name=userName,
                                  icon_url=ctx.message.author.avatar_url)
-                await ctx.message.author.send(embed=embed)
-                confMsg = await ctx.send("Please check your DMs.")
+                try:
+                    await ctx.message.author.send(embed=embed)
+                except discord.Forbidden:
+                    await ctx.send("You do not have DMs enabled, please enable them!",
+                                   delete_after=DELETE_TIME)
+                else:
+                    await ctx.send("Please check your DMs.", delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("Sorry {}, you have no backlisted users "
-                                         "currently".format(userName))
-            await self._sleepThenDelete(confMsg, 5)
+                await ctx.send("Sorry {}, you have no backlisted users "
+                               "currently".format(userName), delete_after=DELETE_TIME)
 
     @highlight.group(name="ignore")
     @commands.guild_only()
@@ -276,15 +285,14 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
             if len(ignoreWords) < MAX_WORDS_IGNORE and word not in ignoreWords:
                 ignoreWords.append(word)
-                confMsg = await ctx.send("{} added to the ignore list, "
-                                         "{}".format(word, userName))
+                await ctx.send("{} added to the ignore list, {}".format(word, userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("Sorry {}, you are already ignoring {} "
-                                         "words, or you are trying to add a "
-                                         "duplicate word".format(userName,
-                                                                 MAX_WORDS_IGNORE))
+                await ctx.send("Sorry {}, you are already ignoring {} words, or you are "
+                               "trying to add a duplicate word".format(userName,
+                                                                       MAX_WORDS_IGNORE),
+                               delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @wordIgnore.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
@@ -295,12 +303,12 @@ class Highlight(commands.Cog):
         async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
             if word in ignoreWords:
                 ignoreWords.remove(word)
-                confMsg = await ctx.send("{} removed from the ignore list, "
-                                         "{}".format(word, userName))
+                await ctx.send("{} removed from the ignore list, {}".format(word, userName),
+                               delete_after=DELETE_TIME)
             else:
-                confMsg = await ctx.send("You are not currently ignoring this word!")
+                await ctx.send("You are not currently ignoring this word!",
+                               delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     @wordIgnore.command(name="list", aliases=["ls"])
     @commands.guild_only()
@@ -318,12 +326,17 @@ class Highlight(commands.Cog):
                                       colour=discord.Colour.red())
                 embed.set_author(name=ctx.message.author.name,
                                  icon_url=ctx.message.author.avatar_url)
-                await ctx.message.author.send(embed=embed)
-                confMsg = await ctx.send("Please check your DMs.")
+                try:
+                    await ctx.message.author.send(embed=embed)
+                except discord.Forbidden:
+                    await ctx.send("You do not have DMs enabled, please enable them!",
+                                   delete_after=DELETE_TIME)
+                else:
+                    await ctx.send("Please check your DMs.")
             else:
-                confMsg = await ctx.send("Sorry {}, you currently do not have any "
-                                         "ignored words.".format(userName))
-        await self._sleepThenDelete(confMsg, 5)
+                await ctx.send("Sorry {}, you currently do not have any ignored "
+                               "words.".format(userName),
+                               delete_after=DELETE_TIME)
 
     @highlight.command(name="timeout")
     @commands.guild_only()
@@ -350,9 +363,9 @@ class Highlight(commands.Cog):
 
         await self.config.member(ctx.author).timeout.set(seconds)
 
-        confMsg = await ctx.send("Timeout set to {} seconds.".format(seconds))
+        await ctx.send("Timeout set to {} seconds.".format(seconds),
+                       delete_after=DELETE_TIME)
         await ctx.message.delete()
-        await self._sleepThenDelete(confMsg, 5)
 
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
@@ -469,6 +482,7 @@ class Highlight(commands.Cog):
 
             # Handle case where message contains words being ignored byu the user.
             if KEY_WORDS_IGNORE in data.keys():
+                self.logger.debug("Checking for ignored words")
                 for word in data[KEY_WORDS_IGNORE]:
                     if _isWordMatch(word, msg.content):
                         self.logger.debug("%s is being ignored, skipping user.", word)
