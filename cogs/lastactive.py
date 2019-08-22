@@ -3,10 +3,9 @@ lastactive (Ren v2) - Tracks when a user was last active.
 
 How to use:
     bot.last_active[server_id][channel_id][author_id] -> Retrieves datetime (UTC) of last message sent by that author in
-    that channel.
-    You can change the parameters of the object in the setup method.
+    that channel in that server.
 
-Last updated by jangarong on August 21st, 2019.
+Last updated by jangarong on August 22nd, 2019.
 """
 import asyncio
 import pickle
@@ -61,22 +60,22 @@ class LastActive:
         if message.author.id != self.bot.user.id:
 
             # if the server exists
-            if message.server in self.bot.last_active:
+            if message.server.id in self.bot.last_active:
 
                 # update timestamp if channel exists
-                if message.channel in self.bot.last_active[message.server]:
-                    self.bot.last_active[message.server][message.channel][message.author.id] = message.timestamp
+                if message.channel.id in self.bot.last_active[message.server.id]:
+                    self.bot.last_active[message.server.id][message.channel.id][message.author.id] = message.timestamp
 
                 # if the channel did not exist before
                 else:
-                    self.bot.last_active[message.server][message.channel] = {}
-                    self.bot.last_active[message.server][message.channel][message.author.id] = message.timestamp
+                    self.bot.last_active[message.server.id][message.channel.id] = {}
+                    self.bot.last_active[message.server.id][message.channel.id][message.author.id] = message.timestamp
 
             # if the server did not exist before
             else:
-                self.bot.last_active[message.server] = {}
-                self.bot.last_active[message.server][message.channel] = {}
-                self.bot.last_active[message.server][message.channel][message.author.id] = message.timestamp
+                self.bot.last_active[message.server.id] = {}
+                self.bot.last_active[message.server.id][message.channel.id] = {}
+                self.bot.last_active[message.server.id][message.channel.id][message.author.id] = message.timestamp
 
     # limit = number of messages to read in each channel (the larger the number, the longer it'll take to load)
     async def on_ready(self, limit=9999):
