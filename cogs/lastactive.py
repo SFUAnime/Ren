@@ -7,6 +7,7 @@ How to use:
 
 Last updated by jangarong on August 22nd, 2019.
 """
+import os
 import asyncio
 import json
 from datetime import datetime, timedelta
@@ -15,7 +16,6 @@ from datetime import datetime, timedelta
 class LastActive:
 
     """
-    json_path : (String) Where the json file is saved/loaded.
     from_json : (Boolean) If true, it will retrieve last active data from json based on path. If false, it will
         retrieve last active data via logs from channels.
     to_json : (Boolean) If true, it will save the json file in the desired path periodically.
@@ -24,19 +24,28 @@ class LastActive:
 
     To change these values, see the setup function down below.
     """
-    def __init__(self, bot, json_path='/cogs/lastactive/last_active.json', from_json=False, to_json=True, limit=500):
+    def __init__(self, bot, from_json=False, to_json=True, limit=500):
         self.bot = bot
         self.bot.last_active = {}
-        self.json_path = json_path
         self.from_json = from_json
         self.to_json = to_json
         self.limit = limit
+
+        # working directory = cogs
+        self.json_path = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + '/data/lastactive/' \
+                                                                                      'last_active.json'
 
         # create loop that goes per day
         self.lastChecked = datetime.now() - timedelta(days=1)
         self.bgTask = self.bot.loop.create_task(self.json_loop())
 
+    def create_folder(self):
+        folder_name = self.json_path[:-len('last_active.json')]
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+
     def _to_json(self):
+        self.create_folder()
         with open(self.json_path, 'w') as f:
             json.dump(self.bot.last_active, f)
 
@@ -84,7 +93,7 @@ class LastActive:
             try:
                 self._load_json()
             except FileNotFoundError:
-                pass
+                self.create_folder()
 
         else:
 
@@ -105,6 +114,6 @@ class LastActive:
 
 
 def setup(bot):
-    n = LastActive(bot)
+    n = LastActive(bot, from_json=True)
     bot.add_listener(n.listener, "on_message")
     bot.add_cog(n)
