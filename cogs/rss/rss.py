@@ -216,9 +216,12 @@ class RSSFeed(commands.Cog):
                                     value=epoch2date(date2epoch(item.published)),
                                     inline=False)
 
-                    embed.add_field(name="Summary",
-                                    value=BeautifulSoup(item.summary, "html.parser").get_text(),
-                                    inline=False)
+                    #Handle empty summary case
+                    value=BeautifulSoup(item.summary, "html.parser").get_text()
+                    if value:
+                        embed.add_field(name="Summary", value, inline=False)
+                    else:
+                        self.logger.info("No summary found. Posting without the summary.")
 
                     try:
                         embed.set_image(url=soup.find("meta", property="og:image")["content"])
