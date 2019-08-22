@@ -35,8 +35,8 @@ class LastActive:
         self.json_path = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + '/data/lastactive/' \
                                                                                       'last_active.json'
 
-        # create loop that goes per day
-        self.lastChecked = datetime.now() - timedelta(days=1)
+        # create loop that goes every 15 minutes
+        self.lastChecked = datetime.now() - timedelta(minutes=15)
         self.bgTask = self.bot.loop.create_task(self.json_loop())
 
     def create_folder(self):
@@ -56,15 +56,12 @@ class LastActive:
     # iterate per day to save last active data
     async def json_loop(self):
         while self == self.bot.get_cog("LastActive"):
-            if self.lastChecked.day != datetime.now().day:
+            if (self.lastChecked + timedelta(minutes=15)).minute == datetime.now().minute:
                 self.lastChecked = datetime.now()
-                await self.save_data()
+                self._load_json()
             await asyncio.sleep(60)
 
-    async def save_data(self):
-        await self._to_json()
-
-    def add_to_db(self, message):
+    def add_to_dict(self, message):
 
         if message.author.id != self.bot.user.id:
 
@@ -106,14 +103,14 @@ class LastActive:
 
                         # go through each message and add them to dictionary
                         async for message in self.bot.logs_from(channel, limit=self.limit):
-                            self.add_to_db(message)
+                            self.add_to_dict(message)
 
     # update dictionary with latest post
     async def listener(self, message):
-        self.add_to_db(message)
+        self.add_to_dict(message)
 
 
 def setup(bot):
-    n = LastActive(bot, from_json=True)
+    n = LastActive(bot, to_json=True)
     bot.add_listener(n.listener, "on_message")
     bot.add_cog(n)
