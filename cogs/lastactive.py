@@ -13,6 +13,7 @@ from jsondt import json
 
 
 class LastActive:
+    """Tracks when a user was last active in a channel via dictionary."""
 
     def __init__(self, bot, fromJson=False, toJson=True, limit=500):
         """
@@ -54,12 +55,6 @@ class LastActive:
         with open(self.jsonPath, 'r') as file:
             self.bot.lastActive = json.load(file)
 
-    async def jsonLoop(self):
-        """Saves dictionary into json file every minute."""
-        while self == self.bot.get_cog("LastActive"):
-            self.dumpJson()
-            await asyncio.sleep(60)
-
     def addToDict(self, message):
         """Retrieves metadata from the message and places it accordingly in the dictionary."""
         if message.author.id != self.bot.user.id:
@@ -85,7 +80,18 @@ class LastActive:
                 self.bot.lastActive[message.server.id][message.channel.id][message.author.id] = \
                     message.timestamp
 
-    async def on_ready(self):
+    # update dictionary with latest post
+    async def onMessage(self, message):
+        """For every message, add to dictionary."""
+        self.addToDict(message)
+
+    async def jsonLoop(self):
+        """Saves dictionary into json file every minute."""
+        while self == self.bot.get_cog("LastActive"):
+            self.dumpJson()
+            await asyncio.sleep(60)
+
+    async def onReady(self):
         """Depending on the parameters given in __init__, it will either try
         to read from an existing json file, and use that as a dictionary, or read
         n messages from every text channel."""
@@ -109,13 +115,10 @@ class LastActive:
                         async for message in self.bot.logs_from(channel, limit=self.limit):
                             self.addToDict(message)
 
-    # update dictionary with latest post
-    async def listener(self, message):
-        """For every message, add to dictionary."""
-        self.addToDict(message)
-
 
 def setup(bot):
+    """Add cog to bot."""
     cog = LastActive(bot, toJson=True)
-    bot.add_listener(cog.listener, "on_message")
+    bot.add_listener(cog.onMessage, "on_message")
+    bot.add_listener(cog.onReady, "on_ready")
     bot.add_cog(cog)
