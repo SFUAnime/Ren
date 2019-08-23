@@ -217,7 +217,7 @@ class RSSFeed(commands.Cog):
                                     inline=False)
 
                     #Handle empty summary case
-                    value=BeautifulSoup(item.summary, "html.parser").get_text()
+                    value = BeautifulSoup(item.summary, "html.parser").get_text()
                     if value:
                         embed.add_field(name="Summary", value, inline=False)
                     else:
