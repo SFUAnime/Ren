@@ -48,7 +48,6 @@ class LastActive:
     async def jsonLoop(self):
         """Saves dictionary into json file every minute."""
         while self == self.bot.get_cog("LastActive"):
-            print("saving...")
             self.dumpJson()
             await asyncio.sleep(60)
 
@@ -109,7 +108,7 @@ class LastActive:
 
 def createFolder():
     """Creates a folder in case if one did not exist already."""
-    folderName = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + '/data/lastactive/'
+    folderName = 'data/lastactive/'
     if not os.path.exists(folderName):
         os.makedirs(folderName)
 
