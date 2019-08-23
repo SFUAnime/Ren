@@ -10,7 +10,6 @@ Last updated by jangarong on August 22nd, 2019.
 import os
 import asyncio
 from jsondt import json
-from datetime import datetime, timedelta
 
 
 class LastActive:
@@ -117,6 +116,6 @@ class LastActive:
 
 
 def setup(bot):
-    n = LastActive(bot, toJson=True)
-    bot.add_listener(n.listener, "on_message")
-    bot.add_cog(n)
+    cog = LastActive(bot, toJson=True)
+    bot.add_listener(cog.listener, "on_message")
+    bot.add_cog(cog)
