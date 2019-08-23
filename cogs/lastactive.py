@@ -9,7 +9,7 @@ Last updated by jangarong on August 22nd, 2019.
 """
 import os
 import asyncio
-from jsondt import json
+import jsondt as json
 
 
 class LastActive:
@@ -31,29 +31,26 @@ class LastActive:
         self.toJson = toJson
         self.limit = limit
 
-        # working directory = cogs
-        self.jsonPath = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + \
-                        '/data/lastactive/last_active.json'
-
         # create loop that goes every minute
         self.bgTask = self.bot.loop.create_task(self.jsonLoop())
 
-    def createFolder(self):
-        """Creates a folder in case if one did not exist already."""
-        folderName = self.jsonPath[:-len('last_active.json')]
-        if not os.path.exists(folderName):
-            os.makedirs(folderName)
-
     def dumpJson(self):
         """Saves dictionary into json."""
-        self.createFolder()
-        with open(self.jsonPath, 'w') as file:
+        createFolder()
+        with open('/data/lastactive/last_active.json', 'w') as file:
             json.dump(self.bot.lastActive, file)
 
     def loadJson(self):
         """Loads dictionary into json."""
-        with open(self.jsonPath, 'r') as file:
+        with open('/data/lastactive/last_active.json', 'r') as file:
             self.bot.lastActive = json.load(file)
+
+    async def jsonLoop(self):
+        """Saves dictionary into json file every minute."""
+        while self == self.bot.get_cog("LastActive"):
+            print("saving...")
+            self.dumpJson()
+            await asyncio.sleep(60)
 
     def addToDict(self, message):
         """Retrieves metadata from the message and places it accordingly in the dictionary."""
@@ -85,12 +82,6 @@ class LastActive:
         """For every message, add to dictionary."""
         self.addToDict(message)
 
-    async def jsonLoop(self):
-        """Saves dictionary into json file every minute."""
-        while self == self.bot.get_cog("LastActive"):
-            self.dumpJson()
-            await asyncio.sleep(60)
-
     async def onReady(self):
         """Depending on the parameters given in __init__, it will either try
         to read from an existing json file, and use that as a dictionary, or read
@@ -100,7 +91,7 @@ class LastActive:
             try:
                 self.loadJson()
             except FileNotFoundError:
-                self.createFolder()
+                createFolder()
 
         else:
 
@@ -114,6 +105,13 @@ class LastActive:
                         # go through each message and add them to dictionary
                         async for message in self.bot.logs_from(channel, limit=self.limit):
                             self.addToDict(message)
+
+
+def createFolder():
+    """Creates a folder in case if one did not exist already."""
+    folderName = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + '/data/lastactive/'
+    if not os.path.exists(folderName):
+        os.makedirs(folderName)
 
 
 def setup(bot):
