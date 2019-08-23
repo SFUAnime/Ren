@@ -84,6 +84,8 @@ class CommandObj:
         return "{:%d/%m/%Y %H:%M:%S}".format(datetime.utcnow())
 
     async def get(self, message: discord.Message, command: str) -> Tuple[str, Dict]:
+        if not command:
+            raise NotFound()
         ccinfo = await self.db(message.guild).commands.get_raw(command, default=None)
         if not ccinfo:
             raise NotFound()
@@ -296,7 +298,7 @@ class CustomCommands(commands.Cog):
                 )
             )
 
-    @customcom.command(name="delete")
+    @customcom.command(name="delete", aliases=["del", "remove"])
     @checks.mod_or_permissions(administrator=True)
     async def cc_delete(self, ctx, command: str.lower):
         """Delete a custom command.
@@ -411,10 +413,12 @@ class CustomCommands(commands.Cog):
         _type = _("Random") if len(responses) > 1 else _("Normal")
 
         text = _(
-            "Command: {}\n"
-            "Author: {}\n"
-            "Created: {}\n"
-            "Type: {}\n".format(command_name, author, cmd["created_at"], _type)
+            "Command: {command_name}\n"
+            "Author: {author}\n"
+            "Created: {created_at}\n"
+            "Type: {type}\n"
+        ).format(
+            command_name=command_name, author=author, created_at=cmd["created_at"], type=_type
         )
 
         cooldowns = cmd["cooldowns"]
@@ -422,7 +426,7 @@ class CustomCommands(commands.Cog):
         if cooldowns:
             cooldown_text = _("Cooldowns:\n")
             for rate, per in cooldowns.items():
-                cooldown_text += _("{} seconds per {}\n".format(per, rate))
+                cooldown_text += _("{num} seconds per {period}\n").format(num=per, period=rate)
             text += cooldown_text
 
         text += _("Responses:\n")
@@ -432,6 +436,7 @@ class CustomCommands(commands.Cog):
         for p in pagify(text):
             await ctx.send(box(p, lang="yaml"))
 
+    @commands.Cog.listener()
     async def on_message(self, message):
         is_private = isinstance(message.channel, discord.abc.PrivateChannel)
 
@@ -463,8 +468,9 @@ class CustomCommands(commands.Cog):
             return
 
         # wrap the command here so it won't register with the bot
-        fake_cc = commands.Command(ctx.invoked_with, self.cc_callback)
+        fake_cc = commands.command(name=ctx.invoked_with)(self.cc_callback)
         fake_cc.params = self.prepare_args(raw_response)
+        fake_cc.requires.ready_event.set()
         ctx.command = fake_cc
 
         await self.bot.invoke(ctx)
