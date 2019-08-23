@@ -42,7 +42,7 @@ class LastActive:
 
     def loadJson(self):
         """Loads dictionary into json."""
-        with open('/data/lastactive/last_active.json', 'r') as file:
+        with open('data/lastactive/last_active.json', 'r') as file:
             self.bot.lastActive = json.load(file)
 
     async def jsonLoop(self):
