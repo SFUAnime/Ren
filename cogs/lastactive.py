@@ -9,7 +9,7 @@ Last updated by jangarong on August 22nd, 2019.
 """
 import os
 import asyncio
-import json
+from jsondt import json
 from datetime import datetime, timedelta
 
 
@@ -35,34 +35,30 @@ class LastActive:
         self.jsonPath = os.path.abspath(os.path.dirname(__file__))[:-len('/cogs')] + \
                         '/data/lastactive/last_active.json'
 
-        # create loop that goes every 15 minutes
-        self.lastChecked = datetime.now() - timedelta(minutes=15)
+        # create loop that goes every minute
         self.bgTask = self.bot.loop.create_task(self.jsonLoop())
 
     def createFolder(self):
         """Creates a folder in case if one did not exist already."""
-        folder_name = self.jsonPath[:-len('last_active.json')]
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
+        folderName = self.jsonPath[:-len('last_active.json')]
+        if not os.path.exists(folderName):
+            os.makedirs(folderName)
 
     def dumpJson(self):
         """Saves dictionary into json."""
         self.createFolder()
-        with open(self.jsonPath, 'w') as f:
-            json.dump(self.bot.lastActive, f)
+        with open(self.jsonPath, 'w') as file:
+            json.dump(self.bot.lastActive, file)
 
     def loadJson(self):
         """Loads dictionary into json."""
-        with open(self.jsonPath, 'r') as f:
-            self.bot.lastActive = json.load(f)
+        with open(self.jsonPath, 'r') as file:
+            self.bot.lastActive = json.load(file)
 
-    # iterate per day to save last active data
     async def jsonLoop(self):
-        """Saves dictionary into json file every 15 minutes."""
+        """Saves dictionary into json file every minute."""
         while self == self.bot.get_cog("LastActive"):
-            if (self.lastChecked + timedelta(minutes=15)).minute == datetime.now().minute:
-                self.lastChecked = datetime.now()
-                self.dumpJson()
+            self.dumpJson()
             await asyncio.sleep(60)
 
     def addToDict(self, message):
