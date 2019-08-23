@@ -37,7 +37,7 @@ class LastActive:
     def dumpJson(self):
         """Saves dictionary into json."""
         createFolder()
-        with open('/data/lastactive/last_active.json', 'w') as file:
+        with open('data/lastactive/last_active.json', 'w') as file:
             json.dump(self.bot.lastActive, file)
 
     def loadJson(self):
