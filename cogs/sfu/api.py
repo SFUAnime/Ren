@@ -17,6 +17,25 @@ import aiohttp
 async def get_outline(dept, num, sec, year='current', term='current'):
     """Get course outline.
 
+    Below, assume the course is ENSC 452 D100 in Spring 2019.
+
+    Parameters:
+    -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    sec: str
+        Section number. In the example, the section number is D100.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
+
     Returns:
     --------
     dict
@@ -35,6 +54,30 @@ async def get_outline(dept, num, sec, year='current', term='current'):
 
 #fetches sections and returns a dictionary
 async def get_sections(dept, num, year='current', term='current'):
+    """Fetches the sections for a particular course.
+
+    Below, assume the course is ENSC 452 D100 in Spring 2019.
+
+    Parameters:
+    -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing dictionaries of the sections in the course.
+    """
     #setup params
     params = "?{0}/{1}/{2}/{3}/".format(year, term, dept, num)
     # Modified to be asynchronous.
@@ -48,6 +91,8 @@ async def get_sections(dept, num, year='current', term='current'):
 #returns a string containing the first section number with "LEC" as the sectionCode
 async def find_section(dept, num, year='current', term='current'):
     """Returns the section for a particular course.
+
+    Below, assume the course is ENSC 452 D100 in Spring 2019.
 
     Parameters:
     -----------
@@ -262,7 +307,7 @@ async def dict_outline(dept,
 def list_outline(dept, num, sec='placeholder', year='current', term='current'):
     """Searches the SFU calendar for a course.
 
-    In the below, assume the course is ENSC 452 D100 in Spring 2019.
+    Below, assume the course is ENSC 452 D100 in Spring 2019.
 
     Parameters:
     -----------
