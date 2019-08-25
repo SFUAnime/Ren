@@ -14,7 +14,7 @@ import aiohttp
 
 # Module for handling queries to the SFU Course Outlines API.
 # API URL: http://www.sfu.ca/bin/wcm/course-outlines
-async def get_outline(dept, num, sec, year='current', term='current'):
+async def getOutline(dept, num, sec, year='current', term='current'):
     """Get course outline.
 
     Below, assume the course is ENSC 452 D100 in Spring 2019.
@@ -53,7 +53,7 @@ async def get_outline(dept, num, sec, year='current', term='current'):
 
 
 #fetches sections and returns a dictionary
-async def get_sections(dept, num, year='current', term='current'):
+async def getSections(dept, num, year='current', term='current'):
     """Fetches the sections for a particular course.
 
     Below, assume the course is ENSC 452 D100 in Spring 2019.
@@ -89,7 +89,7 @@ async def get_sections(dept, num, year='current', term='current'):
 
 
 #returns a string containing the first section number with "LEC" as the sectionCode
-async def find_section(dept, num, year='current', term='current'):
+async def findSection(dept, num, year='current', term='current'):
     """Returns the section for a particular course.
 
     Below, assume the course is ENSC 452 D100 in Spring 2019.
@@ -103,7 +103,7 @@ async def find_section(dept, num, year='current', term='current'):
         A string containing the section number, or None if not found.
     """
     #fetch data
-    data = await get_sections(dept, num, year, term)
+    data = await getSections(dept, num, year, term)
     try:
         for sec in data:
             if sec['sectionCode'] == "LEC" or sec['sectionCode'] == "LAB":
@@ -113,18 +113,18 @@ async def find_section(dept, num, year='current', term='current'):
 
 
 #returns a course outline JSON Dictionary
-async def find_outline(dept,
-                       num,
-                       sec='placeholder',
-                       year='current',
-                       term='current'):
+async def findOutline(dept,
+                      num,
+                      sec='placeholder',
+                      year='current',
+                      term='current'):
     if sec == 'placeholder':
-        sec = await find_section(dept, num, year, term)
+        sec = await findSection(dept, num, year, term)
         if not sec:
             return None
 
     #print("sec = "  + sec)
-    data = await get_outline(dept, num, sec, year, term)
+    data = await getOutline(dept, num, sec, year, term)
     return data
 
 
@@ -201,7 +201,7 @@ def _extract(data: dict):
 
 
 #formats the outline JSON into readable string
-def format_outline(data: dict):
+def formatOutline(data: dict):
     strings = _extract(data)
 
     if len(strings) == 1:
@@ -230,18 +230,17 @@ def format_outline(data: dict):
 
 
 #returns a fairly nicely formatted string for easy reading
-def print_outline(dept, num, sec='placeholder', year='current',
-                  term='current'):
-    data = find_outline(dept, num, sec, year, term)
-    return format_outline(data)
+def printOutline(dept, num, sec='placeholder', year='current', term='current'):
+    data = findOutline(dept, num, sec, year, term)
+    return formatOutline(data)
 
 
 #returns a dictionary with relevant information
-async def dict_outline(dept,
-                       num,
-                       sec='placeholder',
-                       year='current',
-                       term='current'):
+async def dictOutline(dept,
+                      num,
+                      sec='placeholder',
+                      year='current',
+                      term='current'):
     """Searches the SFU calendar for a course.
 
     In the below, assume the course is ENSC 452 D100 in Spring 2019.
@@ -282,7 +281,7 @@ async def dict_outline(dept,
     ValueError
         The course is invalid.
     """
-    data = await find_outline(dept, num, sec, year, term)
+    data = await findOutline(dept, num, sec, year, term)
     #print(data)
     strings = _extract(data)
     #print(strings)
@@ -304,7 +303,7 @@ async def dict_outline(dept,
 
 
 #eturns two lists with relevant information
-def list_outline(dept, num, sec='placeholder', year='current', term='current'):
+def listOutline(dept, num, sec='placeholder', year='current', term='current'):
     """Searches the SFU calendar for a course.
 
     Below, assume the course is ENSC 452 D100 in Spring 2019.
@@ -346,7 +345,7 @@ def list_outline(dept, num, sec='placeholder', year='current', term='current'):
     ValueError
         The course was not found.
     """
-    data = find_outline(dept, num, sec, year, term)
+    data = findOutline(dept, num, sec, year, term)
     #print(data)
     strings = _extract(data)
     #print(strings)
