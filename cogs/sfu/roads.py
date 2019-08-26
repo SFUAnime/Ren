@@ -96,10 +96,11 @@ class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
         await ctx.send(file=camPhoto)
 
     @commands.command(name="report")
-    async def report(self):
+    @commands.guild_only()
+    async def report(self, ctx: Context):
         """Show the SFU Campus Report"""
-        with urllib.request.urlopen(ROAD_API) as roadReport:
-            results = json.loads(roadReport.read().decode('utf-8'))
+        fetchedData = requests.get(ROAD_API)
+        results = json.loads(fetchedData.content)
 
         embed = discord.Embed()
         embed.title = "SFU Campus Report"
@@ -133,4 +134,4 @@ class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
         lastUpdated = datetime.datetime.fromtimestamp(results["lastUpdated"]
                                                       /1000).strftime("%Y-%m-%d %H:%M:%S")
         embed.set_footer(text="This report was last updated on {}".format(lastUpdated))
-        await self.bot.say(embed=embed)
+        await ctx.send(embed=embed)
