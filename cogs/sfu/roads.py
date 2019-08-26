@@ -2,13 +2,16 @@
 - Web cameras: see road conditions in realtime.
 - Campus report: fetched from the Road Report API.
 """
+from io import BytesIO
 import os
 import datetime
 import json
-import urllib.request
+import requests
 from bs4 import BeautifulSoup
 import discord
-from discord.ext import commands
+from redbot.core import commands
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
 WEBCAM_GAGLARDI = ("http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
                    "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4")
@@ -22,6 +25,8 @@ WEBCAM_AQPOND = ("http://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
                  "?nocache=1&update=15000&timeout=1800000")
 WEBCAM_SUB = ("http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
               "?nocache=0.3346598630889852&update=15000&timeout=1800000")
+WEBCAM_TFF = ("http://ns-webcams.its.sfu.ca/public/images/terryfox-current.jpg"
+              "?nocache=1&update=15000&timeout=1800000")
 ROAD_API = "http://www.sfu.ca/security/sfuroadconditions/api/3/current"
 
 CAMPUSES = "campuses"
@@ -32,67 +37,63 @@ ROADS = "roads"
 STATUS = "status"
 ANNOUNCE = "announcements"
 
-SAVE_FOLDER = "data/lui-cogs/webcam/" # Path to save folder.
-SAVE_FILE = "settings.json"
-
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
-
-class SFUUtilities: # pylint: disable=too-few-public-methods
+class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
     """Various SFU Utilities"""
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
 
-    @commands.command(name="cam", pass_context=True)
-    async def cam(self, ctx, cam: str = ""):
+    @commands.command(name="cam")
+    @commands.guild_only()
+    async def cam(self, ctx: Context, cam: str = ""):
         """SFU webcam, defaults to Gaglardi.
 
         Parameters:
         -----------
         cam: str
             One of the following short strings:
-            trs:    Tower Road South
-            trn:    Tower Road North
-            udn:    University Drive North
             aqpond: AQ Pond
             sub:    AQ overlooking student union building
+            tff:    Terry Fox Field
+            trn:    Tower Road North
+            trs:    Tower Road South
+            udn:    University Drive North
         """
-        await self.bot.send_typing(ctx.message.channel)
-        path = "{}{}.jpg".format(SAVE_FOLDER, "webcam")
-        opener = urllib.request.build_opener()
+        await ctx.trigger_typing()
+
         # We need a custom header or else we get a HTTP 403 Unauthorized
-        opener.addheaders = [("User-agent", "Mozilla/5.0")]
-        urllib.request.install_opener(opener)
+        headers = {"User-agent": "Mozilla/5.0"}
 
         try:
-            if cam.lower() == "trs":
-                urllib.request.urlretrieve(WEBCAM_TRS, path)
-            elif cam.lower() == "trn":
-                urllib.request.urlretrieve(WEBCAM_TRN, path)
-            elif cam.lower() == "udn":
-                urllib.request.urlretrieve(WEBCAM_UDN, path)
-            elif cam.lower() == "aqpond":
-                urllib.request.urlretrieve(WEBCAM_AQPOND, path)
-            elif cam.lower() == "sub":
-                urllib.request.urlretrieve(WEBCAM_SUB, path)
+            if cam.lower() == "aqpond":
+                fetchedData = requests.get(WEBCAM_AQPOND, headers=headers)
             elif cam.lower() == "help":
-                await self.bot.send_cmd_help(ctx)
+                await self.bot.send_help_for(ctx, self.cam)
                 return
+            elif cam.lower() == "sub":
+                fetchedData = requests.get(WEBCAM_SUB, headers=headers)
+            elif cam.lower() == "tff":
+                fetchedData = requests.get(WEBCAM_TFF, headers=headers)
+            elif cam.lower() == "trn":
+                fetchedData = requests.get(WEBCAM_TRN, headers=headers)
+            elif cam.lower() == "trs":
+                fetchedData = requests.get(WEBCAM_TRS, headers=headers)
+            elif cam.lower() == "udn":
+                fetchedData = requests.get(WEBCAM_UDN, headers=headers)
             else:
-                urllib.request.urlretrieve(WEBCAM_GAGLARDI, path)
-        except urllib.request.ContentTooShortError:
-            return None
-        except urllib.error.HTTPError:
-            await self.bot.say(":warning: This webcam is currently unavailable!")
-            return
-        if os.stat(path).st_size == 0:
-            await self.bot.say(":warning: This webcam is currently unavailable!")
+                fetchedData = requests.get(WEBCAM_GAGLARDI, headers=headers)
+            fetchedData.raise_for_status()
+        except requests.exceptions.HTTPError:
+            await ctx.send(":warning: This webcam is currently unavailable!")
+            # self.logger.error(exc_info=True)
             return
 
-        await self.bot.send_file(ctx.message.channel, path)
+        if not fetchedData.content:
+            # Make sure we don't fetch a zero byte file
+            await ctx.send(":warning: This webcam is currently unavailable!")
+            return
+
+        camPhoto = discord.File(BytesIO(fetchedData.content), filename="cam.jpg")
+        await ctx.send(file=camPhoto)
 
     @commands.command(name="report")
     async def report(self):
@@ -133,8 +134,3 @@ class SFUUtilities: # pylint: disable=too-few-public-methods
                                                       /1000).strftime("%Y-%m-%d %H:%M:%S")
         embed.set_footer(text="This report was last updated on {}".format(lastUpdated))
         await self.bot.say(embed=embed)
-
-def setup(bot):
-    """Add the cog to the bot."""
-    checkFolder()
-    bot.add_cog(SFUUtilities(bot))

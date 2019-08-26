@@ -10,6 +10,7 @@ import os
 
 from redbot.core.bot import Red
 from .courses import SFUCourses
+from .roads import SFURoads
 
 def checkFolders():
     """Make sure folder for logs is available."""
@@ -21,6 +22,7 @@ def setup(bot: Red):
     global LOGGER # pylint: disable=global-statement
     checkFolders()
     coursesCog = SFUCourses(bot)
+    roadsCog = SFURoads(bot)
     # sfuCog.logger = logging.getLogger("red.SFU")
     # if sfuCog.logger.level == 0:
     #     # Prevents the LOGGER from being loaded again in case of module reload.
@@ -32,3 +34,4 @@ def setup(bot: Red):
     #                                            datefmt="[%d/%m/%Y %H:%M:%S]"))
     #     sfuCog.logger.addHandler(handler)
     bot.add_cog(coursesCog)
+    bot.add_cog(roadsCog)
