@@ -1,9 +1,9 @@
 """SFU Utilities.
+
 - Web cameras: see road conditions in realtime.
 - Campus report: fetched from the Road Report API.
 """
 from io import BytesIO
-import os
 import datetime
 import json
 import requests
@@ -13,8 +13,9 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
-WEBCAM_GAGLARDI = ("http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
-                   "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4")
+WEBCAM_GAGLARDI = (
+    "http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
+    "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4")
 WEBCAM_TRS = ("http://ns-webcams.its.sfu.ca/public/images/towers-current.jpg"
               "?nocache=0.9550930672504077&update=15000&timeout=1800000")
 WEBCAM_TRN = ("http://ns-webcams.its.sfu.ca/public/images/towern-current.jpg"
@@ -37,8 +38,9 @@ ROADS = "roads"
 STATUS = "status"
 ANNOUNCE = "announcements"
 
-class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
-    """Various SFU Utilities"""
+
+class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
+    """Various SFU Utilities."""
     def __init__(self, bot: Red):
         self.bot = bot
 
@@ -92,13 +94,14 @@ class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
             await ctx.send(":warning: This webcam is currently unavailable!")
             return
 
-        camPhoto = discord.File(BytesIO(fetchedData.content), filename="cam.jpg")
+        camPhoto = discord.File(BytesIO(fetchedData.content),
+                                filename="cam.jpg")
         await ctx.send(file=camPhoto)
 
     @commands.command(name="report")
     @commands.guild_only()
     async def report(self, ctx: Context):
-        """Show the SFU Campus Report"""
+        """Show the SFU Campus Report."""
         fetchedData = requests.get(ROAD_API)
         results = json.loads(fetchedData.content)
 
@@ -131,7 +134,8 @@ class SFURoads(commands.Cog): # pylint: disable=too-few-public-methods
         embed.add_field(name="Vancouver", value=vanAnnounce)
         embed.add_field(name="Surrey", value=surreyAnnounce)
 
-        lastUpdated = datetime.datetime.fromtimestamp(results["lastUpdated"]
-                                                      /1000).strftime("%Y-%m-%d %H:%M:%S")
-        embed.set_footer(text="This report was last updated on {}".format(lastUpdated))
+        lastUpdated = datetime.datetime.fromtimestamp(
+            results["lastUpdated"] / 1000).strftime("%Y-%m-%d %H:%M:%S")
+        embed.set_footer(
+            text="This report was last updated on {}".format(lastUpdated))
         await ctx.send(embed=embed)
