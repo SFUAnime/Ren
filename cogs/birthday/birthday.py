@@ -64,16 +64,18 @@ class Birthday(commands.Cog):
     def __unload(self): # pylint: disable=invalid-name
         self.bgTask.cancel()
 
-    @commands.group(name="birthday", pass_context=True, no_pm=True)
+    @commands.group(name="birthday")
+    @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def _birthday(self, ctx):
+    async def _birthday(self, ctx: Context):
         """Birthday role assignment settings"""
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_cmd_help(ctx)
+        if not ctx.invoked_subcommand:
+            await self.bot.send_help_for(ctx, self._birthday)
 
-    @_birthday.command(name="setrole", pass_context=True, no_pm=True)
+    @_birthday.command(name="setrole")
+    @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def _birthdayRole(self, ctx, role: discord.Role):
+    async def setRole(self, ctx, role: discord.Role):
         """Set the role to assign to a birthday user.
         Make sure this role can be assigned and removed by the bot by placing it in
         the correct hierarchy location.
@@ -84,89 +86,50 @@ class Birthday(commands.Cog):
             A role (name or mention) to set as the birthday role.
         """
 
-        await self.bot.say(":white_check_mark: **Birthday - Role**: **{}** has been set "
-                           "as the birthday role!".format(role.name))
+        await self.config.guild(ctx.message.guild).birthdayRole.set(role.id)
+        await ctx.send(":white_check_mark: **Birthday - Role**: **{}** has been set "
+                       "as the birthday role!".format(role.name))
 
-        # Acquire lock and save settings to file.
-        self.settingsLock.acquire()
-        try:
-            self.loadSettings()
-            if ctx.message.server.id not in self.settings:
-                self.settings[ctx.message.server.id] = {}
-            self.settings[ctx.message.server.id][KEY_BDAY_ROLE] = role.id
-            self.saveSettings()
-        except Exception as error: # pylint: disable=broad-except
-            LOGGER.error(error)
-        finally:
-            self.settingsLock.release()
-        return
-
-    @_birthday.command(name="add", pass_context=True, no_pm=True)
+    @_birthday.command(name="add")
+    @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def _birthdayAdd(self, ctx, user: discord.Member):
-        """Add a user to the birthday role.
+    async def addMember(self, ctx, member: discord.Member):
+        """Immediately add a member to the birthday role.
 
         Parameters:
         -----------
-        user: discord.Member
-            The user that you want to add to the birthday role.
+        member: discord.Member
+            The guild member that you want to add to the birthday role.
         """
-        sid = ctx.message.server.id
-        if sid not in self.settings.keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: This "
-                               "server is not configured, please set a role!")
-            return
-        if KEY_BDAY_ROLE not in self.settings[sid].keys() or \
-                self.settings[sid][KEY_BDAY_ROLE] is None:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Please "
-                               "set a role before adding a user!")
+        sid = ctx.message.guild.id
+
+        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        if not rid:
+            await ctx.send(":negative_squared_cross_mark: **Birthday - Add**: This "
+                           "server is not configured, please set a role!")
             return
 
         try:
             # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.server.roles,
-                                     id=self.settings[sid][KEY_BDAY_ROLE])
+            role = discord.utils.get(ctx.message.guild.roles, id=rid)
 
-            # Add the role to the user.
-            await self.bot.add_roles(user, role)
-        except discord.errors.Forbidden as error:
+            # Add the role to the guild member.
+            await member.add_roles(role)
+        except discord.Forbidden:
             LOGGER.error("Could not add %s#%s (%s) to birthday role, does the bot "
                          "have enough permissions?",
-                         user.name, user.discriminator, user.id)
-            LOGGER.error(error)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: Could "
-                               "not add **{}** to the list, the bot does not have enough "
-                               "permissions to do so!".format(user.name))
+                         member.name, member.discriminator, member.id, exc_info=True)
+            await ctx.send(":negative_squared_cross_mark: **Birthday - Add**: Could "
+                           "not add **{}** to the list, the bot does not have enough "
+                           "permissions to do so!".format(member.name))
             return
 
         # Save settings
-        self.settingsLock.acquire()
-        try:
-            self.loadSettings()
-
-            if sid not in self.settings.keys():
-                self.settings[sid] = {}
-            if KEY_BDAY_USERS not in self.settings[sid].keys():
-                self.settings[sid][KEY_BDAY_USERS] = {}
-            if user.id not in self.settings[sid][KEY_BDAY_USERS].keys():
-                self.settings[sid][KEY_BDAY_USERS][user.id] = {}
-            userConfig = self.settings[sid][KEY_BDAY_USERS][user.id]
-
+        async with self.config.member(member).all() as userConfig:
             userConfig[KEY_IS_ASSIGNED] = True
             userConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
             userConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
 
-            self.settings[sid][KEY_BDAY_USERS][user.id] = userConfig
-
-            self.saveSettings()
-        except Exception as error: # pylint: disable=broad-except
-            LOGGER.error("Could not save settings!")
-            LOGGER.error(error)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Add**: "
-                               "Could not save **{}** to the list, but the role was "
-                               "assigned!  Please try again.".format(user.name))
-        finally:
-            self.settingsLock.release()
         await self.bot.say(":white_check_mark: **Birthday - Add**: Successfully added "
                            "**{}** to the list and assigned the role.".format(user.name))
 
@@ -174,9 +137,9 @@ class Birthday(commands.Cog):
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id,
-                    user.name,
-                    user.discriminator,
-                    user.id)
+                    member.name,
+                    member.discriminator,
+                    member.id)
         return
 
     @_birthday.command(name="set", pass_context=True, no_pm=True)
