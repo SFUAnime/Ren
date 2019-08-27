@@ -20,8 +20,7 @@ class SFUCourses(commands.Cog):
                      number: str,
                      semester: str = None,
                      year: str = None,
-                     section: str = None):         \
-                     # pylint: disable=too-many-arguments
+                     section: str = None):
         """Displays a course outline.  Defaults to current semester and year.
 
         Semester: spring, summer, fall

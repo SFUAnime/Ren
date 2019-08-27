@@ -96,6 +96,18 @@ async def findSection(dept, num, year='current', term='current'):
 
     Parameters:
     -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
 
     Returns:
     --------
@@ -108,7 +120,7 @@ async def findSection(dept, num, year='current', term='current'):
         for sec in data:
             if sec['sectionCode'] == "LEC" or sec['sectionCode'] == "LAB":
                 return sec['value']
-    except Exception:
+    except KeyError:
         return None
 
 
@@ -118,6 +130,32 @@ async def findOutline(dept,
                       sec='placeholder',
                       year='current',
                       term='current'):
+    """Finds a course outline.
+
+    Below, assume the course is ENSC 452 D100 in Spring 2019.
+
+    Parameters:
+    -----------
+    dept: str
+        Department. In the example, the department is ENSC.
+    num: str
+        Course number. In the example, the course number is 452.
+    sec: str
+        Section number. In the example, this is D100.
+    year: str
+        Year: In the example, the year is 2019.
+    term: str
+        Term. One of the following strings (case-insensitive):
+        - Spring
+        - Summer
+        - Fall
+        In the example, the term is Spring.
+
+    Returns:
+    --------
+    dict
+        A dictionary containing the relevant data about the course.
+    """
     if sec == 'placeholder':
         sec = await findSection(dept, num, year, term)
         if not sec:
@@ -136,7 +174,7 @@ def _extract(data: dict):
 
         schedule = data['courseSchedule']
 
-    except Exception:
+    except KeyError:
         return [
             "Error: Maybe the class doesn't exist? \nreturned data:\n" +
             json.dumps(data)
@@ -149,7 +187,7 @@ def _extract(data: dict):
     try:
         for i in data['instructor']:
             prof += "{} ({})\n".format(i['name'], i['email'])
-    except Exception:
+    except KeyError:
         prof = "Unknown"
 
     classtimes = ""
@@ -166,7 +204,7 @@ def _extract(data: dict):
                     time['startDate'].split(" 00", 1)[0], time['startTime'],
                     time['endTime'], time['buildingCode'], time['roomNumber'],
                     time['campus'])
-    except Exception:
+    except KeyError:
         #TBA I guess
         examtime = "TBA\n"
     description = info['description']
@@ -181,7 +219,7 @@ def _extract(data: dict):
         details = (details[:limit] +
                    " ...") if len(details) > limit else details
 
-    except Exception:
+    except KeyError:
         details = ""
 
     if "prerequisites" in info.keys():
@@ -200,8 +238,8 @@ def _extract(data: dict):
     ]
 
 
-#formats the outline JSON into readable string
 def formatOutline(data: dict):
+    """Formats the outline JSON into a readable string."""
     strings = _extract(data)
 
     if len(strings) == 1:
@@ -229,8 +267,8 @@ def formatOutline(data: dict):
     return doc
 
 
-#returns a fairly nicely formatted string for easy reading
 def printOutline(dept, num, sec='placeholder', year='current', term='current'):
+    """Returns a fiarly nicely formatted string for easy reading."""
     data = findOutline(dept, num, sec, year, term)
     return formatOutline(data)
 
