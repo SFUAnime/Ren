@@ -8,13 +8,10 @@ import asyncio
 from datetime import datetime, timedelta
 from threading import Lock
 import discord
-from discord.ext import commands
-from cogs.utils.paginator import Pages # For making pages, requires the util!
-from cogs.utils.dataIO import dataIO
-
-# Requires checks utility from:
-# https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from cogs.utils import checks
+from redbot.core import Config, checks, commands
+from redbot.core.commands.context import Context
+from redbot.core.utils import paginator
+from redbot.core.bot import Red
 
 #Global variables
 KEY_BDAY_ROLE = "birthdayRole"
@@ -28,44 +25,36 @@ LOGGER = None
 SAVE_FOLDER = "data/lui-cogs/birthday/" #Path to save folder.
 SAVE_FILE = "settings.json"
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
+BASE_GUILD_MEMBER = \
+{
+    KEY_BDAY_DAY: None,
+    KEY_BDAY_MONTH: None,
+    KEY_DATE_SET_DAY: None,
+    KEY_DATE_SET_MONTH: None,
+    KEY_IS_ASSIGNED: False
+}
 
-def checkFiles():
-    """Used to initialize an empty database at first startup"""
-
-    myFile = SAVE_FOLDER + SAVE_FILE
-    if not dataIO.is_valid_json(myFile):
-        print("Creating default birthday settings.json...")
-        dataIO.save_json(myFile, {})
+BASE_GUILD = \
+{
+    KEY_BDAY_ROLE: None
+}
 
 
-class Birthday:
+class Birthday(commands.Cog):
     """Adds a role to someone on their birthday, and automatically remove them from
     this role after the day is over.
     """
 
-    def loadSettings(self):
-        """Loads settings from the JSON file"""
-        self.settings = dataIO.load_json(SAVE_FOLDER+SAVE_FILE)
-
-    def saveSettings(self):
-        """Loads settings from the JSON file"""
-        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, self.settings)
-
     # Class constructor
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
+        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+        # Register default (empty) settings.
+        self.config.register_guild(**BASE_GUILD)
+        self.config.register_member(**BASE_GUILD_MEMBER)
 
         #The JSON keys for the settings:
         self.settingsLock = Lock()
-
-        checkFolder()
-        checkFiles()
-        self.loadSettings()
 
         # On cog load, we want the loop to run once.
         self.lastChecked = datetime.now() - timedelta(days=1)
