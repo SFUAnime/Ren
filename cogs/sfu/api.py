@@ -120,7 +120,7 @@ async def findSection(dept, num, year='current', term='current'):
         for sec in data:
             if sec['sectionCode'] == "LEC" or sec['sectionCode'] == "LAB":
                 return sec['value']
-    except KeyError:
+    except (KeyError, TypeError):
         return None
 
 
@@ -174,7 +174,7 @@ def _extract(data: dict):
 
         schedule = data['courseSchedule']
 
-    except KeyError:
+    except (KeyError, TypeError):
         return [
             "Error: Maybe the class doesn't exist? \nreturned data:\n" +
             json.dumps(data)
@@ -187,7 +187,7 @@ def _extract(data: dict):
     try:
         for i in data['instructor']:
             prof += "{} ({})\n".format(i['name'], i['email'])
-    except KeyError:
+    except (KeyError, TypeError):
         prof = "Unknown"
 
     classtimes = ""
@@ -204,7 +204,7 @@ def _extract(data: dict):
                     time['startDate'].split(" 00", 1)[0], time['startTime'],
                     time['endTime'], time['buildingCode'], time['roomNumber'],
                     time['campus'])
-    except KeyError:
+    except (KeyError, TypeError):
         #TBA I guess
         examtime = "TBA\n"
     description = info['description']
@@ -219,7 +219,7 @@ def _extract(data: dict):
         details = (details[:limit] +
                    " ...") if len(details) > limit else details
 
-    except KeyError:
+    except (KeyError, TypeError):
         details = ""
 
     if "prerequisites" in info.keys():
