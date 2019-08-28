@@ -256,73 +256,55 @@ class Birthday(commands.Cog):
         page.embed.colour = discord.Colour.red()
         await page.paginate()
 
-    @_birthday.command(name="del", pass_context=True, no_pm=True,
-                       aliases=["remove", "delete", "rm"])
+    @_birthday.command(name="del", aliases=["remove", "delete", "rm"])
+    @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def _birthdayDel(self, ctx, user: discord.Member):
-        """Remove a user from the birthday role manually."""
-        sid = ctx.message.server.id
-        if sid not in self.settings.keys():
+    async def deleteMember(self, ctx: Context, member: discord.Member):
+        """Remove a user from the birthday role manually.
+
+        Parameters:
+        -----------
+        member: discord.Member
+            The guild member that you want to remove the birthday role from.
+        """
+        sid = ctx.message.guild.id
+
+        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        if not rid:
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This "
                                "server is not configured, please set a role!")
             return
-        if KEY_BDAY_ROLE not in self.settings[sid].keys() or \
-                not self.settings[sid][KEY_BDAY_ROLE]:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: Please "
-                               "set a role before removing a user from the role!")
-            return
-
-        if sid not in self.settings.keys() or \
-                KEY_BDAY_USERS not in self.settings[sid].keys() or \
-                user.id not in self.settings[sid][KEY_BDAY_USERS].keys():
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: The "
-                               "user is not on the list!")
-            return
-
 
         try:
-            # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.server.roles,
-                                     id=self.settings[ctx.message.server.id][KEY_BDAY_ROLE])
+            # Find the Role object to remove from the member.
+            role = discord.utils.get(ctx.message.guild.roles, id=rid)
 
-            # Add the role to the user.
-            await self.bot.remove_roles(user, role)
-        except discord.errors.Forbidden as error:
+            # Remove role from the user.
+            await member.remove_roles(role)
+        except discord.Forbidden:
             LOGGER.error("Could not remove %s#%s (%s) from the birthday role, does "
                          "the bot have enough permissions?",
-                         user.name, user.discriminator, user.id)
-            LOGGER.error(error)
+                         member.name, user.discriminator, user.id, exc_info=True)
             await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: "
                                "Could not remove **{}** from the role, the bot does not "
-                               "have enough permissions to do so!".format(user.name))
+                               "have enough permissions to do so!".format(member.name))
             return
 
-        self.settingsLock.acquire()
-        try:
-            self.loadSettings()
-            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_IS_ASSIGNED] = False
-            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_DATE_SET_MONTH] = None
-            self.settings[sid][KEY_BDAY_USERS][user.id][KEY_DATE_SET_DAY] = None
+        async with self.config.member(member).all() as userConfig:
+            userConfig[KEY_IS_ASSIGNED] = False
+            userConfig[KEY_DATE_SET_MONTH] = None
+            userConfig[KEY_DATE_SET_DAY] = None
 
-            self.saveSettings()
-        except Exception as error: # pylint: disable=broad-except
-            LOGGER.error("Could not save settings!")
-            LOGGER.error(error)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: "
-                               "Could not remove **{}** from the list, but the role was "
-                               "removed!  Please try again.".format(user.name))
-        finally:
-            self.settingsLock.release()
-        await self.bot.say(":white_check_mark: **Birthday - Delete**: Successfully removed "
-                           "**{}** from the list and removed the role.".format(user.name))
+        await self.bot.say(":white_check_mark: **Birthday - Delete**: Removed "
+                           "**{}** from the birthday role.".format(member.name))
 
         LOGGER.info("%s#%s (%s) removed %s#%s (%s) from the birthday role",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id,
-                    user.name,
-                    user.discriminator,
-                    user.id)
+                    member.name,
+                    member.discriminator,
+                    member.id)
         return
 
     ########################################
