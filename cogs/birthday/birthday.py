@@ -310,7 +310,7 @@ class Birthday(commands.Cog):
     ########################################
     # Event loop - Try an absolute timeout #
     ########################################
-    async def checkBirthday(self, *args): # ignore args pylint: disable=unused-argument
+    async def checkBirthday(self):
         """Check birthday list once."""
         await self._dailySweep()
         await self._dailyAdd()
@@ -324,52 +324,57 @@ class Birthday(commands.Cog):
             await asyncio.sleep(60) # pylint: disable=no-member
 
     async def _dailySweep(self):
+        """Check to see if any users should have the birthday role removed."""
         self.settingsLock.acquire()
-        try: # pylint: disable=too-many-nested-blocks
-            # Check each server.
-            for sid in self.settings:
+        guilds = self.bot.guilds()
+
+        # Avoid having data modified by other methods.
+        guildsLock = self.config.get_guilds_lock()
+        membersLock = self.config.get_members_lock()
+
+        try:
+            # Check each guild.
+            for guild in guilds:
+                # Make sure the guild is configured with birthdya role.
+                # If it's not, skip over it.
+                bdayRoleId = await self.config.guild(guild).birthdayRole()
+                if not birthdayRole:
+                    continue
+
                 # Check to see if any users need to be removed.
-                for userId, userDetails in self.settings[sid][KEY_BDAY_USERS].items():
+                userData = await self.config.all_members(guild) # dict
+                for userId, userDetails in userData.items():
                     # If assigned and the date is different than the date assigned, remove role.
-                    try:
-                        if userDetails[KEY_IS_ASSIGNED]:
-                            if userDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
-                                    userDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
-                                serverObject = discord.utils.get(self.bot.servers, id=sid)
-                                roleObject = discord.utils.get(serverObject.roles,
-                                                               id=self.settings[sid][KEY_BDAY_ROLE])
-                                userObject = discord.utils.get(serverObject.members, id=userId)
+                    if userDetails[KEY_IS_ASSIGNED] and \
+                            userDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
+                            userDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
 
-                                if userObject:
-                                    # Remove the role
-                                    try:
-                                        await self.bot.remove_roles(userObject, roleObject)
-                                        LOGGER.info("Removed role from %s#%s (%s)",
-                                                    userObject.name,
-                                                    userObject.discriminator,
-                                                    userObject.id)
-                                    except discord.errors.Forbidden as error:
-                                        LOGGER.error("Could not remove role from %s#%s (%s)!",
-                                                     userObject.name,
-                                                     userObject.discriminator,
-                                                     userObject.id)
-                                        LOGGER.error(error)
-                                else:
-                                    # Do not remove role, wait until user rejoins, in case
-                                    # another cog saves roles.
-                                    continue
+                        role = discord.utils.get(guild.roles. id=bdayRoleId)
+                        member = discord.utils.get(guild.members, id=userId)
 
-                                # Update the list.
-                                self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
-                                self.saveSettings()
-                    except KeyError as error:
-                        LOGGER.error(error)
-                        self.settings[sid][KEY_BDAY_USERS][userId][KEY_IS_ASSIGNED] = False
-                        self.saveSettings()
-        except Exception as error: # pylint: disable=broad-except
-            LOGGER.error("Broad exception: %s", error)
+                        if member:
+                            # Remove the role
+                            try:
+                                await member.remove_roles(role)
+                                LOGGER.info("Removed role from %s#%s (%s)",
+                                            member.name,
+                                            member.discriminator,
+                                            member.id)
+                            except discord.Forbidden:
+                                LOGGER.error("Could not remove role from %s#%s (%s)!",
+                                             member.name,
+                                             member.discriminator,
+                                             member.id, exc_info=True)
+                        else:
+                            # Do not remove role, wait until user rejoins, in case
+                            # another cog saves roles.
+                            continue
+
+                        # Update the list.
+                        await self.config.member(member).isAssigned.set(False)
         finally:
-            self.settingsLock.release()
+            guildsLock.release()
+            membersLock.release()
 
     ##################################################################
     # Event Loop - Check to see if we need to add people to the role #
