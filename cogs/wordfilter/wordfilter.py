@@ -355,8 +355,7 @@ class WordFilter(commands.Cog): # pylint: disable=too-many-instance-attributes
 
         filteredMsg = msg.content
         filters = await self.config.guild(msg.guild).filters()
-        for word in filters:
-            filteredMsg = _filterWord(word, filteredMsg)
+        filteredMsg = _filterWord(filters, filteredMsg)
 
         if msg.content == filteredMsg:
             return False
@@ -403,14 +402,12 @@ class WordFilter(commands.Cog): # pylint: disable=too-many-instance-attributes
                 if checkMsg.startswith(prefix+cmd):
                     blacklistedCmd = True
 
-        for word in filteredWords:
-            try:
-                filteredMsg = _filterWord(word, filteredMsg)
-            except Exception as error: # pylint: disable=broad-except
-                self.logger.error("Exception!")
-                self.logger.error(error)
-                self.logger.info("Word: %s", word)
-                self.logger.info("Filtered message: %s", filteredMsg)
+        try:
+            filteredMsg = _filterWord(filteredWords, filteredMsg)
+        except re.error as error: # pylint: disable=broad-except
+            self.logger.error("Exception!")
+            self.logger.error(error)
+            self.logger.info("Filtered message: %s", filteredMsg)
 
         allFiltered = _isAllFiltered(filteredMsg)
 
@@ -462,24 +459,18 @@ class WordFilter(commands.Cog): # pylint: disable=too-many-instance-attributes
     async def on_message_edit(self, msg, newMsg):
         await self.checkWords(msg, newMsg)
 
-def _filterWord(word, string):
-    regex = r'\b{}\b'.format(word)
+def _censorMatch(matchobj):
+    matchLength = len(matchobj.group(0))
+    return '`' + ('*' * matchLength) + '`'
 
-    # Replace the offending string with the correct number of stars.  Note that
-    # this only considers the length of the first time an offending string is
-    # found with the current regex.  It will replace every string found with
-    # this regex with the number of stars corresponding to the first offending
-    # string.
+def _filterWord(words, string):
+    # Combine all filter words into one regex
+    numFilters = len(words)-1
+    reFormat = r'\b(?:' + (r'{}|')*numFilters + r'{})\b'
+    regex = reFormat.format(*words)
 
-    try:
-        number = len(re.search(regex, string, flags=re.IGNORECASE).group(0))
-    except Exception: # pylint: disable=broad-except
-        # Nothing to replace, return original string
-        return string
-
-    stars = '*'*number
-    repl = "{0}{1}{0}".format('`', stars)
-    return re.sub(regex, repl, string, flags=re.IGNORECASE)
+    # Replace the offending string with the correct number of stars.
+    return re.sub(regex, _censorMatch, string, flags=re.IGNORECASE)
 
 def _isOneWord(string):
     return len(string.split()) == 1

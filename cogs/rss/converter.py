@@ -19,9 +19,9 @@ V3JSON = BASE
 GUILD_ID = input("Please input your server ID: ")
 
 # Convert filter into v3 format.
-with open("settings.json") as v2Filters:
+with open("settings.json") as v2settings:
     print("Converting settings.json...")
-    FILTERS = json.load(v2Filters)
+    FILTERS = json.load(v2settings)
     #Creating new section for the specific guild
     V3JSON[UID]["GUILD"][GUILD_ID] = {}
     for key, val in FILTERS.items():
@@ -35,4 +35,4 @@ with open("settings.json") as v2Filters:
  #writing to file using pythong json library
 with open("v3data.json", "w") as output:
     json.dump(V3JSON, output, indent=4)
-    print("Word filter data successfully converted to v3 format!")
+    print("RSS data successfully converted to v3 format!")
