@@ -1,9 +1,8 @@
-"""Birthday cog
-Automatically add users to a specified birthday role on their birthday.
-"""
+"""Birthday cog Automatically add users to a specified birthday role on their
+birthday."""
 import os
 import logging
-import time # To auto remove birthday role on the next day.
+import time  # To auto remove birthday role on the next day.
 import asyncio
 from datetime import datetime, timedelta
 from threading import Lock
@@ -22,7 +21,7 @@ KEY_IS_ASSIGNED = "isAssigned"
 KEY_DATE_SET_MONTH = "dateAssignedMonth"
 KEY_DATE_SET_DAY = "dateAssignedDay"
 LOGGER = None
-SAVE_FOLDER = "data/lui-cogs/birthday/" #Path to save folder.
+SAVE_FOLDER = "data/lui-cogs/birthday/"  #Path to save folder.
 SAVE_FILE = "settings.json"
 
 BASE_GUILD_MEMBER = \
@@ -41,14 +40,15 @@ BASE_GUILD = \
 
 
 class Birthday(commands.Cog):
-    """Adds a role to someone on their birthday, and automatically remove them from
-    this role after the day is over.
-    """
+    """Adds a role to someone on their birthday, and automatically remove them
+    from this role after the day is over."""
 
     # Class constructor
     def __init__(self, bot: Red):
         self.bot = bot
-        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+        self.config = Config.get_conf(self,
+                                      identifier=5842647,
+                                      force_registration=True)
         # Register default (empty) settings.
         self.config.register_guild(**BASE_GUILD)
         self.config.register_member(**BASE_GUILD_MEMBER)
@@ -61,14 +61,14 @@ class Birthday(commands.Cog):
         self.bgTask = self.bot.loop.create_task(self.birthdayLoop())
 
     # Cancel the background task on cog unload.
-    def __unload(self): # pylint: disable=invalid-name
+    def __unload(self):  # pylint: disable=invalid-name
         self.bgTask.cancel()
 
     @commands.group(name="birthday")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def _birthday(self, ctx: Context):
-        """Birthday role assignment settings"""
+        """Birthday role assignment settings."""
         if not ctx.invoked_subcommand:
             await self.bot.send_help_for(ctx, self._birthday)
 
@@ -76,9 +76,9 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def setRole(self, ctx, role: discord.Role):
-        """Set the role to assign to a birthday user.
-        Make sure this role can be assigned and removed by the bot by placing it in
-        the correct hierarchy location.
+        """Set the role to assign to a birthday user. Make sure this role can
+        be assigned and removed by the bot by placing it in the correct
+        hierarchy location.
 
         Parameters:
         -----------
@@ -87,8 +87,9 @@ class Birthday(commands.Cog):
         """
 
         await self.config.guild(ctx.message.guild).birthdayRole.set(role.id)
-        await ctx.send(":white_check_mark: **Birthday - Role**: **{}** has been set "
-                       "as the birthday role!".format(role.name))
+        await ctx.send(
+            ":white_check_mark: **Birthday - Role**: **{}** has been set "
+            "as the birthday role!".format(role.name))
 
     @_birthday.command(name="add")
     @commands.guild_only()
@@ -105,8 +106,9 @@ class Birthday(commands.Cog):
 
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
         if not rid:
-            await ctx.send(":negative_squared_cross_mark: **Birthday - Add**: This "
-                           "server is not configured, please set a role!")
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Add**: This "
+                "server is not configured, please set a role!")
             return
 
         try:
@@ -116,12 +118,17 @@ class Birthday(commands.Cog):
             # Add the role to the guild member.
             await member.add_roles(role)
         except discord.Forbidden:
-            LOGGER.error("Could not add %s#%s (%s) to birthday role, does the bot "
-                         "have enough permissions?",
-                         member.name, member.discriminator, member.id, exc_info=True)
-            await ctx.send(":negative_squared_cross_mark: **Birthday - Add**: Could "
-                           "not add **{}** to the list, the bot does not have enough "
-                           "permissions to do so!".format(member.name))
+            LOGGER.error(
+                "Could not add %s#%s (%s) to birthday role, does the bot "
+                "have enough permissions?",
+                member.name,
+                member.discriminator,
+                member.id,
+                exc_info=True)
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Add**: Could "
+                "not add **{}** to the list, the bot does not have enough "
+                "permissions to do so!".format(member.name))
             return
 
         # Save settings
@@ -130,23 +137,24 @@ class Birthday(commands.Cog):
             userConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
             userConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
 
-        await self.bot.say(":white_check_mark: **Birthday - Add**: Successfully added "
-                           "**{}** to the list and assigned the role.".format(user.name))
+        await self.bot.say(
+            ":white_check_mark: **Birthday - Add**: Successfully added "
+            "**{}** to the list and assigned the role.".format(user.name))
 
         LOGGER.info("%s#%s (%s) added %s#%s (%s) to the birthday role.",
-                    ctx.message.author.name,
-                    ctx.message.author.discriminator,
-                    ctx.message.author.id,
-                    member.name,
-                    member.discriminator,
+                    ctx.message.author.name, ctx.message.author.discriminator,
+                    ctx.message.author.id, member.name, member.discriminator,
                     member.id)
         return
 
     @_birthday.command(name="set")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def setMemberBirthday(self, ctx: Context, month: int,
-                                day: int, forMember: discord.Member = None):
+    async def setMemberBirthday(self,
+                                ctx: Context,
+                                month: int,
+                                day: int,
+                                forMember: discord.Member = None):
         """Set a user's birth date.  Defaults to you.  On the day, the bot will
         automatically add the user to the birthday role.
 
@@ -186,28 +194,27 @@ class Birthday(commands.Cog):
             userConfig[KEY_BDAY_MONTH] = month
             userConfig[KEY_BDAY_DAY] = day
 
-        confMsg = await ctx.send(":white_check_mark: **Birthday - Set**: Successfully "
-                                 "set **{0}**'s birthday to **{1:%B} {1:%d}**. "
-                                 "The role will be assigned automatically on this "
-                                 "day.".format(forMember.name, userBirthday))
+        confMsg = await ctx.send(
+            ":white_check_mark: **Birthday - Set**: Successfully "
+            "set **{0}**'s birthday to **{1:%B} {1:%d}**. "
+            "The role will be assigned automatically on this "
+            "day.".format(forMember.name, userBirthday))
 
         # Explicitly check to see if user should be added to role, if the month
         # and day just so happen to be the same as it is now.
         await self.checkBirthday()
 
-        await asyncio.sleep(5) # pylint: disable=no-member
+        await asyncio.sleep(5)  # pylint: disable=no-member
 
-        await confMsg.edit(content=":white_check_mark: **Birthday - Set**: Successfully "
-                           "set **{0}**'s birthday, and the role will be automatically "
-                           "assigned on the day.".format(forMember.name))
+        await confMsg.edit(
+            content=":white_check_mark: **Birthday - Set**: Successfully "
+            "set **{0}**'s birthday, and the role will be automatically "
+            "assigned on the day.".format(forMember.name))
 
         LOGGER.info("%s#%s (%s) set the birthday of %s#%s (%s) to %s",
-                    ctx.message.author.name,
-                    ctx.message.author.discriminator,
-                    ctx.message.author.id,
-                    forMember.name,
-                    forMember.discriminator,
-                    forMember.id,
+                    ctx.message.author.name, ctx.message.author.discriminator,
+                    ctx.message.author.id, forMember.name,
+                    forMember.discriminator, forMember.id,
                     userBirthday.strftime("%B %d"))
         return
 
@@ -220,8 +227,9 @@ class Birthday(commands.Cog):
         serverName = ctx.message.server.name
         user = ctx.message.author
 
-        sortedList = [] # List to sort by month, day.
-        display = [] # List of text for paginator to use.  Will be constructed from sortedList.
+        sortedList = []  # List to sort by month, day.
+        display = [
+        ]  # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
         async for user, items in self.config.guild(ctx.message.guild).all():
@@ -239,19 +247,20 @@ class Birthday(commands.Cog):
 
         for user in sortedList:
             # Get the associated user Discord object.
-            userObject = discord.utils.get(ctx.message.guild.members, id=user["ID"])
+            userObject = discord.utils.get(ctx.message.guild.members,
+                                           id=user["ID"])
 
             # Skip if user is no longer in server.
             if not userObject:
                 continue
 
             # The year below is just there to accommodate leap year.  Not used anywhere else.
-            userBirthday = datetime(2020, user[KEY_BDAY_MONTH], user[KEY_BDAY_DAY])
+            userBirthday = datetime(2020, user[KEY_BDAY_MONTH],
+                                    user[KEY_BDAY_DAY])
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        page = paginator.Pages(ctx=ctx, entries=display,
-                               show_entry_count=True)
+        page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
         page.embed.title = "Birthdays in **{}**".format(serverName)
         page.embed.colour = discord.Colour.red()
         await page.paginate()
@@ -271,8 +280,9 @@ class Birthday(commands.Cog):
 
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
         if not rid:
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: This "
-                               "server is not configured, please set a role!")
+            await self.bot.say(
+                ":negative_squared_cross_mark: **Birthday - Delete**: This "
+                "server is not configured, please set a role!")
             return
 
         try:
@@ -282,12 +292,17 @@ class Birthday(commands.Cog):
             # Remove role from the user.
             await member.remove_roles(role)
         except discord.Forbidden:
-            LOGGER.error("Could not remove %s#%s (%s) from the birthday role, does "
-                         "the bot have enough permissions?",
-                         member.name, user.discriminator, user.id, exc_info=True)
-            await self.bot.say(":negative_squared_cross_mark: **Birthday - Delete**: "
-                               "Could not remove **{}** from the role, the bot does not "
-                               "have enough permissions to do so!".format(member.name))
+            LOGGER.error(
+                "Could not remove %s#%s (%s) from the birthday role, does "
+                "the bot have enough permissions?",
+                member.name,
+                user.discriminator,
+                user.id,
+                exc_info=True)
+            await self.bot.say(
+                ":negative_squared_cross_mark: **Birthday - Delete**: "
+                "Could not remove **{}** from the role, the bot does not "
+                "have enough permissions to do so!".format(member.name))
             return
 
         async with self.config.member(member).all() as userConfig:
@@ -296,14 +311,12 @@ class Birthday(commands.Cog):
             userConfig[KEY_DATE_SET_DAY] = None
 
         await self.bot.say(":white_check_mark: **Birthday - Delete**: Removed "
-                           "**{}** from the birthday role.".format(member.name))
+                           "**{}** from the birthday role.".format(member.name)
+                           )
 
         LOGGER.info("%s#%s (%s) removed %s#%s (%s) from the birthday role",
-                    ctx.message.author.name,
-                    ctx.message.author.discriminator,
-                    ctx.message.author.id,
-                    member.name,
-                    member.discriminator,
+                    ctx.message.author.name, ctx.message.author.discriminator,
+                    ctx.message.author.id, member.name, member.discriminator,
                     member.id)
         return
 
@@ -316,12 +329,12 @@ class Birthday(commands.Cog):
         await self._dailyAdd()
 
     async def birthdayLoop(self):
-        """The main event loop that will call the add and sweep methods"""
+        """The main event loop that will call the add and sweep methods."""
         while self == self.bot.get_cog("Birthday"):
             if self.lastChecked.day != datetime.now().day:
                 self.lastChecked = datetime.now()
                 await self.checkBirthday()
-            await asyncio.sleep(60) # pylint: disable=no-member
+            await asyncio.sleep(60)  # pylint: disable=no-member
 
     async def _dailySweep(self):
         """Check to see if any users should have the birthday role removed."""
@@ -341,14 +354,14 @@ class Birthday(commands.Cog):
                     continue
 
                 # Check to see if any users need to be removed.
-                userData = await self.config.all_members(guild) # dict
+                userData = await self.config.all_members(guild)  # dict
                 for userId, userDetails in userData.items():
                     # If assigned and the date is different than the date assigned, remove role.
                     if userDetails[KEY_IS_ASSIGNED] and \
                             userDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
                             userDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
 
-                        role = discord.utils.get(guild.roles. id=bdayRoleId)
+                        role = discord.utils.get(guild.roles.id=bdayRoleId)
                         member = discord.utils.get(guild.members, id=userId)
 
                         if member:
@@ -356,14 +369,15 @@ class Birthday(commands.Cog):
                             try:
                                 await member.remove_roles(role)
                                 LOGGER.info("Removed role from %s#%s (%s)",
-                                            member.name,
-                                            member.discriminator,
+                                            member.name, member.discriminator,
                                             member.id)
                             except discord.Forbidden:
-                                LOGGER.error("Could not remove role from %s#%s (%s)!",
-                                             member.name,
-                                             member.discriminator,
-                                             member.id, exc_info=True)
+                                LOGGER.error(
+                                    "Could not remove role from %s#%s (%s)!",
+                                    member.name,
+                                    member.discriminator,
+                                    member.id,
+                                    exc_info=True)
                         else:
                             # Do not remove role, wait until user rejoins, in case
                             # another cog saves roles.
@@ -378,7 +392,7 @@ class Birthday(commands.Cog):
     ##################################################################
     # Event Loop - Check to see if we need to add people to the role #
     ##################################################################
-    async def _dailyAdd(self): # pylint: disable=too-many-branches
+    async def _dailyAdd(self):  # pylint: disable=too-many-branches
         guilds = self.bot.guilds
 
         # Avoid having data modified by other methods.
@@ -394,7 +408,8 @@ class Birthday(commands.Cog):
                 if not birthdayRole:
                     continue
 
-                for memberId, memberDetails in self.config.all_members(guild).items():
+                for memberId, memberDetails in self.config.all_members(
+                        guild).items():
                     # If today is the user's birthday, and the role is not assigned,
                     # assign the role.
 
@@ -413,39 +428,46 @@ class Birthday(commands.Cog):
                         if not memberDetails[KEY_IS_ASSIGNED]:
                             try:
                                 await member.add_roles(role)
-                                LOGGER.info("Added birthday role to %s#%s (%s)",
-                                            member.name,
-                                            member.discriminator,
-                                            member.id)
+                                LOGGER.info(
+                                    "Added birthday role to %s#%s (%s)",
+                                    member.name, member.discriminator,
+                                    member.id)
                                 # Update the list.
-                                async with self.config.member(member).all() as memberConfig:
+                                async with self.config.member(
+                                    member).all() as memberConfig:
                                     memberConfig[KEY_IS_ASSIGNED] = True
-                                    memberConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                    memberConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                                    memberConfig[KEY_DATE_SET_MONTH] = int(
+                                        time.strftime("%m"))
+                                    memberConfig[KEY_DATE_SET_DAY] = int(
+                                        time.strftime("%d"))
                             except discord.Forbidden:
-                                LOGGER.error("Could not add role to %s#%s (%s)",
-                                             member.name,
-                                             member.discriminator,
-                                             member.id, exc_info=True)
+                                LOGGER.error(
+                                    "Could not add role to %s#%s (%s)",
+                                    member.name,
+                                    member.discriminator,
+                                    member.id,
+                                    exc_info=True)
         finally:
             guildsLock.release()
             membersLock.release()
 
+
 def setup(bot):
     """Add the cog to the bot."""
-    global LOGGER # pylint: disable=global-statement
-    checkFolder()   #Make sure the data folder exists!
-    checkFiles()    #Make sure we have settings!
+    global LOGGER  # pylint: disable=global-statement
+    checkFolder()  #Make sure the data folder exists!
+    checkFiles()  #Make sure we have settings!
     customCog = Birthday(bot)
     LOGGER = logging.getLogger("red.Birthday")
     if LOGGER.level == 0:
         # Prevents the LOGGER from being loaded again in case of module reload.
         LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
+        handler = logging.FileHandler(filename=SAVE_FOLDER + "info.log",
                                       encoding="utf-8",
                                       mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
+        handler.setFormatter(
+            logging.Formatter("%(asctime)s %(message)s",
+                              datefmt="[%d/%m/%Y %H:%M:%S]"))
         LOGGER.addHandler(handler)
     bot.add_listener(customCog.checkBirthday, "on_member_join")
     bot.add_cog(customCog)
