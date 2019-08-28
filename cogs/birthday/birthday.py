@@ -211,9 +211,10 @@ class Birthday(commands.Cog):
                     userBirthday.strftime("%B %d"))
         return
 
-    @_birthday.command(name="list", pass_context=True, no_pm=True, aliases=["ls"])
+    @_birthday.command(name="list", aliases=["ls"])
+    @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def _birthdayList(self, ctx):
+    async def list(self, ctx: Context):
         """Lists the birthdays of users."""
         serverID = ctx.message.server.id
         serverName = ctx.message.server.name
@@ -223,13 +224,13 @@ class Birthday(commands.Cog):
         display = [] # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
-        for user, items in self.settings[serverID][KEY_BDAY_USERS].items():
+        async for user, items in self.config.guild(ctx.message.guild).all():
             # Check if the birthdate keys exist, and they are not null.
             # If true, add an ID key and append to list.
             if KEY_BDAY_DAY in items.keys() and \
                     KEY_BDAY_MONTH in items.keys() and \
-                    KEY_BDAY_DAY is not None and \
-                    KEY_BDAY_MONTH is not None:
+                    items[KEY_BDAY_DAY] and \
+                    items[KEY_BDAY_MONTH]:
                 items["ID"] = user
                 sortedList.append(items)
 
@@ -238,10 +239,10 @@ class Birthday(commands.Cog):
 
         for user in sortedList:
             # Get the associated user Discord object.
-            userObject = discord.utils.get(ctx.message.server.members, id=user["ID"])
+            userObject = discord.utils.get(ctx.message.guild.members, id=user["ID"])
 
             # Skip if user is no longer in server.
-            if userObject is None:
+            if not userObject:
                 continue
 
             # The year below is just there to accommodate leap year.  Not used anywhere else.
@@ -249,11 +250,11 @@ class Birthday(commands.Cog):
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        page = Pages(self.bot, message=ctx.message, entries=display)
+        page = paginator.Pages(ctx=ctx, entries=display,
+                               show_entry_count=True)
         page.embed.title = "Birthdays in **{}**".format(serverName)
         page.embed.colour = discord.Colour.red()
         await page.paginate()
-
 
     @_birthday.command(name="del", pass_context=True, no_pm=True,
                        aliases=["remove", "delete", "rm"])
