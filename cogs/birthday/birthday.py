@@ -325,8 +325,7 @@ class Birthday(commands.Cog):
 
     async def _dailySweep(self):
         """Check to see if any users should have the birthday role removed."""
-        self.settingsLock.acquire()
-        guilds = self.bot.guilds()
+        guilds = self.bot.guilds
 
         # Avoid having data modified by other methods.
         guildsLock = self.config.get_guilds_lock()
@@ -380,88 +379,57 @@ class Birthday(commands.Cog):
     # Event Loop - Check to see if we need to add people to the role #
     ##################################################################
     async def _dailyAdd(self): # pylint: disable=too-many-branches
-        self.settingsLock.acquire()
-        try: # pylint: disable=too-many-nested-blocks
-            # Check each server.
-            for sid in self.settings:
-                # Check to see if any users need to be removed.
-                for userId, userDetails in self.settings[sid][KEY_BDAY_USERS].items():
+        guilds = self.bot.guilds
+
+        # Avoid having data modified by other methods.
+        guildsLock = self.config.get_guilds_lock()
+        membersLock = self.config.get_members_lock()
+
+        try:
+            # Check each guild.
+            for guild in guilds:
+                # Make sure the guild is configured with birthdya role.
+                # If it's not, skip over it.
+                bdayRoleId = await self.config.guild(guild).birthdayRole()
+                if not birthdayRole:
+                    continue
+
+                for memberId, memberDetails in self.config.all_members(guild).items():
                     # If today is the user's birthday, and the role is not assigned,
                     # assign the role.
 
-                    # Check if the keys for birthdate day and month exist, and that
-                    # they're not null.
-                    if KEY_BDAY_DAY in userDetails.keys() and \
-                            KEY_BDAY_MONTH in userDetails.keys() and \
-                            userDetails[KEY_BDAY_DAY] is not None and \
-                            userDetails[KEY_BDAY_MONTH] is not None:
-                        birthdayDay = userDetails[KEY_BDAY_DAY]
-                        birthdayMonth = userDetails[KEY_BDAY_MONTH]
+                    # Check to see that birthdate day and month have been set.
+                    if memberDetails[KEY_BDAY_DAY] and memberDetails[KEY_BDAY_MONTH] and \
+                            memberDetails[KEY_BDAY_MONTH] == int(time.strftime("%m")) and \
+                            memberDetails[KEY_BDAY_DAY] == int(time.strftime("%d")):
+                        # Get the necessary Discord objects.
+                        role = discord.utils.get(guild.roles, id=bdayRoleId)
+                        member = discord.utils.get(guild.members, id=memberId)
 
-                        if birthdayMonth == int(time.strftime("%m")) and \
-                                birthdayDay == int(time.strftime("%d")):
-                            # Get the necessary Discord objects.
-                            serverObject = discord.utils.get(self.bot.servers,
-                                                             id=sid)
-                            roleObject = discord.utils.get(serverObject.roles,
-                                                           id=self.settings[sid][KEY_BDAY_ROLE])
-                            userObject = discord.utils.get(serverObject.members,
-                                                           id=userId)
+                        # Skip if member is no longer in server.
+                        if not member:
+                            continue
 
-                            # Skip if user is no longer in server.
-                            if not userObject:
-                                continue
-
+                        if not memberDetails[KEY_IS_ASSIGNED]:
                             try:
-                                if not userDetails[KEY_IS_ASSIGNED] and userObject is not None:
-                                    try:
-                                        await self.bot.add_roles(userObject, roleObject)
-                                        LOGGER.info("Added birthday role to %s#%s (%s)",
-                                                    userObject.name,
-                                                    userObject.discriminator,
-                                                    userObject.id)
-                                        # Update the list.
-                                        userDetails[KEY_IS_ASSIGNED] = True
-                                        userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                        userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
-                                        self.settings[sid][KEY_BDAY_USERS][userId] = userDetails
-                                        self.saveSettings()
-                                    except discord.errors.Forbidden as error:
-                                        LOGGER.error("Could not add role to %s#%s (%s)",
-                                                     userObject.name,
-                                                     userObject.discriminator,
-                                                     userObject.id)
-                                        LOGGER.error(error)
-                            except Exception: # pylint: disable=broad-except
-                                # This key error will happen if the isAssigned key does not exist.
-                                if userObject is not None:
-                                    try:
-                                        await self.bot.add_roles(userObject, roleObject)
-                                        LOGGER.info("Added birthday role to %s#%s (%s)",
-                                                    userObject.name,
-                                                    userObject.discriminator,
-                                                    userObject.id)
-                                        # Update the list.
-                                        userDetails[KEY_IS_ASSIGNED] = True
-                                        userDetails[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                        userDetails[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
-                                        self.settings[sid][KEY_BDAY_USERS][userId] = userDetails
-                                        self.saveSettings()
-                                    except discord.errors.Forbidden as error:
-                                        LOGGER.error("Could not add role to %s#%s (%s)",
-                                                     userObject.name,
-                                                     userObject.discriminator,
-                                                     userObject.id)
-                                        LOGGER.error(error)
-                            # End try/except block for isAssigned key.
-                        # End if to check if today is the user's birthday.
-                    # End if to check for birthdateMonth and birthdateDay keys.
-                # End user loop.
-            # End server loop.
-        except Exception as error: # pylint: disable=broad-except
-            LOGGER.error(error)
+                                await member.add_roles(role)
+                                LOGGER.info("Added birthday role to %s#%s (%s)",
+                                            member.name,
+                                            member.discriminator,
+                                            member.id)
+                                # Update the list.
+                                async with self.config.member(member).all() as memberConfig:
+                                    memberConfig[KEY_IS_ASSIGNED] = True
+                                    memberConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
+                                    memberConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+                            except discord.Forbidden:
+                                LOGGER.error("Could not add role to %s#%s (%s)",
+                                             member.name,
+                                             member.discriminator,
+                                             member.id, exc_info=True)
         finally:
-            self.settingsLock.release()
+            guildsLock.release()
+            membersLock.release()
 
 def setup(bot):
     """Add the cog to the bot."""
