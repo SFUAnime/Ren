@@ -1,11 +1,9 @@
 """Birthday cog Automatically add users to a specified birthday role on their
 birthday."""
-import os
 import logging
 import time  # To auto remove birthday role on the next day.
 import asyncio
 from datetime import datetime, timedelta
-from threading import Lock
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
@@ -112,8 +110,6 @@ class Birthday(commands.Cog):
         member: discord.Member
             The guild member that you want to add to the birthday role.
         """
-        sid = ctx.message.guild.id
-
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
         if not rid:
             await ctx.send(
@@ -147,9 +143,9 @@ class Birthday(commands.Cog):
             userConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
             userConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
 
-        await self.bot.say(
+        await ctx.send(
             ":white_check_mark: **Birthday - Add**: Successfully added "
-            "**{}** to the list and assigned the role.".format(user.name))
+            "**{}** to the list and assigned the role.".format(member.name))
 
         self.logger.info("%s#%s (%s) added %s#%s (%s) to the birthday role.",
                          ctx.message.author.name,
@@ -235,27 +231,31 @@ class Birthday(commands.Cog):
     @checks.mod_or_permissions(administrator=True)
     async def list(self, ctx: Context):
         """Lists the birthdays of users."""
-        serverID = ctx.message.server.id
-        serverName = ctx.message.server.name
-        user = ctx.message.author
 
         sortedList = []  # List to sort by month, day.
         display = [
         ]  # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
-        async for user, items in self.config.guild(ctx.message.guild).all():
+        membersData = await self.config.all_members(ctx.message.guild)
+        for memberId, memberDetails in membersData.items():
             # Check if the birthdate keys exist, and they are not null.
             # If true, add an ID key and append to list.
-            if KEY_BDAY_DAY in items.keys() and \
-                    KEY_BDAY_MONTH in items.keys() and \
-                    items[KEY_BDAY_DAY] and \
-                    items[KEY_BDAY_MONTH]:
-                items["ID"] = user
-                sortedList.append(items)
+            if KEY_BDAY_DAY in memberDetails.keys() and \
+                    KEY_BDAY_MONTH in memberDetails.keys() and \
+                    memberDetails[KEY_BDAY_DAY] and \
+                    memberDetails[KEY_BDAY_MONTH]:
+                memberDetails["ID"] = memberId
+                sortedList.append(memberDetails)
 
         # Sort by month, day.
         sortedList.sort(key=lambda x: (x[KEY_BDAY_MONTH], x[KEY_BDAY_DAY]))
+
+        if not sortedList:
+            await ctx.send(
+                ":warning: **Birthday - List**: There are no birthdates "
+                "set on this server. Please add some first!")
+            return
 
         for user in sortedList:
             # Get the associated user Discord object.
@@ -273,7 +273,7 @@ class Birthday(commands.Cog):
             display.append(text)
 
         page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-        page.embed.title = "Birthdays in **{}**".format(serverName)
+        page.embed.title = "Birthdays in **{}**".format(ctx.message.guild.name)
         page.embed.colour = discord.Colour.red()
         await page.paginate()
 
@@ -288,11 +288,9 @@ class Birthday(commands.Cog):
         member: discord.Member
             The guild member that you want to remove the birthday role from.
         """
-        sid = ctx.message.guild.id
-
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
         if not rid:
-            await self.bot.say(
+            await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Delete**: This "
                 "server is not configured, please set a role!")
             return
@@ -308,10 +306,10 @@ class Birthday(commands.Cog):
                 "Could not remove %s#%s (%s) from the birthday role, does "
                 "the bot have enough permissions?",
                 member.name,
-                user.discriminator,
-                user.id,
+                member.discriminator,
+                member.id,
                 exc_info=True)
-            await self.bot.say(
+            await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Delete**: "
                 "Could not remove **{}** from the role, the bot does not "
                 "have enough permissions to do so!".format(member.name))
@@ -322,9 +320,8 @@ class Birthday(commands.Cog):
             userConfig[KEY_DATE_SET_MONTH] = None
             userConfig[KEY_DATE_SET_DAY] = None
 
-        await self.bot.say(":white_check_mark: **Birthday - Delete**: Removed "
-                           "**{}** from the birthday role.".format(member.name)
-                           )
+        await ctx.send(":white_check_mark: **Birthday - Delete**: Removed "
+                       "**{}** from the birthday role.".format(member.name))
 
         self.logger.info(
             "%s#%s (%s) removed %s#%s (%s) from the birthday role",
@@ -354,28 +351,29 @@ class Birthday(commands.Cog):
         guilds = self.bot.guilds
 
         # Avoid having data modified by other methods.
-        guildsLock = self.config.get_guilds_lock()
+        # When we acquire the lock for all members, it also prevents lock for guild
+        # from being acquired, which is what we want.
         membersLock = self.config.get_members_lock()
 
-        try:
+        async with membersLock:
             # Check each guild.
             for guild in guilds:
                 # Make sure the guild is configured with birthdya role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).birthdayRole()
-                if not birthdayRole:
+                if not bdayRoleId:
                     continue
 
                 # Check to see if any users need to be removed.
-                userData = await self.config.all_members(guild)  # dict
-                for userId, userDetails in userData.items():
+                memberData = await self.config.all_members(guild)  # dict
+                for memberId, memberDetails in memberData.items():
                     # If assigned and the date is different than the date assigned, remove role.
-                    if userDetails[KEY_IS_ASSIGNED] and \
-                            userDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
-                            userDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
+                    if memberDetails[KEY_IS_ASSIGNED] and \
+                            memberDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
+                            memberDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
 
                         role = discord.utils.get(guild.roles, id=bdayRoleId)
-                        member = discord.utils.get(guild.members, id=userId)
+                        member = discord.utils.get(guild.members, id=memberId)
 
                         if member:
                             # Remove the role
@@ -399,9 +397,6 @@ class Birthday(commands.Cog):
 
                         # Update the list.
                         await self.config.member(member).isAssigned.set(False)
-        finally:
-            guildsLock.release()
-            membersLock.release()
 
     ##################################################################
     # Event Loop - Check to see if we need to add people to the role #
@@ -410,20 +405,21 @@ class Birthday(commands.Cog):
         guilds = self.bot.guilds
 
         # Avoid having data modified by other methods.
-        guildsLock = self.config.get_guilds_lock()
+        # When we acquire the lock for all members, it also prevents lock for guild
+        # from being acquired, which is what we want.
         membersLock = self.config.get_members_lock()
 
-        try:
+        async with membersLock:
             # Check each guild.
             for guild in guilds:
                 # Make sure the guild is configured with birthdya role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).birthdayRole()
-                if not birthdayRole:
+                if not bdayRoleId:
                     continue
 
-                for memberId, memberDetails in self.config.all_members(
-                        guild).items():
+                memberData = await self.config.all_members(guild)  # dict
+                for memberId, memberDetails in memberData.items():
                     # If today is the user's birthday, and the role is not assigned,
                     # assign the role.
 
@@ -461,6 +457,3 @@ class Birthday(commands.Cog):
                                     member.discriminator,
                                     member.id,
                                     exc_info=True)
-        finally:
-            guildsLock.release()
-            membersLock.release()
