@@ -380,7 +380,7 @@ class Highlight(commands.Cog):
         """
         if seconds < 0 or seconds > 3600:
             await ctx.send(
-                "Please specifiy a timeout between 0 and 3600 seconds!")
+                "Please specify a timeout between 0 and 3600 seconds!")
             return
 
         await self.config.member(ctx.author).timeout.set(seconds)
