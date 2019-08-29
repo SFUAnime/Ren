@@ -460,17 +460,13 @@ class Highlight(commands.Cog):
         if not isinstance(msg.channel, discord.TextChannel):
             return
 
-        userId = msg.author.id
         user = msg.author
         channelBlId = await self.config.guild(msg.channel.guild
                                               ).ignoreChannelID()
 
-        # Prevents messages in a blacklisted channel from triggering highlight word
-        if channelBlId and msg.channel.id == channelBlId:
-            return
-
+        # Prevent messages in a blacklisted channel from triggering highlight word
         # Prevent bots from triggering your highlight word.
-        if user.bot:
+        if channelBlId and msg.channel.id == channelBlId or user.bot:
             return
 
         # Don't send notification for filtered messages
@@ -485,14 +481,8 @@ class Highlight(commands.Cog):
         try:
             async for message in msg.channel.history(limit=50, before=msg):
                 activeMessages.append(message)
-        except aiohttp.ClientResponseError as error:
-            self.logger.error("Client response error within discord.py!",
-                              exc_info=True)
-            self.logger.error(error)
-        except aiohttp.ServerDisconnectedError:
-            self.logger.error("Server disconnect error within discord.py!",
-                              exc_info=True)
-            self.logger.error(error)
+        except (aiohttp.ClientResponseError, aiohttp.ServerDisconnectedError):
+            self.logger.error("Error within discord.py!", exc_info=True)
 
         # Iterate through every user's words on the guild, and notify all highlights
         guildData = await self.config.all_members(msg.guild)
@@ -529,7 +519,7 @@ class Highlight(commands.Cog):
                 triggeredRecently = self._triggeredRecently(
                     msg, currentUserId, timeout)
                 if match and not active and not triggeredRecently \
-                        and userId != currentUserId:
+                        and user.id != currentUserId:
                     hiliteUser = msg.guild.get_member(currentUserId)
                     if not hiliteUser:
                         # Handle case where user is no longer in the guild of interest.
@@ -598,6 +588,7 @@ class Highlight(commands.Cog):
     # Event listeners
     @commands.Cog.listener("on_message")
     async def onMessage(self, msg):
+        """Background listener to check messages for highlight DMs."""
         await self.checkHighlights(msg)
 
     @commands.Cog.listener("on_guild_channel_create")
