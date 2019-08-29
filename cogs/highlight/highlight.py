@@ -154,7 +154,8 @@ class Highlight(commands.Cog):
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
                     await ctx.send(
-                        "You do not have DMs enabled, please enable them!",
+                        "{}, you do not have DMs enabled, please enable them!".
+                        format(ctx.message.author.mention),
                         delete_after=DELETE_TIME)
                 else:
                     await ctx.send("Please check your DMs.",
@@ -265,7 +266,8 @@ class Highlight(commands.Cog):
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
                     await ctx.send(
-                        "You do not have DMs enabled, please enable them!",
+                        "{}, you do not have DMs enabled, please enable them!".
+                        format(ctx.message.author.mention),
                         delete_after=DELETE_TIME)
                 else:
                     await ctx.send("Please check your DMs.",
@@ -349,7 +351,8 @@ class Highlight(commands.Cog):
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
                     await ctx.send(
-                        "You do not have DMs enabled, please enable them!",
+                        "{}, you do not have DMs enabled, please enable them!".
+                        format(ctx.message.author.mention),
                         delete_after=DELETE_TIME)
                 else:
                     await ctx.send("Please check your DMs.")
