@@ -30,5 +30,6 @@ def setup(bot: Red):
                                                datefmt="[%d/%m/%Y %H:%M:%S]"))
         LOGGER.addHandler(handler)
     rssCog = RSSFeed(bot)
+    rssCog.logger = LOGGER
     bot.add_cog(rssCog)
     bot.loop.create_task(rssCog.rss())
