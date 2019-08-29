@@ -593,13 +593,12 @@ class Highlight(commands.Cog):
                 user.name, user.discriminator, user.id)
 
     # Event listeners
-    @commands.Cog.listener()
-    async def on_message(self, msg):  # pylint: disable=invalid-name
+    @commands.Cog.listener("on_message")
+    async def onMessage(self, msg):
         await self.checkHighlights(msg)
 
-    @commands.Cog.listener()
-    async def on_guild_channel_create(self, channel: discord.abc.GuildChannel):         \
-            # pylint: disable=invalid-name
+    @commands.Cog.listener("on_guild_channel_create")
+    async def onGuildChannelCreate(self, channel: discord.abc.GuildChannel):
         """Background listener to check if dark-hour has been created."""
         self.logger.info(
             "New Channel creation has been detected. Name: %s, ID: %s",
@@ -615,9 +614,8 @@ class Highlight(commands.Cog):
                 "New channel is not called dark hour and will not be "
                 "blacklisted")
 
-    @commands.Cog.listener()
-    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):         \
-            # pylint: disable=invalid-name
+    @commands.Cog.listener("on_guild_channel_delete")
+    async def onGuildChannelDelete(self, channel: discord.abc.GuildChannel):
         """Background listener to check if dark-hour has been deleted."""
         channelBlId = await self.config.guild(channel.guild).ignoreChannelID()
         if channelBlId and channel.id == channelBlId:
