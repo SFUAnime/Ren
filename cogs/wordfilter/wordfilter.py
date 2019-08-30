@@ -10,7 +10,7 @@ import logging
 import asyncio
 import random
 import discord
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
 
