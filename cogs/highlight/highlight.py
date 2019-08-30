@@ -9,7 +9,7 @@ from threading import Lock
 import asyncio
 import aiohttp
 import discord
-from redbot.core import Config, commands
+from redbot.core import Config, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
@@ -53,7 +53,22 @@ class Highlight(commands.Cog):
         self.lastTriggered = {}
         self.triggeredLock = Lock()
         self.wordFilter = None
-        self.logger = None
+
+        # Initialize logger and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.Highlight")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
+
 
     async def _sleepThenDelete(self, msg, time):
         await asyncio.sleep(time)  # pylint: disable=no-member
