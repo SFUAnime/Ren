@@ -11,7 +11,7 @@ import aiohttp
 import feedparser
 from bs4 import BeautifulSoup
 import discord
-from redbot.core  import checks, Config, commands
+from redbot.core  import checks, Config, commands, data_manager
 from redbot.core.bot import Red
 
 KEY_CHANNEL = "post_channel"
