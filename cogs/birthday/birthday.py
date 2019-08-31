@@ -369,8 +369,8 @@ class Birthday(commands.Cog):
                 for memberId, memberDetails in memberData.items():
                     # If assigned and the date is different than the date assigned, remove role.
                     if memberDetails[KEY_IS_ASSIGNED] and \
-                            memberDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
-                            memberDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d")):
+                            (memberDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m")) or \
+                            memberDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d"))):
 
                         role = discord.utils.get(guild.roles, id=bdayRoleId)
                         member = discord.utils.get(guild.members, id=memberId)
