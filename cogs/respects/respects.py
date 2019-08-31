@@ -1,15 +1,14 @@
 """Respects cog
 A replica of +f seen in another bot, except smarter..
 """
-import copy
 import logging
-import os
 from datetime import datetime, timedelta
 from threading import Lock
 from random import choice
 import discord
-from discord.ext import commands
-from cogs.utils import checks, config
+from redbot.core import Config, checks, commands
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
 KEY_USERS = "users"
 KEY_TIME = "time"
@@ -18,38 +17,31 @@ KEY_TIME_BETWEEN = "timeSinceLastRespect"
 KEY_MSGS_BETWEEN = "msgsSinceLastRespect"
 HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
-DEFAULT_CH_DICT = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
 LOGGER = None
-SAVE_FOLDER = "data/lui-cogs/respects/"
 TEXT_RESPECTS = "paid their respects"
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
+BASE_GUILD = {KEY_TIME_BETWEEN: 30, KEY_MSGS_BETWEEN: 20}
+BASE_CHANNEL = {KEY_MSG : None, KEY_TIME : None, KEY_USERS : []}
 
-class Respects:
+
+class Respects(commands.Cog):
     """Pay your respects."""
 
     # Class constructor
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         self.plusFLock = Lock()
         self.settingsLock = Lock()
         self.settings = {}
-        self.config = config.Config("settings.json", cogname="lui-cogs/respects")
+        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+        self.config.register_guild(**BASE_GUILD)
+        self.config.register_channel(**BASE_CHANNEL)
 
-        timeBetween = self.config.get(KEY_TIME_BETWEEN)
-        self.timeBetween = timedelta(seconds=timeBetween) if timeBetween else DEFAULT_TIME_BETWEEN
-
-        msgsBetween = self.config.get(KEY_MSGS_BETWEEN)
-        self.msgsBetween = msgsBetween if msgsBetween else DEFAULT_MSGS_BETWEEN
-
-    @commands.command(name="f", pass_context=True, no_pm=True)
-    async def plusF(self, ctx):
+    @commands.command(name="f")
+    @commands.guild_only()
+    async def plusF(self, ctx: Context):
         """Pay your respects."""
         with self.plusFLock:
             if not await self.checkLastRespect(ctx):
@@ -62,11 +54,12 @@ class Respects:
                 # Respects already paid by user!
                 pass
             try:
-                await self.bot.delete_message(ctx.message)
+                await ctx.delete()
             except (discord.Forbidden, discord.NotFound):
-                await self.bot.say("I currently cannot delete messages. Please give me the"
-                                   " \"Manage Messages\" permission to allow this feature to"
-                                   " work!")
+                await ctx.send("I currently cannot delete messages. Please give me the"
+                               " \"Manage Messages\" permission to allow this feature to"
+                               " work!")
+
     @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="setf", pass_context=True, no_pm=True)
     async def setf(self, ctx):
