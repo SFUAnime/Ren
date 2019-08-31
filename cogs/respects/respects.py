@@ -120,8 +120,8 @@ class Respects(commands.Cog):
                            "between 1 and 100!")
             return
 
-        await self.config.guild(ctx.message.guild).timeSinceLastRespect.set(seconds)
-        timeBetween = await self.config.guild(ctx.message.guild).msgsSinceLastRespect()
+        await self.config.guild(ctx.guild).timeSinceLastRespect.set(seconds)
+        timeBetween = await self.config.guild(ctx.guild).msgsSinceLastRespect()
         await ctx.send(":white_check_mark: **Respects - Time**: A new respect will be "
                        "created after **{}** messages and **{}** seconds have passed "
                        "since the previous one.".format(messages, time))
@@ -144,86 +144,72 @@ class Respects(commands.Cog):
 
         Otherwise, this method returns True.
         """
-        with self.settingsLock:
-            sid = ctx.message.server.id
-            cid = ctx.message.channel.id
+        chData = await self.config.channel(ctx.channel).all()
+        guildData = await self.config.guild(ctx.guild).all()
 
-            if sid not in self.settings.keys():
-                self.settings[sid] = {}
-                self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
-                return False
+        if not chData[KEY_MSG]:
+            return False
 
-            if cid not in self.settings[sid].keys():
-                self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
-                return False
+        prevMsgs = []
 
-            prevMsgs = []
-            async for msg in self.bot.logs_from(ctx.message.channel,
-                                                limit=self.msgsBetween,
-                                                before=ctx.message):
-                prevMsgs.append(msg.id)
+        async for msg in ctx.channel.history(limit=guildData[KEY_MSGS_BETWEEN],
+                                             before=ctx.message):
+            prevMsgs.append(msg.id)
 
-            if self.settings[sid][cid][KEY_MSG]:
-                exceedMessages = self.settings[sid][cid][KEY_MSG].id not in prevMsgs
-            else:
-                exceedMessages = False
-            exceedTime = datetime.now() - self.settings[sid][cid][KEY_TIME] > self.timeBetween
+        exceedMessages = chData[KEY_MSG] not in prevMsgs
+        exceedTime = (datetime.now() - datetime.fromtimestamp(chData[KEY_TIME]) >
+                      timedelta(guildData[KEY_TIME_BETWEEN]))
 
-            if exceedMessages and exceedTime:
-                self.settings[sid][cid] = copy.deepcopy(DEFAULT_CH_DICT)
-                return False
+        if exceedMessages and exceedTime:
+            await self.config.channel(ctx.channel).clear()
+            return False
 
-            return True
+        return True
 
     def checkIfUserPaidRespect(self, ctx):
         """Check to see if the user has already paid their respects.
 
         This assumes that checkLastRespectTime returned True.
         """
-        with self.settingsLock:
-            sid = ctx.message.server.id
-            cid = ctx.message.channel.id
-            if ctx.message.author.id in self.settings[sid][cid][KEY_USERS]:
-                return True
-            return False
+        paidRespectsUsers = await self.config.channel(ctx.channel).users()
+        if ctx.author.id in paidRespectsUsers:
+            return True
+        return False
 
-    async def payRespects(self, ctx):
+    async def payRespects(self, ctx: Context):
         """Pay respects.
 
         This assumes that checkLastRespectTime has been invoked.
 
         """
-        with self.settingsLock:
-            sid = ctx.message.server.id
-            cid = ctx.message.channel.id
-            uid = ctx.message.author.id
+        async with self.config.channel(ctx.channel).all() as chData:
+            chData[KEY_USERS].append(ctx.author.id)
+            chData[KEY_TIME] = datetime.now().timestamp()
 
-            self.settings[sid][cid][KEY_USERS].append(uid)
-
-            self.settings[sid][cid][KEY_TIME] = datetime.now()
-            if self.settings[sid][cid][KEY_MSG]:
+            if chData[KEY_MSG]:
                 try:
-                    await self.bot.delete_message(self.settings[sid][cid][KEY_MSG])
-                except(discord.Forbidden, discord.NotFound):
-                    await self.bot.say("I currently cannot delete messages, please give me \"Manage"
-                                       " Message\" permissions to allow this feature to work!")
+                    oldRespect = ctx.channel.fetch_message(chData[KEY_MSG])
+                    await oldRespect.delete()
+                except (discord.Forbidden, discord.NotFound):
+                    await ctx.send("I currently cannot delete messages, please give me \"Manage"
+                                   " Message\" permissions to allow this feature to work!")
                 finally:
-                    self.settings[sid][cid][KEY_MSG] = None
+                    chData[KEY_MSG] = None
 
-            if len(self.settings[sid][cid][KEY_USERS]) == 1:
-                message = "**{}** has paid their respects {}".format(ctx.message.author.name,
+            if len(chData[KEY_USERS]) == 1:
+                message = "**{}** has paid their respects {}".format(ctx.author.name,
                                                                      choice(HEARTS))
-            elif len(self.settings[sid][cid][KEY_USERS]) == 2: # 2 users, no comma.
-                user1 = ctx.message.author
-                uid2 = self.settings[sid][cid][KEY_USERS][0]
-                user2 = discord.utils.get(ctx.message.server.members, id=uid2)
+            elif len(chData[KEY_USERS]) == 2: # 2 users, no comma.
+                user1 = ctx.author
+                uid2 = chData[KEY_USERS][0]
+                user2 = discord.utils.get(ctx.guild.members, id=uid2)
                 users = "**{} and {}**".format(user1.name, user2.name)
                 message = "{} have paid their respects {}".format(users, choice(HEARTS))
             else:
                 first = True
                 users = ""
-                for userId in self.settings[sid][cid][KEY_USERS]:
-                    userObj = discord.utils.get(ctx.message.server.members, id=userId)
+                for userId in chData[KEY_USERS]:
+                    userObj = discord.utils.get(ctx.guild.members, id=userId)
                     if first:
                         users = "and {}".format(userObj.name)
                         first = False
@@ -231,8 +217,8 @@ class Respects(commands.Cog):
                         users = "{}, {}".format(userObj.name, users)
                 message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
 
-            messageObj = await self.bot.say(message)
-            self.settings[sid][cid][KEY_MSG] = messageObj
+            messageObj = await ctx.send(message)
+            chData[KEY_MSG] = messageObj.id
 
 def setup(bot):
     """Add the cog to the bot."""
