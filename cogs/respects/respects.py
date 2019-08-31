@@ -61,14 +61,14 @@ class Respects(commands.Cog):
                                " work!")
 
     @checks.mod_or_permissions(manage_messages=True)
-    @commands.group(name="setf", pass_context=True, no_pm=True)
-    async def setf(self, ctx):
+    @commands.group(name="setf")
+    @commands.guild_only()
+    async def setf(self, ctx: Context):
         """Respect settings."""
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_cmd_help(ctx)
 
-    @setf.command(name="messages", pass_context=True, no_pm=True)
-    async def setfMessages(self, ctx, messages: int):
+    @setf.command(name="messages")
+    @commands.guild_only()
+    async def setfMessages(self, ctx: Context, messages: int):
         """Set the number of messages that must appear before a new respect is paid.
 
         Parameters:
@@ -77,29 +77,34 @@ class Respects(commands.Cog):
             The number of messages between messages.  Should be between 1 and 100
         """
         if messages < 1 or messages > 100:
-            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
-                               "between 1 and 100!")
+            await ctx.send(":negative_squared_cross_mark: Please enter a number "
+                           "between 1 and 100!")
             return
-        self.msgsBetween = messages
-        await self.config.put(KEY_MSGS_BETWEEN, self.msgsBetween)
-        await self.bot.say(":white_check_mark: **Respects - Messages**: A new respect will be "
-                           "created after **{}** messages and **{}** seconds have passed "
-                           "since the previous one.".format(self.msgsBetween,
-                                                            self.timeBetween.seconds))
+
+        await self.config.guild(ctx.message.guild).msgsSinceLastRespect.set(messages)
+        timeBetween = await self.config.guild(ctx.message.guild).timeSinceLastRespect()
+        await ctx.send(":white_check_mark: **Respects - Messages**: A new respect will be "
+                       "created after **{}** messages and **{}** seconds have passed "
+                       "since the previous one.".format(messages, timeBetween))
         LOGGER.info("%s#%s (%s) changed the messages between respects to %s messages",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id,
                     messages)
 
-    @setf.command(name="show", pass_context=False, no_pm=True)
+    @setf.command(name="show")
+    @commands.guild_only()
     async def setfShow(self):
         """Show the current settings."""
+        guild = ctx.message.guild
+        timeBetween = await self.config.guild(guild).timeSinceLastRespect()
+        msgsBetween = await self.config.guild(guild).msgsSinceLastRespect()
+
         msg = ":information_source: **Respects - Current Settings:**\n"
         msg += "A new respect will be made if a previous respect does not exist, or:\n"
         msg += "- **{}** seconds have passed since the last respect, **and**\n"
         msg += "- **{}** messages have been passed since the last respect."
-        await self.bot.say(msg.format(self.timeBetween.seconds, self.msgsBetween))
+        await ctx.send(msg.format(timeBetween, msgsBetween))
 
     @setf.command(name="time", pass_context=True, no_pm=True)
     async def setfTime(self, ctx, seconds: int):
@@ -111,15 +116,15 @@ class Respects(commands.Cog):
             The number of seconds that must pass.  Should be between 1 and 100
         """
         if seconds < 1 or seconds > 100:
-            await self.bot.say(":negative_squared_cross_mark: Please enter a number "
-                               "between 1 and 100!")
+            await ctx.send(":negative_squared_cross_mark: Please enter a number "
+                           "between 1 and 100!")
             return
-        self.timeBetween = timedelta(seconds=seconds)
-        await self.config.put(KEY_TIME_BETWEEN, seconds)
-        await self.bot.say(":white_check_mark: **Respects - Time**: A new respect will be "
-                           "created after **{}** messages and **{}** seconds have passed "
-                           "since the previous one.".format(self.msgsBetween,
-                                                            self.timeBetween.seconds))
+
+        await self.config.guild(ctx.message.guild).timeSinceLastRespect.set(seconds)
+        timeBetween = await self.config.guild(ctx.message.guild).msgsSinceLastRespect()
+        await ctx.send(":white_check_mark: **Respects - Time**: A new respect will be "
+                       "created after **{}** messages and **{}** seconds have passed "
+                       "since the previous one.".format(messages, time))
         LOGGER.info("%s#%s (%s) changed the time between respects to %s seconds",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
