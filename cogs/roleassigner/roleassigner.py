@@ -76,21 +76,23 @@ class RoleAssigner:
                                "Role removed.")
                 #TODO add modify logging statement
 
-    @roleAssigner.command(name="list", pass_context=True)
-    async def raList(self, ctx):
+    @roleAssigner.command(name="list", aliases=["ls"])
+    async def raList(self, ctx: Context):
         """List roles for random assignment."""
-        msg = ":information_source: **Role Assigner - List:** One of the " \
-              "following roles will be assigned to each user:\n"
-        if not self.roles:
-            await self.bot.say(":warning: **Role Assigner - List:** No roles "
+        async for self.config.guild(ctx.guild).roles() as roleList:
+            msg = ":information_source: **Role Assigner - List:** One of the " \
+                  "following roles will be assigned to each user:\n"
+            if not roleList:
+                await ctx.send(":warning: **Role Assigner - List:** No roles "
                                "added!")
-            return
-        msg += "```\n"
-        for roleId in self.roles:
-            roleName = discord.utils.get(ctx.message.server.roles, id=roleId)
-            msg += "{}\n".format(roleName)
-        msg += "```"
-        await self.bot.say(msg)
+                return
+            msg += "```\n"
+            for roleId in roleList:
+                roleObj = discord.utils.get(ctx.guild.roles, id=roleId)
+                if roleObj:
+                    msg += "{}\n".format(roleObj.name)
+            msg += "```"
+            await ctx.send(msg)
 
     @roleAssigner.command(name="assign", pass_context=True)
     async def raAssign(self, ctx, role: discord.Role = None):
