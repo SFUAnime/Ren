@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from threading import Lock
 from random import choice
 import discord
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
@@ -19,7 +19,6 @@ HEARTS = [":green_heart:", ":heart:", ":black_heart:", ":yellow_heart:",
           ":purple_heart:", ":blue_heart:"]
 DEFAULT_TIME_BETWEEN = timedelta(seconds=30) # Time between paid respects.
 DEFAULT_MSGS_BETWEEN = 20 # The number of messages in between
-LOGGER = None
 TEXT_RESPECTS = "paid their respects"
 
 BASE_GUILD = {KEY_TIME_BETWEEN: 30, KEY_MSGS_BETWEEN: 20}
@@ -39,6 +38,21 @@ class Respects(commands.Cog):
         self.config.register_guild(**BASE_GUILD)
         self.config.register_channel(**BASE_CHANNEL)
 
+        # Initialize logger and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.Highlight")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
+
     @commands.command(name="f")
     @commands.guild_only()
     async def plusF(self, ctx: Context):
@@ -47,14 +61,14 @@ class Respects(commands.Cog):
             if not await self.checkLastRespect(ctx):
                 # New respects to be paid
                 await self.payRespects(ctx)
-            elif not self.checkIfUserPaidRespect(ctx):
+            elif not await self.checkIfUserPaidRespect(ctx):
                 # Respects exists, user has not paid their respects yet.
                 await self.payRespects(ctx)
             else:
                 # Respects already paid by user!
                 pass
             try:
-                await ctx.delete()
+                await ctx.message.delete()
             except (discord.Forbidden, discord.NotFound):
                 await ctx.send("I currently cannot delete messages. Please give me the"
                                " \"Manage Messages\" permission to allow this feature to"
@@ -86,11 +100,11 @@ class Respects(commands.Cog):
         await ctx.send(":white_check_mark: **Respects - Messages**: A new respect will be "
                        "created after **{}** messages and **{}** seconds have passed "
                        "since the previous one.".format(messages, timeBetween))
-        LOGGER.info("%s#%s (%s) changed the messages between respects to %s messages",
-                    ctx.message.author.name,
-                    ctx.message.author.discriminator,
-                    ctx.message.author.id,
-                    messages)
+        self.logger.info("%s#%s (%s) changed the messages between respects to %s messages",
+                         ctx.message.author.name,
+                         ctx.message.author.discriminator,
+                         ctx.message.author.id,
+                         messages)
 
     @setf.command(name="show")
     @commands.guild_only()
@@ -125,11 +139,11 @@ class Respects(commands.Cog):
         await ctx.send(":white_check_mark: **Respects - Time**: A new respect will be "
                        "created after **{}** messages and **{}** seconds have passed "
                        "since the previous one.".format(messages, time))
-        LOGGER.info("%s#%s (%s) changed the time between respects to %s seconds",
-                    ctx.message.author.name,
-                    ctx.message.author.discriminator,
-                    ctx.message.author.id,
-                    seconds)
+        self.logger.info("%s#%s (%s) changed the time between respects to %s seconds",
+                         ctx.message.author.name,
+                         ctx.message.author.discriminator,
+                         ctx.message.author.id,
+                         seconds)
 
 
     async def checkLastRespect(self, ctx):
@@ -158,21 +172,30 @@ class Respects(commands.Cog):
 
         exceedMessages = chData[KEY_MSG] not in prevMsgs
         exceedTime = (datetime.now() - datetime.fromtimestamp(chData[KEY_TIME]) >
-                      timedelta(guildData[KEY_TIME_BETWEEN]))
+                      timedelta(seconds=guildData[KEY_TIME_BETWEEN]))
+
+        self.logger.debug("Messages between: %s, Time between: %s",
+                          guildData[KEY_MSGS_BETWEEN], guildData[KEY_TIME_BETWEEN])
+        self.logger.debug("Last respect time: %s",
+                          datetime.fromtimestamp(chData[KEY_TIME]))
+        self.logger.debug("exceedMessages: %s, exceedTime: %s",
+                          exceedMessages, exceedTime)
 
         if exceedMessages and exceedTime:
+            self.logger.debug("We've exceeded the messages/time between respects")
             await self.config.channel(ctx.channel).clear()
             return False
 
         return True
 
-    def checkIfUserPaidRespect(self, ctx):
+    async def checkIfUserPaidRespect(self, ctx):
         """Check to see if the user has already paid their respects.
 
         This assumes that checkLastRespectTime returned True.
         """
         paidRespectsUsers = await self.config.channel(ctx.channel).users()
         if ctx.author.id in paidRespectsUsers:
+            self.logger.debug("The user has already paid their respects")
             return True
         return False
 
@@ -188,7 +211,7 @@ class Respects(commands.Cog):
 
             if chData[KEY_MSG]:
                 try:
-                    oldRespect = ctx.channel.fetch_message(chData[KEY_MSG])
+                    oldRespect = await ctx.channel.fetch_message(chData[KEY_MSG])
                     await oldRespect.delete()
                 except (discord.Forbidden, discord.NotFound):
                     await ctx.send("I currently cannot delete messages, please give me \"Manage"
@@ -219,20 +242,3 @@ class Respects(commands.Cog):
 
             messageObj = await ctx.send(message)
             chData[KEY_MSG] = messageObj.id
-
-def setup(bot):
-    """Add the cog to the bot."""
-    global LOGGER # pylint: disable=global-statement
-    checkFolder()
-    LOGGER = logging.getLogger("red.Respects")
-    if LOGGER.level == 0:
-        # Prevents the LOGGER from being loaded again in case of module reload.
-        LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
-                                      encoding="utf-8",
-                                      mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
-        LOGGER.addHandler(handler)
-    customCog = Respects(bot)
-    bot.add_cog(customCog)
