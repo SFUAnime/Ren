@@ -94,37 +94,45 @@ class RoleAssigner:
             msg += "```"
             await ctx.send(msg)
 
-    @roleAssigner.command(name="assign", pass_context=True)
-    async def raAssign(self, ctx, role: discord.Role = None):
+    @roleAssigner.command(name="assign")
+    async def raAssign(self, ctx: Context, role: discord.Role = None):
+        """Randomly assign roles to members of the guild.
+
+        Parameters:
+        -----------
+        role: discord.Role (optional)
+            Apply to a subset of users with a certain role. If this is not specified,
+            then it will apply one of the roles to ALL members of the guild.
         """
-        Randomly assign roles to users.
-        Optionally apply to a subset of users with a certain role.
-        """
-        users = ctx.message.server.members
-        if role:
-            users = [user for user in users if role in user.roles]
-        numberOfRoles = len(self.roles)
+        async with self.config.guild(ctx.guild).roles() as roleList:
+            members = ctx.guild.members
+            if role:
+                members = [member for member in members if role in member.roles]
+            msgObj = await ctx.send(":hourglass: **Role Assigner - Assign:** "
+                                    "Assigning roles, please wait...")
 
-        msgId = await self.bot.say(":hourglass: **Role Assigner - Assign:** "
-                                   "Assigning roles, please wait...")
+            roleObjList = []
+            for roleId in self.roles:
+                roleObject = discord.utils.get(ctx.guild.roles, id=roleId)
+                if roleObject:
+                    roleObjList.append(roleObject)
 
-        roles = []
-        roleList = ctx.message.server.roles
-        for roleId in self.roles:
-            roleObject = discord.utils.get(roleList, id=roleId)
-            roles.append(roleObject)
+            async with ctx.typing():
+                random.shuffle(members)
+                # Assigning roles takes a while
+                for index, member in enumerate(members):
+                    anyRoles = [i for i in member.roles if i in roles]
+                    if not anyRoles:
+                        # Only assign one role per user. If they have one already,
+                        # just skip them
+                        await member.add_roles(roleObjList[index % len(roleObjList)])
 
-        for index, user in enumerate(users):
-            anyRoles = [i for i in user.roles if i in roles]
-            if not anyRoles:
-                await self.bot.add_roles(user, roles[index % numberOfRoles])
-
-        msg = ":white_check_mark: **Role Assigner - Assign:** Roles assigned"
-        if role:
-            msg += " to users with the {} role.".format(role.name)
-        else:
-            msg += "."
-        await self.bot.edit_message(msgId, msg)
+            msg = ":white_check_mark: **Role Assigner - Assign:** Roles assigned"
+            if role:
+                msg += " to users with the {} role.".format(role.name)
+            else:
+                msg += "."
+            await msgObj.edit(msg)
 
     @roleAssigner.command(name="unassign", pass_context=True)
     async def raUnassign(self, ctx, role: discord.Role = None):
