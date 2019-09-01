@@ -3,73 +3,78 @@ Role Assigner cog.
 Randomly assigns roles to users.
 """
 
-import os # Used to create folder path.
 import random
 import itertools
 import discord
-from discord.ext import commands
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
-from .utils import config, checks # pylint: disable=relative-beyond-top-level
+from redbot.core import Config, checks, commands
+from redbot.core.commands.context import Context
+from redbot.core.utils import paginator
+from redbot.core.bot import Red
 
 SAVE_FOLDER = "data/lui-cogs/roleAssigner"
 MAX_LENGTH = 2000 # For a message
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating {} folder...".format(SAVE_FOLDER))
-        os.makedirs(SAVE_FOLDER)
+KEY_ROLES = "roles"
+
+BASE_GUILD = \
+{
+    KEY_ROLES: []
+}
 
 class RoleAssigner:
     """Randomly assign roles to users."""
 
     def __init__(self, bot):
         self.bot = bot
-        self.config = config.Config("settings.json",
-                                    cogname="lui-cogs/roleAssigner")
-        self.roles = self.config.get("roles")
+        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
 
     @checks.mod_or_permissions(manage_messages=True)
-    @commands.group(name="roleassigner", aliases=["ra"], pass_context=True,
-                    no_pm=True)
-    async def roleAssigner(self, ctx):
+    @commands.group(name="roleassigner", aliases=["ra"])
+    @commands.guild_only()
+    async def roleAssigner(self, ctx: Context):
         """Role assigner, one role per user from a list of roles."""
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
 
-    @roleAssigner.command(name="add", pass_context=False)
-    async def raAdd(self, roleName: discord.Role):
-        """Add a role to be randomly assigned."""
+    @roleAssigner.command(name="add")
+    async def raAdd(self, ctx: Context, role: discord.Role):
+        """Add a role to be randomly assigned.
 
-        if not self.roles:
-            self.roles = []
-        elif roleName.id in self.roles:
-            await self.bot.say(":warning: **Role Assigner - Add:** The role "
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to add to the role assigner list.
+        """
+        async with self.config.guild(ctx.guild).roles() as roleList:
+            if role.id in roleList:
+                await ctx.send(":warning: **Role Assigner - Add:** The role "
                                "already exists in the list!")
-            return
-        self.roles.append(roleName.id)
+                return
+            roleList.append(role.id)
 
-        await self.config.put("roles", self.roles)
-        await self.bot.say(":white_check_mark: **Role Assigner - Add:** Role "
+            await ctx.send(":white_check_mark: **Role Assigner - Add:** Role "
                            "added")
+            #TODO add modify logging statement
 
-    @roleAssigner.command(name="remove", pass_context=False,
-                          aliases=["del", "rm"])
-    async def raRemove(self, roleName: discord.Role):
-        """Remove a role to be randomly assigned."""
-        if not self.roles: # pylint: disable=no-else-return
-            await self.bot.say(":warning: **Role Assigner - Remove:** There are "
+    @roleAssigner.command(name="remove", aliases=["delete", "del", "rm"])
+    async def raRemove(self, ctx: Context, role: discord.Role):
+        """Remove a role to be randomly assigned.
+
+        Parameters:
+        -----------
+        role: discord.Role
+            The role you wish to remove from the role assigner list.
+        """
+        async with self.config.guild(ctx.guild).roles() as roleList:
+            if not roleList:
+                await ctx.send(":warning: **Role Assigner - Remove:** There are "
                                "no roles on the list.  Please add one first!")
-            return
-        elif roleName.id not in self.roles:
-            await self.bot.say(":warning: **Role Assigner - Remove:** The role "
+            elif role.id not in roleList:
+                await ctx.send(":warning: **Role Assigner - Remove:** The role "
                                "doesn't exist on the list!")
-            return
-
-        self.roles.remove(roleName.id)
-        await self.config.put("roles", self.roles)
-        await self.bot.say(":white_check_mark: **Role Assigner - Remove:** "
-                           "Role removed.")
+            else:
+                roleList.remove(roleName.id)
+                await ctx.send(":white_check_mark: **Role Assigner - Remove:** "
+                               "Role removed.")
+                #TODO add modify logging statement
 
     @roleAssigner.command(name="list", pass_context=True)
     async def raList(self, ctx):
