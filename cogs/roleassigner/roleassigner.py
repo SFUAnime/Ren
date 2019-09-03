@@ -112,7 +112,7 @@ class RoleAssigner:
                                     "Assigning roles, please wait...")
 
             roleObjList = []
-            for roleId in self.roles:
+            for roleId in roleList:
                 roleObject = discord.utils.get(ctx.guild.roles, id=roleId)
                 if roleObject:
                     roleObjList.append(roleObject)
@@ -134,31 +134,39 @@ class RoleAssigner:
                 msg += "."
             await msgObj.edit(msg)
 
-    @roleAssigner.command(name="unassign", pass_context=True)
-    async def raUnassign(self, ctx, role: discord.Role = None):
-        """Remove roles on the list from ALL users"""
-        users = ctx.message.server.members
-        if role:
-            users = [user for user in users if role in user.roles]
+    @roleAssigner.command(name="unassign")
+    async def raUnassign(self, ctx: Context, role: discord.Role = None):
+        """Remove roles on the list from users
 
-        msgId = await self.bot.say(":hourglass: **Role Assigner - Unassign:** "
-                                   "Unassigning roles, please wait...")
+        Parameters:
+        -----------
+        role: discord.Role (optional)
+            Remove roles from members with a certain role. If this is not specified,
+            then it will remove all roles on the list from ALL members of the guild.
+        """
+        async with self.config.guild(ctx.guild).roles() as roleList:
+            members = ctx.guild.members
+            if role:
+                members = [member for member in members if role in member.roles]
 
-        roles = []
-        roleList = ctx.message.server.roles
-        for roleId in self.roles:
-            roleObject = discord.utils.get(roleList, id=roleId)
-            roles.append(roleObject)
+            msgObj = await ctx.send(":hourglass: **Role Assigner - Unassign:** "
+                                    "Unassigning roles, please wait...")
 
-        for userObject, roleObject in itertools.product(users, roles):
-            if roleObject in userObject.roles:
-                await self.bot.remove_roles(userObject, roleObject)
-        msg = ":white_check_mark: **Role Assigner - Unassign:** Roles removed"
-        if role:
-            msg += " from users with the {} role.".format(role.name)
-        else:
-            msg += "."
-        await self.bot.edit_message(msgId, msg)
+            roleObjList = []
+            for roleId in roleList:
+                roleObject = discord.utils.get(ctx.guild.roles, id=roleId)
+                roleObjList.append(roleObject)
+
+            asycn with ctx.typing():
+                for member in members:
+                    await member.remove_roles(roleObjList)
+
+            msg = ":white_check_mark: **Role Assigner - Unassign:** Roles removed"
+            if role:
+                msg += " from users with the {} role.".format(role.name)
+            else:
+                msg += "."
+            await msgObject.edit(msg)
 
     @roleAssigner.command(name="random", pass_context=True)
     async def raRandom(self, ctx, fromRole: discord.Role, number: int,
@@ -168,54 +176,61 @@ class RoleAssigner:
 
         Pick `number` of users from fromRole at random, and assign assignRole to
         those users.
+
+        Parameters:
+        -----------
+        fromRole: discord.Role
+            The role you wish to pick guild members from.
+        number: int
+            The number of members you wish to randomly pick.
+        assignRole: discord.Role
+            The role you wish to assign to those members you just picked.
+        excludeFromRole: discord.Role (optional)
+            Any member with this role will not be considered for picking.
         """
         if number <= 0:
             await self.bot.say(":negative_squared_cross_mark: **Role Assigner - "
                                "Random:** Please enter a positive number!")
             return
 
-        users = ctx.message.server.members
+        members = ctx.guild.members
         if excludeFromRole:
-            eligibleUsers = [user for user in users if fromRole in user.roles and
-                             excludeFromRole not in user.roles and assignRole not
-                             in user.roles]
+            eligibleMembers = [member for member in members if fromRole in member.roles and
+                               excludeFromRole not in member.roles and assignRole not
+                               in member.roles]
         else:
-            eligibleUsers = [user for user in users if fromRole in user.roles and
-                             assignRole not in user.roles]
+            eligibleMembers = [member for member in members if fromRole in member.roles and
+                               assignRole not in member.roles]
 
-        if number > len(eligibleUsers):
-            # Assign role to all eligible users.
-            picked = eligibleUsers
+        if number > len(eligibleMembers):
+            # Assign role to all eligible members.
+            picked = eligibleMembers
         else:
             # Randomize and select the first `number` users.
-            random.shuffle(eligibleUsers)
-            picked = eligibleUsers[0:number]
+            random.shuffle(eligibleMembers)
+            picked = eligibleMembers[0:number]
 
         if not picked:
-            await self.bot.say(":negative_squared_cross_mark: **Role Assigner - "
-                               "Random:** Nobody was eligible to be assigned!")
+            await ctx.send(":negative_squared_cross_mark: **Role Assigner - "
+                           "Random:** Nobody was eligible to be assigned!")
             return
 
-        status = await self.bot.say(":hourglass: **Role Assigner - Random:** Randomly "
-                                    "picking users from the role **{}** and assigning "
-                                    "them to the role **{}**.  Please wait...\n"
-                                    "Users being assigned:"
-                                    .format(fromRole.name, assignRole.name))
+        status = await ctx.send(":hourglass: **Role Assigner - Random:** Randomly "
+                                "picking members from the role **{}** and assigning "
+                                "them to the role **{}**.  Please wait...\n"
+                                "Members being assigned:"
+                                .format(fromRole.name, assignRole.name))
 
         msg = "**|** "
-        for user in picked:
-            await self.bot.add_roles(user, assignRole)
+        for member in picked:
+            await member.add_roles(assignRole)
             if len(msg) > MAX_LENGTH:
-                await self.bot.say(msg)
+                await ctx.send(msg)
                 msg = "**|** "
-            msg += "{} **|** ".format(user.name)
-        await self.bot.say(msg)
+            msg += "{} **|** ".format(member.name)
+        await ctx.send(msg)
         msg = (":white_check_mark: **Role Assigner - Random:** The following users "
                "were picked from the **{}** role and assigned to the role **{}**:"
                .format(fromRole.name, assignRole.name))
-        await self.bot.edit_message(status, msg)
+        await msgObj.edit(msg)
 
-def setup(bot):
-    """Add the cog to the bot."""
-    checkFolder()
-    bot.add_cog(RoleAssigner(bot))
