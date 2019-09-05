@@ -205,36 +205,35 @@ class SmartReact(commands.Cog):
                 await ctx.send("There are no smart reactions which use "
                                "this emoji.")
 
-    async def emojis_update_listener(self, before, after):
-        if self.update_wait != 1:
+    @commands.Cog.listener("on_guild_emojis_update")
+    async def emojis_update_listener(self, guild: discord.Guild, before, after):
+        if not self.update_wait:
             try:
-                self.update_wait = 1
+                self.update_wait = True
                 # Requires the server to have at least one emoji
-                server = after[0].server
+                if not guild.emojis:
+                    return
                 # Wait for some time for further changes before updating
-                print("SmartReact update wait started for Server " + str(server.name))
-                await asyncio.sleep(self.UPDATE_WAIT_DUR)
-                await self.update_emojis(server)
-                print("SmartReact update successful for Server " + str(server.name))
+                print("SmartReact update wait started for Server " + str(guild.name))
+                await asyncio.sleep(UPDATE_WAIT_DUR)
+                await self.update_emojis(guild)
+                print("SmartReact update successful for Server " + str(guild.name))
             except Exception as e:
                 print("SmartReact error: ")
                 print(e)
-                pass
-            self.update_wait = 0
+            self.update_wait = False
 
     # Special thanks to irdumb#1229 on discord for helping me make this method
     # "more Pythonic"
-    async def msg_listener(self, message):
+    @commands.Cog.listener("on_message")
+    async def msgListener(self, message):
         if message.author == self.bot.user:
             return
         if self.is_command(message):
             return
-        server = message.server
-        if server is None:
+        if not message.guild:
             return
-        if server.id not in self.settings:
-            return
-        react_dict = copy.deepcopy(self.settings[server.id])
+        react_dict = await self.config.guild(message.guild).emojis()
 
         # For matching non-word characters and emojis
         end_sym = r'([\W:\\<>._]+|$)'
@@ -242,10 +241,10 @@ class SmartReact(commands.Cog):
         for emoji in react_dict:
             if any(re.search(st_sym + w + end_sym, message.content, re.IGNORECASE) for w in react_dict[emoji]):
                 fixed_emoji = self.fix_custom_emoji(emoji)
-                if fixed_emoji is not None:
+                if fixed_emoji:
                     try:
                         await self.bot.add_reaction(message, fixed_emoji)
-                    except discord.errors.Forbidden as e:
+                    except discord.Forbidden as e:
                         pass
 
 def check_folders():
