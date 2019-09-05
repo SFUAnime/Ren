@@ -1,9 +1,12 @@
+"""Smartreact, for all your autoreact needs.
+
+This cog was originally from flapjax/FlapJack-Cogs in v2.
+"""
 import os
 import copy
 import re
 import asyncio
 import discord
-from .utils.paginator import Pages # For making pages, requires the util!
 from redbot.core import Config, checks, commands
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
@@ -60,29 +63,23 @@ class SmartReact(commands.Cog):
     @reacts.command(name="list", no_pm=True, pass_context=True)
     # @checks.mod_or_permissions(manage_messages=True)
     async def list(self, ctx):
-        """List the auto reaction emojis and triggers"""
-        guild_id = ctx.message.server.id
-        guild_name = ctx.message.server.name
-
+        """List the auto reaction emojis and triggers."""
         display = []
-        for emoji, trigger in self.settings[guild_id].items():
-            text = emoji+": "
-            for n in range(0, len(trigger)):
-                text += trigger[n]+" "
+        emojis = await self.config.guild(ctx.guild).emojis()
+        for emoji, triggers in emojis.items():
+            text = "{}: ".format(emoji)
+            for trig in triggers:
+                text += "{} ".format(trig)
             display.append(text)
 
         if not display:
-            await self.bot.say("There are no smart reacts configured in this server.")
+            await ctx.send("There are no smart reacts configured in this server.")
         else:
-            p = Pages(self.bot,message=ctx.message,entries=display)
-            p.embed.title = "Smart React emojis for: **{}**".format(guild_name)
-            p.embed.colour = discord.Colour.red()
-            await p.paginate()
+            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+            page.embed.title = "Smart React emojis for: **{}**".format(ctx.guild.name)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
 
-    def load_settings(self, server_id):
-        self.settings = dataIO.load_json(self.settings_path)
-        if server_id not in self.settings.keys():
-            self.add_default_settings(server_id)
 
     def add_default_settings(self, server_id):
         self.settings[server_id] = {}
