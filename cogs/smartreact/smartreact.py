@@ -247,20 +247,6 @@ class SmartReact(commands.Cog):
                     except discord.Forbidden as e:
                         pass
 
-def check_folders():
-    folder = "data/smartreact"
-    if not os.path.exists(folder):
-        print("Creating {} folder...".format(folder))
-        os.makedirs(folder)
-
-
-def check_files():
-    default = {}
-    if not dataIO.is_valid_json("data/smartreact/settings.json"):
-        print("Creating default smartreact settings.json...")
-        dataIO.save_json("data/smartreact/settings.json", default)
-
-
 def setup(bot):
     check_folders()
     check_files()
