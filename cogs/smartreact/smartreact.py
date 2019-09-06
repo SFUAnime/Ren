@@ -4,12 +4,14 @@ This cog was originally from flapjax/FlapJack-Cogs in v2.
 """
 import os
 import copy
+import logging
 import re
 import asyncio
 import discord
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
 UPDATE_WAIT_DUR = 1200 # Autoupdate waits this much before updating
 
@@ -29,6 +31,21 @@ class SmartReact(commands.Cog):
         self.config.register_guild(**BASE_GUILD) # Register default (empty) settings.
         self.update_wait = False # boolean to check if already waiting
 
+        # Initialize logger, and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.SmartReact")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
+
     @commands.group(name="react")
     @commands.guild_only()
     # @checks.mod_or_permissions(manage_messages=True)
@@ -39,16 +56,34 @@ class SmartReact(commands.Cog):
     @reacts.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def add(self, ctx: Context, word: str, emoji: discord.Emoji):
-        """Add an auto reaction to a word"""
+    async def add(self, ctx: Context, word: str, emoji: str):
+        """Add an auto reaction to a word.
+
+        Parameters:
+        -----------
+        word: str
+            The word you wish to react to.
+        emoji: Union[str, discord.Emoji]
+            The emoji you wish to react with, intrepreted as the string representation
+            with <:name:id> if it is a custom emoji.
+        """
         emoji = self.fix_custom_emoji(emoji)
         await self.create_smart_reaction(ctx, word, emoji)
 
     @reacts.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def delete(self, ctx: Context, word: str, emoji: discord.Emoji):
-        """Delete an auto reaction to a word"""
+    async def delete(self, ctx: Context, word: str, emoji: str):
+        """Delete an auto reaction to a word.
+
+        Parameters:
+        -----------
+        word: str
+            The word you wish to react to.
+        emoji: Union[str, discord.Emoji]
+            The emoji you wish to react with, intrepreted as the string representation
+            with <:name:id> if it is a custom emoji.
+        """
         emoji = self.fix_custom_emoji(emoji)
         await self.remove_smart_reaction(ctx, word, emoji)
 
@@ -85,18 +120,28 @@ class SmartReact(commands.Cog):
         self.settings[server_id] = {}
         dataIO.save_json(self.settings_path, self.settings)
 
-    def fix_custom_emoji(self, emoji):
+    def fix_custom_emoji(self, emoji: str):
+        self.logger.debug("Emoji: %s", emoji)
         try:
             if emoji[:2] != "<:":
                 return emoji
-            return [r for server in self.bot.servers for r in server.emojis if r.id == emoji.split(':')[2][:-1]][0]
+            self.logger.debug(emoji.split(':')[2][:-1])
+            return [emote for guild in self.bot.guilds for emote in guild.emojis
+                    if emote.id == int(emoji.split(':')[2][:-1])][0]
         except IndexError:
+            self.logger.error("Index error as follows", exc_info=True)
             return None
 
     # From Twentysix26's trigger.py cog
-    def is_command(self, msg):
+    async def is_command(self, msg):
+        """Check to see if a message is a from a command.
+
+        Parameters:
+        -----------
+        msg: discord.Message
+        """
         if callable(self.bot.command_prefix):
-            prefixes = self.bot.command_prefix(self.bot, msg)
+            prefixes = await self.bot.command_prefix(self.bot, msg)
         else:
             prefixes = self.bot.command_prefix
         for p in prefixes:
@@ -142,7 +187,7 @@ class SmartReact(commands.Cog):
 
         dataIO.save_json(self.settings_path, self.settings)
 
-    async def create_smart_reaction(self, ctx: Context, word: str, emoji: discord.Emoji):
+    async def create_smart_reaction(self, ctx: Context, word: str, emoji: str):
         """Add a word to be autoreacted to.
 
         Parameters:
@@ -151,14 +196,15 @@ class SmartReact(commands.Cog):
             The context given by discord.py
         word: str
             The word you wish to react to.
-        emoji: discord.Emoji
+        emoji: Union[str, discord.Emoji]
             The emoji you wish to react with.
         """
         try:
             # Use the reaction to see if it's valid
-            await ctx.add_reaction(emoji)
+            await ctx.message.add_reaction(emoji)
         except (discord.HTTPException, discord.InvalidArgument):
             await ctx.send("That's not an emoji I recognize.")
+            self.logger.error("Could not add reaction", exc_info=True)
             return
 
         async with self.config.guild(ctx.guild).emojis() as emojiDict:
@@ -172,7 +218,7 @@ class SmartReact(commands.Cog):
 
         await ctx.send("Successfully added this reaction.")
 
-    async def remove_smart_reaction(self, ctx: Context, word: str, emoji: discord.Emoji):
+    async def remove_smart_reaction(self, ctx: Context, word: str, emoji: str):
         """Remove a word from being autoreacted to.
 
         Parameters:
@@ -181,12 +227,12 @@ class SmartReact(commands.Cog):
             The context given by discord.py
         word: str
             The word you wish to stop reacting to.
-        emoji: discord.Emoji
+        emoji: Union[str, discord.Emoji]
             The emoji you wish to stop reacting with.
         """
         try:
             # Use the reaction to see if it's valid
-            await ctx.add_reaction(emoji)
+            await ctx.message.add_reaction(emoji)
         except (discord.HTTPException, discord.InvalidArgument):
             await ctx.send("That's not an emoji I recognize.")
             return
@@ -229,7 +275,7 @@ class SmartReact(commands.Cog):
     async def msgListener(self, message):
         if message.author == self.bot.user:
             return
-        if self.is_command(message):
+        if await self.is_command(message):
             return
         if not message.guild:
             return
@@ -243,7 +289,7 @@ class SmartReact(commands.Cog):
                 fixed_emoji = self.fix_custom_emoji(emoji)
                 if fixed_emoji:
                     try:
-                        await self.bot.add_reaction(message, fixed_emoji)
+                        await message.add_reaction(fixed_emoji)
                     except discord.Forbidden as e:
                         pass
 
