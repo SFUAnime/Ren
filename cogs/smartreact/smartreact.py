@@ -115,11 +115,6 @@ class SmartReact(commands.Cog):
             page.embed.colour = discord.Colour.red()
             await page.paginate()
 
-
-    def add_default_settings(self, server_id):
-        self.settings[server_id] = {}
-        dataIO.save_json(self.settings_path, self.settings)
-
     def fix_custom_emoji(self, emoji: str):
         self.logger.debug("Emoji: %s", emoji)
         try:
@@ -292,11 +287,3 @@ class SmartReact(commands.Cog):
                         await message.add_reaction(fixed_emoji)
                     except discord.Forbidden as e:
                         pass
-
-def setup(bot):
-    check_folders()
-    check_files()
-    n = SmartReact(bot)
-    bot.add_cog(n)
-    bot.add_listener(n.msg_listener, "on_message")
-    bot.add_listener(n.emojis_update_listener, "on_server_emojis_update")
