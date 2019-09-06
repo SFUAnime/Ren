@@ -134,7 +134,9 @@ class Birthday(commands.Cog):
             await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Add**: Could "
                 "not add **{}** to the list, the bot does not have enough "
-                "permissions to do so!".format(member.name))
+                "permissions to do so! Please make sure that the bot is "
+                "above the birthday role, and that it has the Manage Roles"
+                "permission!".format(member.name))
             return
 
         # Save settings
@@ -312,7 +314,9 @@ class Birthday(commands.Cog):
             await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Delete**: "
                 "Could not remove **{}** from the role, the bot does not "
-                "have enough permissions to do so!".format(member.name))
+                "have enough permissions to do so! Please make sure that "
+                "the bot is above the birthday role, and that it has the "
+                "Manage Roles permission!".format(member.name))
             return
 
         async with self.config.member(member).all() as userConfig:
@@ -330,9 +334,6 @@ class Birthday(commands.Cog):
             member.id)
         return
 
-    ########################################
-    # Event loop - Try an absolute timeout #
-    ########################################
     async def checkBirthday(self):
         """Check birthday list once."""
         await self._dailySweep()
@@ -398,10 +399,8 @@ class Birthday(commands.Cog):
                         # Update the list.
                         await self.config.member(member).isAssigned.set(False)
 
-    ##################################################################
-    # Event Loop - Check to see if we need to add people to the role #
-    ##################################################################
     async def _dailyAdd(self):  # pylint: disable=too-many-branches
+        """Add guild members to the birthday role."""
         guilds = self.bot.guilds
 
         # Avoid having data modified by other methods.
@@ -412,7 +411,7 @@ class Birthday(commands.Cog):
         async with membersLock:
             # Check each guild.
             for guild in guilds:
-                # Make sure the guild is configured with birthdya role.
+                # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).birthdayRole()
                 if not bdayRoleId:
