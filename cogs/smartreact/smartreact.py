@@ -87,13 +87,13 @@ class SmartReact(commands.Cog):
         emoji = self.fix_custom_emoji(emoji)
         await self.remove_smart_reaction(ctx, word, emoji)
 
-    @reacts.command(name="reload", no_pm=True, pass_context=True)
+    @reacts.command(name="reload")
+    @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def reload(self, ctx):
         """Reloads auto reactions with new emojis by name"""
-        server = ctx.message.server
-        code = await self.update_emojis(server)
-        await self.bot.say("Reload success.")
+        code = await self.update_emojis(ctx.guild)
+        await ctx.send("Reload success.")
 
     @reacts.command(name="list", no_pm=True, pass_context=True)
     # @checks.mod_or_permissions(manage_messages=True)
@@ -146,41 +146,70 @@ class SmartReact(commands.Cog):
 
     # Helper function that matches the name of the emoji and gets the updated custom emoji ID
     # Will raise ValueError if the comparison emoji is not in the names_list
-    def get_updated_emoji(self, names_list, compare_emoji, server):
-        locv = names_list.index(compare_emoji.split(':')[1].lower())
-        return str(server.emojis[locv])
-        
+    def get_updated_emoji(self, nameList, compare_emoji, guild):
+        """Get updated emoji ID of a custom emoji.
 
-    async def update_emojis(self, server):
-        names_list = [x.name.lower() for x in server.emojis]
-        settings = copy.deepcopy(self.settings[server.id])
+        Parameters:
+        -----------
+        nameList: [ str ]
+            A list of emoji names to check against. This should be in the same order as
+            retrieved from guild.emojis.
+        compareEmoji: str
+            The emoji that needs to be updated.
+        guild: discord.Guild
+            The discord guild in question.
 
-        for emoji in self.settings[server.id].keys():
-            # Update any emojis in the trigger words
-            for idx, w in enumerate(self.settings[server.id][emoji]):
-                if not ':' in w: # Hackishly makes sure it's a custom emoji
+        Returns:
+        --------
+        str
+            The string of the emoji.
+
+        Raises:
+        -------
+        ValueError
+            Emoji is not in the nameList
+        """
+        locv = nameList.index(compare_emoji.split(':')[1].lower())
+        self.logger.debug("Updated emoji value: %s", guild.emojis[locv])
+        return str(guild.emojis[locv])
+
+    async def update_emojis(self, guild):
+        """Update the emojis on the guild.
+
+        Parameters:
+        -----------
+        guild: discord.Guild
+            The guild to update.
+        """
+        async with self.config.guild(guild).emojis() as emojiList:
+            namesList = [x.name.lower() for x in guild.emojis]
+
+            for emoji in emojiList.keys():
+                # Update any emojis in the trigger words
+                for idx, word in enumerate(emojiList[emoji]):
+                    if not ':' in word: # Hackishly makes sure it's a custom emoji
+                        continue
+
+                    try:
+                        updated_emoji = self.get_updated_emoji(namesList, word, guild)
+                    except ValueError:
+                        continue # Don't care if doesn't exist
+                    if w != updated_emoji:
+                        emojiList[emoji][idx] = updated_emoji
+
+                if not ':' in emoji:
                     continue
 
+                # Update the emoji key
                 try:
-                    updated_emoji = self.get_updated_emoji(names_list, w, server)
+                    new_emoji_key = self.get_updated_emoji(namesList, emoji, guild)
                 except ValueError:
                     continue # Don't care if doesn't exist
-                if w != updated_emoji:
-                    settings[emoji][idx] = updated_emoji
+                if emoji != new_emoji_key:
+                    emojiList[new_emoji_key] = emojiList.pop(emoji)
+        # self.settings[server.id] = settings
 
-            if not ':' in emoji:
-                continue
-
-            # Update the emoji key
-            try:
-                new_emoji_key = self.get_updated_emoji(names_list, emoji, server)
-            except ValueError:
-                continue # Don't care if doesn't exist
-            if emoji != new_emoji_key:
-                settings[new_emoji_key] = settings.pop(emoji)
-        self.settings[server.id] = settings
-
-        dataIO.save_json(self.settings_path, self.settings)
+        # dataIO.save_json(self.settings_path, self.settings)
 
     async def create_smart_reaction(self, ctx: Context, word: str, emoji: str):
         """Add a word to be autoreacted to.
@@ -255,13 +284,12 @@ class SmartReact(commands.Cog):
                 if not guild.emojis:
                     return
                 # Wait for some time for further changes before updating
-                print("SmartReact update wait started for Server " + str(guild.name))
+                self.logger.info("SmartReact update wait started for guild %s", guild.name)
                 await asyncio.sleep(UPDATE_WAIT_DUR)
                 await self.update_emojis(guild)
-                print("SmartReact update successful for Server " + str(guild.name))
-            except Exception as e:
-                print("SmartReact error: ")
-                print(e)
+                self.logger.info("SmartReact update successful for guild %s", guild.name)
+            except Exception as error:
+                self.logger.error("SmartReact error: %s", error, exc_info=True)
             self.update_wait = False
 
     # Special thanks to irdumb#1229 on discord for helping me make this method
