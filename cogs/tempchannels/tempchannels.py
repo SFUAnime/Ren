@@ -2,19 +2,19 @@
 
 Creates a temporary channel.
 """
-import asyncio
-from copy import deepcopy
-import itertools
 import json # Will need this to use in conjunction with aiohttp below.
 import logging
 import os
-from threading import Lock
 import time
-import aiohttp # Using this to build own request to Discord API for NSFW.
+import asyncio
+from copy import deepcopy
+import itertools
+from threading import Lock
 import discord
 from discord.ext import commands
-from cogs.utils import checks, config
-from cogs.utils.dataIO import dataIO
+from redbot.core import Config, checks, commands
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
 KEY_SETTINGS = "settings"
 KEY_CH_ID = "channel"
@@ -54,7 +54,7 @@ SAVE_FILE = "settings.json"
 SLEEP_TIME = 15 # Background loop sleep time in seconds
 
 
-DEFAULT_DICT = \
+DEFAULT_GUILD = \
 {
     KEY_CH_ID: None,
     KEY_CH_NAME: "temp-channel",
@@ -116,13 +116,15 @@ def _createPermList(serverRoleList, roleIdList, perms):
     return tupleList
 
 
-class TempChannels:
+class TempChannels(commands.Cog):
     """Creates a temporary channel."""
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
-        self.config = config.Config("settings.json",
-                                    cogname="lui-cogs/tempchannels")
+        self.config = Config.get_conf(self,
+                                      identifier=5842647,
+                                      force_registration=True)
+        self.config.register_guild(**DEFAULT_GUILD)
         self.lock = Lock()
         self.settings = self.config.get(KEY_SETTINGS)
 
@@ -131,75 +133,46 @@ class TempChannels:
         await self.config.put(KEY_SETTINGS, self.settings)
         self.settings = self.config.get(KEY_SETTINGS)
 
-    @commands.group(name="tempchannels", pass_context=True, no_pm=True, aliases=["tc"])
+    @commands.group(name="tempchannels", aliases=["tc"])
+    @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def tempChannels(self, ctx):
-        """
-        Temporary text-channel creation (only 1 at the moment).
-        """
-        if ctx.invoked_subcommand is None:
-            await self.bot.send_cmd_help(ctx)
+    async def tempChannels(self, ctx: Context):
+        """Temporary text-channel creation (only 1 at the moment)."""
 
-    @tempChannels.command(name="default", pass_context=True, no_pm=True)
-    async def tempChannelsDefault(self, ctx):
-        """RUN FIRST: Sets default settings.
-        - Start at 00:00.
-        - Duration of channel is 1 minute.
-        - The creation and deletion of TempChannel is disabled.
-        - NSFW prompt will not appear.
-        - TempChannel will not be role restricted.
-        - If present, the previous TempChannel (if any) will be forgotten, and not deleted.
-        """
-        with self.lock:
-            self.settings[ctx.message.server.id] = deepcopy(DEFAULT_DICT)
-            LOGGER.info("%s (%s) set defaults for %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, ctx.message.author.id)
-
-            await self._syncSettings()
-        await self.bot.say(":white_check_mark: TempChannel: Setting default settings.")
-
-    @tempChannels.command(name="show", pass_context=True, no_pm=True)
-    async def tempChannelsShow(self, ctx):
+    @tempChannels.command(name="show")
+    async def tempChannelsShow(self, ctx: Context):
         """Show current settings."""
-        try:
-            tempCh = self.settings[ctx.message.server.id]
-            rolesAllow = [discord.utils.get(ctx.message.server.roles,
-                                            id=rid) for rid in tempCh[KEY_ROLE_ALLOW]]
-            rolesAllow = [roleName.name for roleName in rolesAllow if roleName]
-            rolesDeny = [discord.utils.get(ctx.message.server.roles,
-                                           id=rid) for rid in tempCh[KEY_ROLE_DENY]]
-            rolesDeny = [roleName.name for roleName in rolesDeny if roleName]
-            msg = (":information_source: TempChannel - Current Settings\n```"
-                   "Enabled?       {}\n"
-                   "NSFW Prompt:   {}\n"
-                   "Roles Allowed: {}\n"
-                   "Roles Denied:  {}\n"
-                   "Ch. Name:      #{}\n"
-                   "Ch. Topic:     {}\n"
-                   "Ch. Position:  {}\n"
-                   "Ch. Category:  {}\n"
-                   "Creation Time: {:002d}:{:002d}\n"
-                   "Duration:      {}h {}m"
-                   "```".format("Yes" if tempCh[KEY_ENABLED] else "No",
-                                "Yes" if tempCh[KEY_NSFW] else "No",
-                                rolesAllow,
-                                rolesDeny,
-                                tempCh[KEY_CH_NAME],
-                                tempCh[KEY_CH_TOPIC],
-                                tempCh[KEY_CH_POS],
-                                "ID {}".format(tempCh[KEY_CH_CATEGORY]) if
-                                tempCh[KEY_CH_CATEGORY] else "(not set)",
-                                tempCh[KEY_START_HOUR], tempCh[KEY_START_MIN],
-                                tempCh[KEY_DURATION_HOURS], tempCh[KEY_DURATION_MINS]))
+        tempCh = await self.config.guild(ctx.guild).all()
+        rolesAllow = [discord.utils.get(ctx.guild.roles,
+                                        id=rid) for rid in tempCh[KEY_ROLE_ALLOW]]
+        rolesAllow = [roleName.name for roleName in rolesAllow if roleName]
+        rolesDeny = [discord.utils.get(ctx.guild.roles,
+                                       id=rid) for rid in tempCh[KEY_ROLE_DENY]]
+        rolesDeny = [roleName.name for roleName in rolesDeny if roleName]
+        msg = (":information_source: TempChannel - Current Settings\n```"
+               "Enabled?       {}\n"
+               "NSFW Prompt:   {}\n"
+               "Roles Allowed: {}\n"
+               "Roles Denied:  {}\n"
+               "Ch. Name:      #{}\n"
+               "Ch. Topic:     {}\n"
+               "Ch. Position:  {}\n"
+               "Ch. Category:  {}\n"
+               "Creation Time: {:002d}:{:002d}\n"
+               "Duration:      {}h {}m"
+               "```".format("Yes" if tempCh[KEY_ENABLED] else "No",
+                            "Yes" if tempCh[KEY_NSFW] else "No",
+                            rolesAllow,
+                            rolesDeny,
+                            tempCh[KEY_CH_NAME],
+                            tempCh[KEY_CH_TOPIC],
+                            tempCh[KEY_CH_POS],
+                            "ID {}".format(tempCh[KEY_CH_CATEGORY]) if
+                            tempCh[KEY_CH_CATEGORY] else "(not set)",
+                            tempCh[KEY_START_HOUR], tempCh[KEY_START_MIN],
+                            tempCh[KEY_DURATION_HOURS], tempCh[KEY_DURATION_MINS]))
 
-            await self.bot.say(msg)
-        except KeyError as error:
-            LOGGER.error(error)
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: Cannot "
-                               "display settings.  Please set default settings by "
-                               "typing `{}tempchannels default` first, and then "
-                               "try again.".format(ctx.prefix))
+        await ctx.send(msg)
 
     @tempChannels.command(name="toggle", pass_context=True, no_pm=True)
     async def tempChannelsToggle(self, ctx):
