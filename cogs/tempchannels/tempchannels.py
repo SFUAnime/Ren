@@ -241,8 +241,8 @@ class TempChannels(commands.Cog):
         await ctx.send(":white_check_mark: TempChannel - Start Time: Start time "
                        "set to {0:002d}:{1:002d}.".format(hour, minute))
 
-    @tempChannels.command(name="duration", pass_context=True, no_pm=True)
-    async def tempChannelsDuration(self, ctx, hours: int, minutes: int):
+    @tempChannels.command(name="duration")
+    async def tempChannelsDuration(self, ctx: Context, hours: int, minutes: int):
         """Set the duration of the temp channel.  Max 100 hours.
 
         Parameters:
@@ -256,91 +256,97 @@ class TempChannels(commands.Cog):
         If hours = 1, and minutes = 3, then the channel will be available for
         1 hour 3 minutes.
         """
-        sid = ctx.message.server.id
-
         if (hours >= 100) or (hours < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
-                               "Please enter valid hours!")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Duration: "
+                           "Please enter valid hours!")
             return
         if (minutes >= 60) or (minutes < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
-                               "Please enter valid minutes!")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Duration: "
+                           "Please enter valid minutes!")
             return
         if (hours >= 99) and (minutes >= 60):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Duration: "
-                               "Please enter a valid duration!")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Duration: "
+                           "Please enter a valid duration!")
             return
 
-        with self.lock:
-            self.settings[sid][KEY_DURATION_HOURS] = hours
-            self.settings[sid][KEY_DURATION_MINS] = minutes
-            await self._syncSettings()
+        async with self.config.guild(ctx.guild).all() as guildData:
+            guildData[KEY_DURATION_HOURS] = hours
+            guildData[KEY_DURATION_MINS] = minutes
         LOGGER.info("%s (%s) set the duration to %s hours, %s minutes on %s (%s)",
-                    ctx.message.author.name, ctx.message.author.id,
-                    hours, minutes, ctx.message.server.name, sid)
+                    ctx.author.name, ctx.author.id,
+                    hours, minutes, ctx.guild.name, ctx.guild.id)
 
-        await self.bot.say(":white_check_mark: TempChannel - Duration: Duration set to "
-                           "**{0} hours, {1} minutes**.".format(hours, minutes))
+        await ctx.send(":white_check_mark: TempChannel - Duration: Duration set to "
+                       "**{0} hours, {1} minutes**.".format(hours, minutes))
 
-    @tempChannels.command(name="topic", pass_context=True, no_pm=True)
-    async def tempChannelsTopic(self, ctx, *, topic: str):
-        """Set the topic of the channel."""
+    @tempChannels.command(name="topic")
+    async def tempChannelsTopic(self, ctx: Context, *, topic: str):
+        """Set the topic of the channel.
+
+        Parameters:
+        -----------
+        topic: str
+            The topic of the channel.
+        """
         if len(topic) > MAX_CH_TOPIC:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Topic: "
-                               "Topic is too long.  Try again.")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Topic: "
+                           "Topic is too long.  Try again.")
             return
 
-        sid = ctx.message.server.id
+        await self.config.guild(ctx.guild).channelTopic.set(topic)
 
-        with self.lock:
-            self.settings[sid][KEY_CH_TOPIC] = topic
-            await self._syncSettings()
         LOGGER.info("%s (%s) set the channel topic to the following on %s (%s): %s",
-                    ctx.message.author.name, ctx.message.author.id,
-                    ctx.message.server.name, sid, topic)
+                    ctx.author.name, ctx.author.id,
+                    ctx.guild.name, ctx.guild.id, topic)
 
-        await self.bot.say(":white_check_mark: TempChannel - Topic: Topic set to:\n"
-                           "```{0}```".format(topic))
+        await ctx.send(":white_check_mark: TempChannel - Topic: Topic set to:\n"
+                       "```{0}```".format(topic))
 
-    @tempChannels.command(name="name", pass_context=True, no_pm=True)
+    @tempChannels.command(name="name")
     async def tempChannelsName(self, ctx, name: str):
-        """Set the #name of the channel."""
+        """Set the #name of the channel.
+
+        Parameters:
+        -----------
+        name: str
+            The #name of the channel, which is shown on the left panel of Discord.
+        """
         if len(name) > MAX_CH_NAME:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Name: "
-                               "Name is too long.  Try again.")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Name: "
+                           "Name is too long.  Try again.")
             return
 
-        sid = ctx.message.server.id
+        await self.config.guild(ctx.guild).channelName.set(name)
 
-        with self.lock:
-            self.settings[sid][KEY_CH_NAME] = name
-            await self._syncSettings()
         LOGGER.info("%s (%s) set the channel name to ""%s"" on %s (%s)",
-                    ctx.message.author.name, ctx.message.author.id,
-                    name, ctx.message.server.name, sid)
+                    ctx.author.name, ctx.author.id,
+                    name, ctx.guild.name, ctx.guild.id)
 
-        await self.bot.say(":white_check_mark: TempChannel - Name: Channel name set "
-                           "to: ``{0}``".format(name))
+        await ctx.send(":white_check_mark: TempChannel - Name: Channel name set "
+                       "to: ``{0}``".format(name))
 
-    @tempChannels.command(name="position", pass_context=True, no_pm=True, aliases=["pos"])
+    @tempChannels.command(name="position", aliases=["pos"])
     async def tempChannelsPosition(self, ctx, position: int):
-        """Set the position of the text channel in the list."""
+        """Set the position of the text channel in the list.
+
+        Parameters:
+        -----------
+        position: int
+            The position where you want the temp channel to appear on the channel
+            list.
+        """
         if position > MAX_CH_POS or position < 0:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Position: "
-                               "Invalid position.  Try again.")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Position: "
+                           "Invalid position.  Try again.")
             return
 
-        sid = ctx.message.server.id
-
-        with self.lock:
-            self.settings[sid][KEY_CH_POS] = position
-            await self._syncSettings()
+        await self.config.guild(ctx.guild).channelPosition.set(position)
         LOGGER.info("%s (%s) changed the position to %s on %s (%s)",
-                    ctx.message.author.name, ctx.message.author.id,
-                    position, ctx.message.server.name, sid)
+                    ctx.author.name, ctx.author.id,
+                    position, ctx.guild.name, ctx.guild.id)
 
-        await self.bot.say(":white_check_mark: TempChannel - Position: This channel "
-                           "will be at position {0}".format(position))
+        await ctx.send(":white_check_mark: TempChannel - Position: This channel "
+                       "will be at position {0}".format(position))
 
     @tempChannels.command(name="category", pass_context=True, no_pm=True)
     async def tempChannelsCategory(self, ctx, categoryID: int):
