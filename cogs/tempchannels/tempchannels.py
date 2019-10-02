@@ -174,64 +174,45 @@ class TempChannels(commands.Cog):
 
         await ctx.send(msg)
 
-    @tempChannels.command(name="toggle", pass_context=True, no_pm=True)
-    async def tempChannelsToggle(self, ctx):
+    @tempChannels.command(name="toggle")
+    async def tempChannelsToggle(self, ctx: Context):
         """Toggle the creation/deletion of the temporary channel."""
-        with self.lock:
-            try:
-                sid = ctx.message.server.id
-                if self.settings[sid][KEY_ENABLED]:
-                    self.settings[sid][KEY_ENABLED] = False
-                    isSet = False
-                else:
-                    self.settings[sid][KEY_ENABLED] = True
-                    isSet = True
-            except KeyError:
-                self.settings[sid][KEY_ENABLED] = True
-                isSet = True
-            await self._syncSettings()
-        if isSet:
-            LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, ctx.message.author.id)
-            await self.bot.say(":white_check_mark: TempChannel: Enabled.")
-        else:
-            LOGGER.info("%s (%s) DISABLED the temp channel for %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, ctx.message.author.id)
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: Disabled.")
+        async with self.config.guild(ctx.guild).enabled as enabled:
+            if enabled:
+                enabled = False
+                LOGGER.info("%s (%s) DISABLED the temp channel for %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            ctx.guild.name, ctx.guild.id)
+                await ctx.send(":negative_squared_cross_mark: TempChannel: Disabled.")
+            else:
+                enabled = True
+                LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel: Enabled.")
 
-    @tempChannels.command(name="nsfw", pass_context=True, no_pm=True)
-    async def tempChannelsNSFW(self, ctx):
+    @tempChannels.command(name="nsfw")
+    async def tempChannelsNSFW(self, ctx: Context):
         """Toggle NSFW requirements"""
-        with self.lock:
-            try:
-                sid = ctx.message.server.id
-                if self.settings[sid][KEY_NSFW]:
-                    self.settings[sid][KEY_NSFW] = False
-                    isSet = False
-                else:
-                    self.settings[sid][KEY_NSFW] = True
-                    isSet = True
-            except KeyError:
-                self.settings[sid][KEY_NSFW] = True
-                isSet = True
-            await self._syncSettings()
-        if isSet:
-            LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, ctx.message.author.id)
-            await self.bot.say(":white_check_mark: TempChannel: NSFW "
-                               "requirement enabled.")
-        else:
-            LOGGER.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, ctx.message.author.id)
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: NSFW "
+        async with self.config.guild(ctx.guild).nsfw() as nsfw:
+            sid = ctx.message.server.id
+            if nsfw:
+                nsfw = False
+                LOGGER.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
+                            ctx.message.author.name, ctx.message.author.id,
+                            ctx.message.server.name, ctx.message.author.id)
+                await ctx.send(":negative_squared_cross_mark: TempChannel: NSFW "
                                "requirement disabled.")
+            else:
+                nsfw = True
+                LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel: NSFW "
+                               "requirement enabled.")
 
-    @tempChannels.command(name="start", pass_context=True, no_pm=True)
-    async def tempChannelsStart(self, ctx, hour: int, minute: int):
+    @tempChannels.command(name="start")
+    async def tempChannelsStart(self, ctx: Context, hour: int, minute: int):
         """Set the temp channel creation time. Use 24 hour time.
 
         Parameters:
@@ -242,25 +223,23 @@ class TempChannels(commands.Cog):
             The minute to start the temporary channel.
 
         """
-        sid = ctx.message.server.id
         if (hour > 23) or (hour < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start "
-                               "Time: Please enter a valid time.")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Start "
+                           "Time: Please enter a valid time.")
             return
         if (minute > 59) or (minute < 0):
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Start "
-                               "Time: Please enter a valid time.")
+            await ctx.send(":negative_squared_cross_mark: TempChannel - Start "
+                           "Time: Please enter a valid time.")
             return
 
-        with self.lock:
-            self.settings[sid][KEY_START_HOUR] = hour
-            self.settings[sid][KEY_START_MIN] = minute
-            await self._syncSettings()
+        async with self.config.guild(guild).all() as guildData:
+            guildData[KEY_START_HOUR] = hour
+            guildData[KEY_START_MIN] = minute
         LOGGER.info("%s (%s) set the start time to %002d:%002d on %s (%s)",
-                    ctx.message.author.name, ctx.message.author.id,
-                    hour, minute, ctx.message.server.name, sid)
-        await self.bot.say(":white_check_mark: TempChannel - Start Time: Start time "
-                           "set to {0:002d}:{1:002d}.".format(hour, minute))
+                    ctx.author.name, ctx.author.id,
+                    hour, minute, ctx.guild.name, ctx.guild.id)
+        await ctx.send(":white_check_mark: TempChannel - Start Time: Start time "
+                       "set to {0:002d}:{1:002d}.".format(hour, minute))
 
     @tempChannels.command(name="duration", pass_context=True, no_pm=True)
     async def tempChannelsDuration(self, ctx, hours: int, minutes: int):
