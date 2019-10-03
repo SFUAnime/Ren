@@ -3,9 +3,7 @@
 Creates a temporary channel.
 """
 from copy import deepcopy
-import json # Will need this to use in conjunction with aiohttp below.
 import logging
-import os
 import time
 import asyncio
 import discord
@@ -40,7 +38,6 @@ MAX_CH_NAME = 25
 MAX_CH_POS = 100
 MAX_CH_TOPIC = 1024
 
-PATH_CH = "https://discordapp.com/api/channels/{}"
 PERMS_READ_Y = discord.PermissionOverwrite(read_messages=True, add_reactions=False)
 PERMS_READ_N = discord.PermissionOverwrite(read_messages=False, add_reactions=False)
 PERMS_SEND_N = discord.PermissionOverwrite(send_messages=False, add_reactions=False)
