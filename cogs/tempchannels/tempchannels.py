@@ -2,6 +2,7 @@
 
 Creates a temporary channel.
 """
+from copy import deepcopy
 import json # Will need this to use in conjunction with aiohttp below.
 import logging
 import os
@@ -493,22 +494,22 @@ class TempChannels(commands.Cog):
                             # Messages" permission.
                                 permsDict[guild.default_role] = PERMS_READ_N
                                 for roleId in guildData[KEY_ROLE_ALLOW]:
-                                    role = discord.utils.get(guild.roles,id=roleId)
+                                    role = discord.utils.get(guild.roles, id=roleId)
                                     self.logger.debug("Allowed role %s", role)
                                     if role:
-                                        permsDict[role] = PERMS_READ_Y
+                                        permsDict[role] = deepcopy(PERMS_READ_Y)
 
                             # Check for deny permissions.
                             if guildData[KEY_ROLE_DENY]:
                                 for roleId in guildData[KEY_ROLE_DENY]:
-                                    role = discord.utils.get(guild.roles,id=roleId)
+                                    role = discord.utils.get(guild.roles, id=roleId)
                                     self.logger.debug("Denied role %s", role)
                                     if role and role not in permsDict.keys():
                                         self.logger.debug("Role not in dict, adding")
-                                        permsDict[role].update(send_messages=False)
+                                        permsDict[role] = deepcopy(PERMS_SEND_N)
                                     elif role:
                                         self.logger.debug("Updating role")
-                                        permsDict[role] = PERMS_SEND_N
+                                        permsDict[role].update(send_messages=False)
 
                             self.logger.debug("Current permission overrides: \n%s",
                                               permsDict)
