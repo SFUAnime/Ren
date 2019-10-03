@@ -38,8 +38,6 @@ KEYS_REQUIRED = \
  KEY_DURATION_HOURS, KEY_DURATION_MINS, KEY_START_HOUR, KEY_START_MIN, KEY_ENABLED,
  KEY_NSFW, KEY_ROLE_ALLOW, KEY_ROLE_DENY]
 
-LOGGER = None
-
 MAX_CH_NAME = 25
 MAX_CH_POS = 100
 MAX_CH_TOPIC = 1024
@@ -93,8 +91,21 @@ class TempChannels(commands.Cog):
                                       identifier=5842647,
                                       force_registration=True)
         self.config.register_guild(**DEFAULT_GUILD)
-        self.lock = Lock()
-        self.settings = self.config.get(KEY_SETTINGS)
+
+        # Initialize logger, and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.TempChannels")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
 
     async def _syncSettings(self):
         """Force settings to file and reload"""
@@ -148,15 +159,15 @@ class TempChannels(commands.Cog):
         async with self.config.guild(ctx.guild).enabled as enabled:
             if enabled:
                 enabled = False
-                LOGGER.info("%s (%s) DISABLED the temp channel for %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) DISABLED the temp channel for %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 ctx.guild.name, ctx.guild.id)
                 await ctx.send(":negative_squared_cross_mark: TempChannel: Disabled.")
             else:
                 enabled = True
-                LOGGER.info("%s (%s) ENABLED the temp channel for %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) ENABLED the temp channel for %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel: Enabled.")
 
     @tempChannels.command(name="nsfw")
@@ -166,16 +177,16 @@ class TempChannels(commands.Cog):
             sid = ctx.message.server.id
             if nsfw:
                 nsfw = False
-                LOGGER.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
-                            ctx.message.author.name, ctx.message.author.id,
-                            ctx.message.server.name, ctx.message.author.id)
+                self.logger.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 ctx.guild.name, ctx.author.id)
                 await ctx.send(":negative_squared_cross_mark: TempChannel: NSFW "
                                "requirement disabled.")
             else:
                 nsfw = True
-                LOGGER.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel: NSFW "
                                "requirement enabled.")
 
@@ -203,9 +214,9 @@ class TempChannels(commands.Cog):
         async with self.config.guild(guild).all() as guildData:
             guildData[KEY_START_HOUR] = hour
             guildData[KEY_START_MIN] = minute
-        LOGGER.info("%s (%s) set the start time to %002d:%002d on %s (%s)",
-                    ctx.author.name, ctx.author.id,
-                    hour, minute, ctx.guild.name, ctx.guild.id)
+        self.logger.info("%s (%s) set the start time to %002d:%002d on %s (%s)",
+                         ctx.author.name, ctx.author.id,
+                         hour, minute, ctx.guild.name, ctx.guild.id)
         await ctx.send(":white_check_mark: TempChannel - Start Time: Start time "
                        "set to {0:002d}:{1:002d}.".format(hour, minute))
 
@@ -240,9 +251,9 @@ class TempChannels(commands.Cog):
         async with self.config.guild(ctx.guild).all() as guildData:
             guildData[KEY_DURATION_HOURS] = hours
             guildData[KEY_DURATION_MINS] = minutes
-        LOGGER.info("%s (%s) set the duration to %s hours, %s minutes on %s (%s)",
-                    ctx.author.name, ctx.author.id,
-                    hours, minutes, ctx.guild.name, ctx.guild.id)
+        self.logger.info("%s (%s) set the duration to %s hours, %s minutes on %s (%s)",
+                         ctx.author.name, ctx.author.id,
+                         hours, minutes, ctx.guild.name, ctx.guild.id)
 
         await ctx.send(":white_check_mark: TempChannel - Duration: Duration set to "
                        "**{0} hours, {1} minutes**.".format(hours, minutes))
@@ -263,9 +274,9 @@ class TempChannels(commands.Cog):
 
         await self.config.guild(ctx.guild).channelTopic.set(topic)
 
-        LOGGER.info("%s (%s) set the channel topic to the following on %s (%s): %s",
-                    ctx.author.name, ctx.author.id,
-                    ctx.guild.name, ctx.guild.id, topic)
+        self.logger.info("%s (%s) set the channel topic to the following on %s (%s): %s",
+                         ctx.author.name, ctx.author.id,
+                         ctx.guild.name, ctx.guild.id, topic)
 
         await ctx.send(":white_check_mark: TempChannel - Topic: Topic set to:\n"
                        "```{0}```".format(topic))
@@ -286,9 +297,9 @@ class TempChannels(commands.Cog):
 
         await self.config.guild(ctx.guild).channelName.set(name)
 
-        LOGGER.info("%s (%s) set the channel name to ""%s"" on %s (%s)",
-                    ctx.author.name, ctx.author.id,
-                    name, ctx.guild.name, ctx.guild.id)
+        self.logger.info("%s (%s) set the channel name to ""%s"" on %s (%s)",
+                         ctx.author.name, ctx.author.id,
+                         name, ctx.guild.name, ctx.guild.id)
 
         await ctx.send(":white_check_mark: TempChannel - Name: Channel name set "
                        "to: ``{0}``".format(name))
@@ -309,9 +320,9 @@ class TempChannels(commands.Cog):
             return
 
         await self.config.guild(ctx.guild).channelPosition.set(position)
-        LOGGER.info("%s (%s) changed the position to %s on %s (%s)",
-                    ctx.author.name, ctx.author.id,
-                    position, ctx.guild.name, ctx.guild.id)
+        self.logger.info("%s (%s) changed the position to %s on %s (%s)",
+                         ctx.author.name, ctx.author.id,
+                         position, ctx.guild.name, ctx.guild.id)
 
         await ctx.send(":white_check_mark: TempChannel - Position: This channel "
                        "will be at position {0}".format(position))
@@ -328,15 +339,15 @@ class TempChannels(commands.Cog):
         await self.config.guild(ctx.guild).channelCategory.set(category.id)
 
         if not category:
-            LOGGER.info("%s (%s) disabled category nesting on %s (%s)",
-                        ctx.author.name, ctx.author.id,
-                        ctx.guild.name, ctx.guild.id)
+            self.logger.info("%s (%s) disabled category nesting on %s (%s)",
+                             ctx.author.name, ctx.author.id,
+                             ctx.guild.name, ctx.guild.id)
             await ctx.send(":white_check_mark: TempChannel - Category: Parent "
                            "category disabled.")
         else:
-            LOGGER.info("%s (%s) set the parent category ID to %s on %s (%s)",
-                        ctx.author.name, ctx.author.id,
-                        category.id, ctx.guild.name, ctx.guild.id)
+            self.logger.info("%s (%s) set the parent category ID to %s on %s (%s)",
+                             ctx.author.name, ctx.author.id,
+                             category.id, ctx.guild.name, ctx.guild.id)
             await ctx.send(":white_check_mark: TempChannel - Category: Parent "
                            "category set to ID `{}`.".format(category.id))
 
@@ -353,9 +364,9 @@ class TempChannels(commands.Cog):
         await with self.config.guild(ctx.guild).roleAllow() as roleAllow:
             if role.id not in roleAllow:
                 roleAllow.append(role.id)
-                LOGGER.info("%s (%s) added role %s to the allow list on %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            role.name, ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) added role %s to the allow list on %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 role.name, ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel - Role Allow: **`{0}`"
                                "** will be allowed access.".format(role.name))
             else:
@@ -377,9 +388,9 @@ class TempChannels(commands.Cog):
                                "**`{0}`** wasn't on the list.".format(role.name))
             else:
                 roleAllow.remove(role.id)
-                LOGGER.info("%s (%s) removed role %s from the allow list on %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            role.name, ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) removed role %s from the allow list on %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 role.name, ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
                                "removed from the list.".format(role.name))
 
@@ -398,9 +409,9 @@ class TempChannels(commands.Cog):
         async with self.config.guild(ctx.guild).roleDeny() as roleDeny:
             if role.id not in roleDeny:
                 roleDeny.append(role.id)
-                LOGGER.info("%s (%s) added role %s to the deny list on %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            role.name, ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) added role %s to the deny list on %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 role.name, ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel - Role: **`{0}`** will "
                                "be denied sending, provided this role is higher "
                                "than any of the ones in the allowed list.".format(role.name))
@@ -423,9 +434,9 @@ class TempChannels(commands.Cog):
                                "**`{0}`** wasn't on the list.".format(role.name))
             else:
                 roleDeny.remove(role.id)
-                LOGGER.info("%s (%s) removed role %s from the deny list on %s (%s)",
-                            ctx.author.name, ctx.author.id,
-                            role.name, ctx.guild.name, ctx.guild.id)
+                self.logger.info("%s (%s) removed role %s from the deny list on %s (%s)",
+                                 ctx.author.name, ctx.author.id,
+                                 role.name, ctx.guild.name, ctx.guild.id)
                 await ctx.send(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
                                "removed from the list.".format(role.name))
 
@@ -439,17 +450,17 @@ class TempChannels(commands.Cog):
                     chanObj = self.bot.get_channel(guildData[KEY_CH_ID])
                     await chanObj.delete()
                 except discord.DiscordException:
-                    LOGGER.error("Could not delete channel!", exc_info=True)
+                    self.logger.error("Could not delete channel!", exc_info=True)
                     await ctx.send(":warning: TempChannel: Something went wrong "
                                    "while trying to delete the channel. Please "
                                    "check the console log for details.")
                 else:
                     guildData[KEY_CH_ID] = None
                     guildData[KEY_CH_CREATED] = False
-                    LOGGER.info("%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
-                                ctx.author.name, ctx.author.id,
-                                chanObj.name, chanObj.id,
-                                ctx.guild.name, ctx.guild.id)
+                    self.logger.info("%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
+                                     ctx.author.name, ctx.author.id,
+                                     chanObj.name, chanObj.id,
+                                     ctx.guild.name, ctx.guild.id)
                     await ctx.send(":white_check_mark: TempChannel: Channel deleted")
             else:
                 await ctx.send(":negative_squared_cross_mark: TempChannel: There is no "
@@ -535,27 +546,9 @@ class TempChannels(commands.Cog):
                                 if chanObj:
                                     await chanObj.delete()
 
-                                LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
-                                            chanObj.name, chanObj.id,
-                                            guild.name, guild.id)
+                                self.logger.info("Channel #%s (%s) in %s (%s) was deleted.",
+                                                 chanObj.name, chanObj.id,
+                                                 guild.name, guild.id)
                     except Exception: # pylint: disable=broad-except
-                        LOGGER.error("Something went terribly wrong for server %s (%s)!",
-                                     guild.name, guild.id, exc_info=True)
-
-def setup(bot):
-    """Add the cog to the bot."""
-    global LOGGER # pylint: disable=global-statement
-    checkFilesystem()
-    tempchannels = TempChannels(bot)
-    LOGGER = logging.getLogger("red.TempChannels")
-    if LOGGER.level == 0:
-        # Prevents the LOGGER from being loaded again in case of module reload.
-        LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
-                                      encoding="utf-8",
-                                      mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
-        LOGGER.addHandler(handler)
-    bot.add_cog(tempchannels)
-    bot.loop.create_task(tempchannels.checkChannels())
+                        self.logger.error("Something went terribly wrong for server %s (%s)!",
+                                          guild.name, guild.id, exc_info=True)
