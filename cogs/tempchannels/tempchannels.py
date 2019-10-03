@@ -30,8 +30,8 @@ KEY_START_MIN = "startMinute"
 KEY_STOP_TIME = "stopTime"
 KEY_ENABLED = "enabled"
 KEY_NSFW = "nsfw"
-KEY_ROLE_ALLOW = "roleallow"
-KEY_ROLE_DENY = "roledeny"
+KEY_ROLE_ALLOW = "roleAllow"
+KEY_ROLE_DENY = "roleDeny"
 
 KEYS_REQUIRED = \
 [KEY_CH_ID, KEY_CH_TOPIC, KEY_CH_NAME, KEY_CH_POS, KEY_CH_CREATED, KEY_CH_CATEGORY,
@@ -349,51 +349,31 @@ class TempChannels(commands.Cog):
                        "will be at position {0}".format(position))
 
     @tempChannels.command(name="category", pass_context=True, no_pm=True)
-    async def tempChannelsCategory(self, ctx, categoryID: int):
-        """Set the parent category of the text channel (ID ONLY).
-
-        Since the library does not support categories yet, we will use IDs.
-        To retreive an ID:
-        - Turn on Developer Mode.
-        - Right click the category.
-        - Click "Copy ID"
-        - Run this command with the ID.
-
-        Note: This is an advanced command. No error checking is done for this! Ensure
-        that the ID is correct, or else the temporary channel may not show up!
+    async def tempChannelsCategory(self, ctx: Context, *, category: discord.CategoryChannel=None):
+        """Set the parent category of the text channel.
 
         Parameters:
         -----------
-        categoryID: int
-            The category ID you wish to nest the temporary channel under. Enter 0
-            to disable category nesting.
+        category: discord.CategoryChannel
+            The category you wish to nest the temporary channel under.
         """
-        if categoryID < 0:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Category: "
-                               "Please enter a valid ID.")
-            return
+        await self.config.guild(ctx.guild).channelCategory.set(category.id)
 
-        sid = ctx.message.server.id
-
-        with self.lock:
-            self.settings[sid][KEY_CH_CATEGORY] = categoryID
-            await self._syncSettings()
-
-        if categoryID == 0:
+        if not category:
             LOGGER.info("%s (%s) disabled category nesting on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
-                               "category disabled.")
+                        ctx.author.name, ctx.author.id,
+                        ctx.guild.name, ctx.guild.id)
+            await ctx.send(":white_check_mark: TempChannel - Category: Parent "
+                           "category disabled.")
         else:
             LOGGER.info("%s (%s) set the parent category ID to %s on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        categoryID, ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Category: Parent "
-                               "category set to ID `{}`.".format(categoryID))
+                        ctx.author.name, ctx.author.id,
+                        category.id, ctx.guild.name, ctx.guild.id)
+            await ctx.send(":white_check_mark: TempChannel - Category: Parent "
+                           "category set to ID `{}`.".format(category.id))
 
-    @tempChannels.command(name="allowadd", pass_context=True, no_pm=True, aliases=["aa"])
-    async def tempChannelsAllowAdd(self, ctx, *, role: discord.Role):
+    @tempChannels.command(name="allowadd", aliases=["aa"])
+    async def tempChannelsAllowAdd(self, ctx: Context, *, role: discord.Role):
         """Add a role to allow access to the channel.
 
         Parameters:
@@ -402,23 +382,20 @@ class TempChannels(commands.Cog):
             The role you wish to allow access to the temporary channel.
 
         """
-        sid = ctx.message.server.id
-
-        if role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
-            with self.lock:
-                self.settings[sid][KEY_ROLE_ALLOW].append(role.id)
-                await self._syncSettings()
-            LOGGER.info("%s (%s) added role %s to the allow list on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        role.name, ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`"
+        await with self.config.guild(ctx.guild).roleAllow() as roleAllow:
+            if role.id not in roleAllow:
+                roleAllow.append(role.id)
+                LOGGER.info("%s (%s) added role %s to the allow list on %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            role.name, ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel - Role Allow: **`{0}`"
                                "** will be allowed access.".format(role.name))
-        else:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
+            else:
+                await ctx.send(":negative_squared_cross_mark: TempChannel - Role Allow: "
                                "**`{0}`** is already allowed.".format(role.name))
 
-    @tempChannels.command(name="allowremove", pass_context=True, no_pm=True, aliases=["ar"])
-    async def tempChannelsAllowRemove(self, ctx, *, role: discord.Role):
+    @tempChannels.command(name="allowremove", aliases=["allowdelete", "ad", "ar"])
+    async def tempChannelsAllowRemove(self, ctx: Context, *, role: discord.Role):
         """Remove a role from being able access the temporary channel.
 
         Parameters:
@@ -426,24 +403,20 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to remove access from.
         """
-        sid = ctx.message.server.id
-
-        if not self.settings[sid][KEY_ROLE_ALLOW] or \
-                role.id not in self.settings[sid][KEY_ROLE_ALLOW]:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Allow: "
+        async with self.config.guild(ctx.guild).roleAllow() as roleAllow:
+            if not roleAllow or role.id not in roleAllow:
+                await ctx.send(":negative_squared_cross_mark: TempChannel - Role Allow: "
                                "**`{0}`** wasn't on the list.".format(role.name))
-        else:
-            with self.lock:
-                self.settings[sid][KEY_ROLE_ALLOW].remove(role.id)
-                await self._syncSettings()
-            LOGGER.info("%s (%s) removed role %s from the allow list on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        role.name, ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
+            else:
+                roleAllow.remove(role.id)
+                LOGGER.info("%s (%s) removed role %s from the allow list on %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            role.name, ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel - Role Allow: **`{0}`** "
                                "removed from the list.".format(role.name))
 
-    @tempChannels.command(name="denyadd", pass_context=True, no_pm=True, aliases=["da"])
-    async def tempChannelsDenyAdd(self, ctx, *, role: discord.Role):
+    @tempChannels.command(name="denyadd", aliases=["da"])
+    async def tempChannelsDenyAdd(self, ctx: Context, *, role: discord.Role):
         """Add a role to block sending message to the channel.
 
         This role should be HIGHER in the role hierarchy than the roles in
@@ -454,24 +427,21 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to deny sending permissions in the temporary channel.
         """
-        sid = ctx.message.server.id
-
-        if role.id not in self.settings[sid][KEY_ROLE_DENY]:
-            with self.lock:
-                self.settings[sid][KEY_ROLE_DENY].append(role.id)
-                await self._syncSettings()
-            LOGGER.info("%s (%s) added role %s to the deny list on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        role.name, ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Role: **`{0}`** will "
-                               "be denied message sending, provided this role is higher "
+        async with self.config.guild(ctx.guild).roleDeny() as roleDeny:
+            if role.id not in roleDeny:
+                roleDeny.append(role.id)
+                LOGGER.info("%s (%s) added role %s to the deny list on %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            role.name, ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel - Role: **`{0}`** will "
+                               "be denied sending, provided this role is higher "
                                "than any of the ones in the allowed list.".format(role.name))
-        else:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
+            else:
+                await ctx.send(":negative_squared_cross_mark: TempChannel - Role Deny: "
                                "**`{0}`** is already denied.".format(role))
 
-    @tempChannels.command(name="denyremove", pass_context=True, no_pm=True, aliases=["dr"])
-    async def tempChannelsDenyRemove(self, ctx, *, role: discord.Role):
+    @tempChannels.command(name="denyremove", aliases=["denydelete", "dd", "dr"])
+    async def tempChannelsDenyRemove(self, ctx: Context, *, role: discord.Role):
         """Remove role from being blocked sending to the channel.
 
         Parameters:
@@ -479,51 +449,43 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to remove from the deny list.
         """
-        sid = ctx.message.server.id
-
-        if not self.settings[sid][KEY_ROLE_DENY] or \
-                role.id not in self.settings[sid][KEY_ROLE_DENY]:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel - Role Deny: "
+        async with self.config.guild(ctx.guild).roleDeny() as roleDeny:
+            if not roleDeny or role.id not in roleDeny:
+                await ctx.send(":negative_squared_cross_mark: TempChannel - Role Deny: "
                                "**`{0}`** wasn't on the list.".format(role.name))
-        else:
-            with self.lock:
-                self.settings[sid][KEY_ROLE_DENY].remove(role.id)
-                await self._syncSettings()
-            LOGGER.info("%s (%s) removed role %s from the deny list on %s (%s)",
-                        ctx.message.author.name, ctx.message.author.id,
-                        role.name, ctx.message.server.name, sid)
-            await self.bot.say(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
+            else:
+                roleDeny.remove(role.id)
+                LOGGER.info("%s (%s) removed role %s from the deny list on %s (%s)",
+                            ctx.author.name, ctx.author.id,
+                            role.name, ctx.guild.name, ctx.guild.id)
+                await ctx.send(":white_check_mark: TempChannel - Role Deny: **`{0}`** "
                                "removed from the list.".format(role.name))
 
-    @tempChannels.command(name="delete", pass_context=True, no_pm=True)
-    async def tempChannelsDelete(self, ctx):
+    @tempChannels.command(name="delete", aliases=["remove", "del", "rm"])
+    async def tempChannelsDelete(self, ctx: Context):
         """Deletes the temp channel, if it exists."""
-        sid = ctx.message.server.id
-        await self._syncSettings()
-        if self.settings[sid][KEY_CH_CREATED]:
-            # Channel created, see when we should delete it.
-            if self.settings[sid][KEY_CH_ID]:
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData[KEY_CH_CREATED] and guildData[KEY_CH_ID]:
+                # Channel created, see when we should delete it.
                 try:
-                    chanObj = self.bot.get_channel(self.settings[sid][KEY_CH_ID])
-                    await self.bot.delete_channel(chanObj)
+                    chanObj = self.bot.get_channel(guildData[KEY_CH_ID])
+                    await chanObj.delete()
                 except discord.DiscordException:
                     LOGGER.error("Could not delete channel!", exc_info=True)
-                finally:
-                    with self.lock:
-                        self.settings[sid][KEY_CH_ID] = None
-                        self.settings[sid][KEY_CH_CREATED] = False
-                        await self._syncSettings()
-                    LOGGER.info("Channel #%s (%s) in %s (%s) was deleted by %s (%s).",
+                    await ctx.send(":warning: TempChannel: Something went wrong "
+                                   "while trying to delete the channel. Please "
+                                   "check the console log for details.")
+                else:
+                    guildData[KEY_CH_ID] = None
+                    guildData[KEY_CH_CREATED] = False
+                    LOGGER.info("%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
+                                ctx.author.name, ctx.author.id,
                                 chanObj.name, chanObj.id,
-                                ctx.message.server.name, ctx.message.server.id,
-                                ctx.message.author.name, ctx.message.author.id)
-                await self.bot.say(":white_check_mark: TempChannel: Channel deleted")
+                                ctx.guild.name, ctx.guild.id)
+                    await ctx.send(":white_check_mark: TempChannel: Channel deleted")
             else:
-                await self.bot.say(":negative_squared_cross_mark: TempChannel: No "
-                                   "temporary channel to delete.")
-        else:
-            await self.bot.say(":negative_squared_cross_mark: TempChannel: There is no "
-                               "temp channel to delete!")
+                await ctx.send(":negative_squared_cross_mark: TempChannel: There is no "
+                               "temporary channel to delete!")
 
     ###################
     # Background Loop #
