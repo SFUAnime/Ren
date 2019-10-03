@@ -7,9 +7,6 @@ import logging
 import os
 import time
 import asyncio
-from copy import deepcopy
-import itertools
-from threading import Lock
 import discord
 from discord.ext import commands
 from redbot.core import Config, checks, commands
@@ -47,8 +44,6 @@ PERMS_READ_Y = discord.PermissionOverwrite(read_messages=True, add_reactions=Fal
 PERMS_READ_N = discord.PermissionOverwrite(read_messages=False, add_reactions=False)
 PERMS_SEND_N = discord.PermissionOverwrite(send_messages=False, add_reactions=False)
 
-SAVE_FOLDER = "data/lui-cogs/tempchannels/"
-SAVE_FILE = "settings.json"
 SLEEP_TIME = 15 # Background loop sleep time in seconds
 
 
@@ -69,18 +64,6 @@ DEFAULT_GUILD = \
     KEY_ROLE_ALLOW: [],
     KEY_ROLE_DENY: []
 }
-
-def checkFilesystem():
-    """Check if the folders/files are created."""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Temporary Channels: Creating folder: {} ...".format(SAVE_FOLDER))
-        os.makedirs(SAVE_FOLDER)
-
-    if not os.path.exists(SAVE_FOLDER+SAVE_FILE):
-        # Build a default settings.json
-        defaultDict = {KEY_SETTINGS: {}}
-        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, defaultDict)
-        print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
 
 class TempChannels(commands.Cog):
     """Creates a temporary channel."""
