@@ -117,6 +117,7 @@ class TempChannels(commands.Cog):
         rolesDeny = [discord.utils.get(ctx.guild.roles,
                                        id=rid) for rid in tempCh[KEY_ROLE_DENY]]
         rolesDeny = [roleName.name for roleName in rolesDeny if roleName]
+        categoryName = discord.utils.get(ctx.guild.channels, id=tempCh[KEY_CH_CATEGORY])
         msg = (":information_source: TempChannel - Current Settings\n```"
                "Enabled?       {}\n"
                "NSFW Prompt:   {}\n"
@@ -135,8 +136,8 @@ class TempChannels(commands.Cog):
                             tempCh[KEY_CH_NAME],
                             tempCh[KEY_CH_TOPIC],
                             tempCh[KEY_CH_POS],
-                            "ID {}".format(tempCh[KEY_CH_CATEGORY]) if
-                            tempCh[KEY_CH_CATEGORY] else "(not set)",
+                            "{}".format(categoryName) if
+                            categoryName else "(not set)",
                             tempCh[KEY_START_HOUR], tempCh[KEY_START_MIN],
                             tempCh[KEY_DURATION_HOURS], tempCh[KEY_DURATION_MINS]))
 
@@ -145,15 +146,15 @@ class TempChannels(commands.Cog):
     @tempChannels.command(name="toggle")
     async def tempChannelsToggle(self, ctx: Context):
         """Toggle the creation/deletion of the temporary channel."""
-        async with self.config.guild(ctx.guild).enabled as enabled:
-            if enabled:
-                enabled = False
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData[KEY_ENABLED]:
+                guildData[KEY_ENABLED] = False
                 self.logger.info("%s (%s) DISABLED the temp channel for %s (%s)",
                                  ctx.author.name, ctx.author.id,
                                  ctx.guild.name, ctx.guild.id)
                 await ctx.send(":negative_squared_cross_mark: TempChannel: Disabled.")
             else:
-                enabled = True
+                guildData[KEY_ENABLED] = True
                 self.logger.info("%s (%s) ENABLED the temp channel for %s (%s)",
                                  ctx.author.name, ctx.author.id,
                                  ctx.guild.name, ctx.guild.id)
@@ -162,9 +163,8 @@ class TempChannels(commands.Cog):
     @tempChannels.command(name="nsfw")
     async def tempChannelsNSFW(self, ctx: Context):
         """Toggle NSFW requirements"""
-        async with self.config.guild(ctx.guild).nsfw() as nsfw:
-            sid = ctx.message.server.id
-            if nsfw:
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData[KEY_NSFW]:
                 nsfw = False
                 self.logger.info("%s (%s) DISABLED the NSFW prompt for %s (%s)",
                                  ctx.author.name, ctx.author.id,
@@ -172,7 +172,7 @@ class TempChannels(commands.Cog):
                 await ctx.send(":negative_squared_cross_mark: TempChannel: NSFW "
                                "requirement disabled.")
             else:
-                nsfw = True
+                guildData[KEY_NSFW] = True
                 self.logger.info("%s (%s) ENABLED the NSFW prompt for %s (%s)",
                                  ctx.author.name, ctx.author.id,
                                  ctx.guild.name, ctx.guild.id)
@@ -200,7 +200,7 @@ class TempChannels(commands.Cog):
                            "Time: Please enter a valid time.")
             return
 
-        async with self.config.guild(guild).all() as guildData:
+        async with self.config.guild(ctx.guild).all() as guildData:
             guildData[KEY_START_HOUR] = hour
             guildData[KEY_START_MIN] = minute
         self.logger.info("%s (%s) set the start time to %002d:%002d on %s (%s)",
@@ -338,7 +338,7 @@ class TempChannels(commands.Cog):
                              ctx.author.name, ctx.author.id,
                              category.id, ctx.guild.name, ctx.guild.id)
             await ctx.send(":white_check_mark: TempChannel - Category: Parent "
-                           "category set to ID `{}`.".format(category.id))
+                           "category set to **{}**.".format(category.name))
 
     @tempChannels.command(name="allowadd", aliases=["aa"])
     async def tempChannelsAllowAdd(self, ctx: Context, *, role: discord.Role):
@@ -350,7 +350,7 @@ class TempChannels(commands.Cog):
             The role you wish to allow access to the temporary channel.
 
         """
-        await with self.config.guild(ctx.guild).roleAllow() as roleAllow:
+        async with self.config.guild(ctx.guild).roleAllow() as roleAllow:
             if role.id not in roleAllow:
                 roleAllow.append(role.id)
                 self.logger.info("%s (%s) added role %s to the allow list on %s (%s)",
@@ -494,6 +494,7 @@ class TempChannels(commands.Cog):
                                 permsDict[guild.default_role] = PERMS_READ_N
                                 for roleId in guildData[KEY_ROLE_ALLOW]:
                                     role = discord.utils.get(guild.roles,id=roleId)
+                                    self.logger.debug("Allowed role %s", role)
                                     if role:
                                         permsDict[role] = PERMS_READ_Y
 
@@ -501,10 +502,16 @@ class TempChannels(commands.Cog):
                             if guildData[KEY_ROLE_DENY]:
                                 for roleId in guildData[KEY_ROLE_DENY]:
                                     role = discord.utils.get(guild.roles,id=roleId)
-                                    if role and role in permsDict.keys():
+                                    self.logger.debug("Denied role %s", role)
+                                    if role and role not in permsDict.keys():
+                                        self.logger.debug("Role not in dict, adding")
                                         permsDict[role].update(send_messages=False)
                                     elif role:
+                                        self.logger.debug("Updating role")
                                         permsDict[role] = PERMS_SEND_N
+
+                            self.logger.debug("Current permission overrides: \n%s",
+                                              permsDict)
 
                             # Grab parent category. If not set, this will return None anyways.
                             category = None
@@ -513,11 +520,15 @@ class TempChannels(commands.Cog):
                                                              id=guildData[KEY_CH_CATEGORY])
 
                             chanObj = await guild.create_text_channel(guildData[KEY_CH_NAME],
-                                                                      overwrites=permsDict
+                                                                      overwrites=permsDict,
                                                                       category=category,
                                                                       position=guildData[KEY_CH_POS],
                                                                       topic=guildData[KEY_CH_TOPIC],
                                                                       nsfw=guildData[KEY_NSFW])
+                            self.logger.info("Channel #%s (%s) in %s (%s) was created.",
+                                             chanObj.name, chanObj.id,
+                                             guild.name, guild.id)
+                            guildData[KEY_CH_ID] = chanObj.id
 
                             # Set delete times, and save settings.
                             duration = (guildData[KEY_DURATION_HOURS] * 60 * 60 +
@@ -528,6 +539,8 @@ class TempChannels(commands.Cog):
                         elif guildData[KEY_CH_CREATED]:
                             # Channel created, see when we should delete it.
                             if time.time() >= guildData[KEY_STOP_TIME]:
+                                self.logger.debug("Past channel stop time, clearing ID "
+                                                  "and created keys.")
                                 chanObj = guild.get_channel(guildData[KEY_CH_ID])
                                 guildData[KEY_CH_ID] = None
                                 guildData[KEY_CH_CREATED] = False
@@ -535,9 +548,9 @@ class TempChannels(commands.Cog):
                                 if chanObj:
                                     await chanObj.delete()
 
-                                self.logger.info("Channel #%s (%s) in %s (%s) was deleted.",
-                                                 chanObj.name, chanObj.id,
-                                                 guild.name, guild.id)
+                                    self.logger.info("Channel #%s (%s) in %s (%s) was deleted.",
+                                                     chanObj.name, chanObj.id,
+                                                     guild.name, guild.id)
                     except Exception: # pylint: disable=broad-except
                         self.logger.error("Something went terribly wrong for server %s (%s)!",
                                           guild.name, guild.id, exc_info=True)
