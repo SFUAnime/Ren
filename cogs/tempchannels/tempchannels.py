@@ -9,7 +9,7 @@ import time
 import asyncio
 import discord
 from discord.ext import commands
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
@@ -89,6 +89,12 @@ class TempChannels(commands.Cog):
                 logging.Formatter("%(asctime)s %(message)s",
                                   datefmt="[%d/%m/%Y %H:%M:%S]"))
             self.logger.addHandler(handler)
+
+        self.bgTask = self.bot.loop.create_task(self.checkChannels())
+
+    # Cancel the background task on cog unload.
+    def __unload(self):  # pylint: disable=invalid-name
+        self.bgTask.cancel()
 
     async def _syncSettings(self):
         """Force settings to file and reload"""
