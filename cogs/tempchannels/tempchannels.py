@@ -84,38 +84,6 @@ def checkFilesystem():
         dataIO.save_json(SAVE_FOLDER+SAVE_FILE, defaultDict)
         print("Temporary Channels: Creating file: {} ...".format(SAVE_FILE))
 
-def _createPermList(serverRoleList, roleIdList, perms):
-    """Create a list to use with discord permissions.
-
-    Parameters:
-    -----------
-    serverRoleList: [discord.Role]
-        The entire iterable of the roles for a particular server.  Use the one given
-        from discord.Server.roles.
-    roleIdList: [int]
-        The list of role IDs that we want the same permissions for.
-    perms: discord.PermissionsOverwrite
-        The permissions for these roles, all of which will have the same permissions
-
-    Returns:
-    --------
-    permList: [(discord.Role, discord.PermissionsOverwrite)]
-        A list of tuples that can directly be given to discord.Client.create_channel().
-    """
-    roleList = []
-    tupleList = []
-    for roleID in roleIdList:
-        findRole = discord.utils.get(serverRoleList,
-                                     id=roleID)
-        if findRole:
-            roleList.append(findRole)
-
-    tupleList = itertools.zip_longest(roleList,
-                                      [],
-                                      fillvalue=perms)
-    return tupleList
-
-
 class TempChannels(commands.Cog):
     """Creates a temporary channel."""
 
@@ -496,27 +464,16 @@ class TempChannels(commands.Cog):
             await asyncio.sleep(SLEEP_TIME)
             # Create/maintain the channel during a valid time and duration, else
             # delete it.
-            with self.lock:
-                for sid, properties in self.settings.items():
+            for guild in self.bot.guilds:
+                async with self.config.guild(guild).all() as guildData:
                     try:
-                        serverObj = self.bot.get_server(sid)
-
-                        missing = False
-
-                        for key in KEYS_REQUIRED:
-                            if key not in properties.keys():
-                                missing = True
-                                LOGGER.error("Key %s is missing in settings for server "
-                                             "%s (%s)! Run [p]tc default first!",
-                                             key, serverObj.name, serverObj.id)
-
-                        if missing or not properties[KEY_ENABLED]:
+                        if not guildData[KEY_ENABLED]:
                             continue
 
-                        if int(time.strftime("%H")) == properties[KEY_START_HOUR] and \
-                                int(time.strftime("%M")) == properties[KEY_START_MIN] and \
-                                not properties[KEY_CH_CREATED] and \
-                                not properties[KEY_CH_ID]:
+                        if int(time.strftime("%H")) == guildData[KEY_START_HOUR] and \
+                                int(time.strftime("%M")) == guildData[KEY_START_MIN] and \
+                                not guildData[KEY_CH_CREATED] and \
+                                not guildData[KEY_CH_ID]:
                             # See if ALL of the following is satisfied.
                             # - It is the starting time.
                             # - The channel creation flag is not set.
@@ -528,92 +485,62 @@ class TempChannels(commands.Cog):
                             # - Time to delete channel.
                             # Start with permissions
 
-                            apiHeader = {"Authorization": "Bot {}".format(self.bot.settings.token),
-                                         "content-type": "application/json"}
                             # Always allow the bot to read.
-                            allowList = [(self.bot.user, PERMS_READ_Y)]
-                            denyList = []
-                            body = {}
+                            permsDict = {self.bot.user: PERMS_READ_Y}
 
-                            if properties[KEY_ROLE_ALLOW]:
+                            if guildData[KEY_ROLE_ALLOW]:
                             # If we have allow roles, automatically deny @everyone the "Read
                             # Messages" permission.
-                                denyList.append((serverObj.default_role,
-                                                 PERMS_READ_N))
-                                allowList.extend(_createPermList(serverObj.roles,
-                                                                 properties[KEY_ROLE_ALLOW],
-                                                                 PERMS_READ_Y))
+                                permsDict[guild.default_role] = PERMS_READ_N
+                                for roleId in guildData[KEY_ROLE_ALLOW]:
+                                    role = discord.utils.get(guild.roles,id=roleId)
+                                    if role:
+                                        permsDict[role] = PERMS_READ_Y
 
                             # Check for deny permissions.
-                            if properties[KEY_ROLE_DENY]:
-                                denyList.extend(_createPermList(serverObj.roles,
-                                                                properties[KEY_ROLE_DENY],
-                                                                PERMS_SEND_N))
+                            if guildData[KEY_ROLE_DENY]:
+                                for roleId in guildData[KEY_ROLE_DENY]:
+                                    role = discord.utils.get(guild.roles,id=roleId)
+                                    if role and role in permsDict.keys():
+                                        permsDict[role].update(send_messages=False)
+                                    elif role:
+                                        permsDict[role] = PERMS_SEND_N
 
-                            chanObj = await self.bot.create_channel(serverObj,
-                                                                    properties[KEY_CH_NAME],
-                                                                    *list(allowList),
-                                                                    *list(denyList))
+                            # Grab parent category. If not set, this will return None anyways.
+                            category = None
+                            if guildData[KEY_CH_CATEGORY]:
+                                category = discord.utils.get(guild.channels,
+                                                             id=guildData[KEY_CH_CATEGORY])
 
-                            properties[KEY_CH_ID] = chanObj.id
-
-                            LOGGER.info("Channel #%s (%s) in %s (%s) was created.",
-                                        chanObj.name, chanObj.id,
-                                        serverObj.name, serverObj.id)
-
-                            if properties[KEY_NSFW]:
-                                body["nsfw"] = True
-
-                            if properties[KEY_CH_CATEGORY] != 0:
-                                body["parent_id"] = properties[KEY_CH_CATEGORY]
-
-                            if body:
-                                # Set nsfw and/or arent category. Must use this method
-                                # because this version of the discord.py library does not
-                                # have a method for this yet.
-                                async with aiohttp.ClientSession() as session:
-                                    async with session.patch(PATH_CH.format(chanObj.id),
-                                                             headers=apiHeader,
-                                                             data=json.dumps(body)) as resp:
-                                        LOGGER.debug("API status code: %s", resp.status)
-                                        LOGGER.debug("API response: %s", await resp.text())
-
-                            # Change topic.
-                            await self.bot.edit_channel(chanObj,
-                                                        topic=properties[KEY_CH_TOPIC],
-                                                        name=properties[KEY_CH_NAME])
-
-                            # Move channel position.
-                            try:
-                                await self.bot.move_channel(chanObj,
-                                                            properties[KEY_CH_POS])
-                            except discord.DiscordException:
-                                LOGGER.error("Could not move channel position for %s (%s)!",
-                                             serverObj.name, serverObj.id, exc_info=True)
+                            chanObj = await guild.create_text_channel(guildData[KEY_CH_NAME],
+                                                                      overwrites=permsDict
+                                                                      category=category,
+                                                                      position=guildData[KEY_CH_POS],
+                                                                      topic=guildData[KEY_CH_TOPIC],
+                                                                      nsfw=guildData[KEY_NSFW])
 
                             # Set delete times, and save settings.
-                            duration = (properties[KEY_DURATION_HOURS] * 60 * 60 +
-                                        properties[KEY_DURATION_MINS] * 60)
-                            properties[KEY_STOP_TIME] = time.time() + duration
-                            properties[KEY_CH_CREATED] = True
+                            duration = (guildData[KEY_DURATION_HOURS] * 60 * 60 +
+                                        guildData[KEY_DURATION_MINS] * 60)
+                            guildData[KEY_STOP_TIME] = time.time() + duration
+                            guildData[KEY_CH_CREATED] = True
 
-                        elif properties[KEY_CH_CREATED]:
+                        elif guildData[KEY_CH_CREATED]:
                             # Channel created, see when we should delete it.
-                            if time.time() >= properties[KEY_STOP_TIME]:
-                                chanObj = self.bot.get_channel(properties[KEY_CH_ID])
-                                properties[KEY_CH_ID] = None
-                                properties[KEY_CH_CREATED] = False
+                            if time.time() >= guildData[KEY_STOP_TIME]:
+                                chanObj = guild.get_channel(guildData[KEY_CH_ID])
+                                guildData[KEY_CH_ID] = None
+                                guildData[KEY_CH_CREATED] = False
 
                                 if chanObj:
-                                    await self.bot.delete_channel(chanObj)
+                                    await chanObj.delete()
 
                                 LOGGER.info("Channel #%s (%s) in %s (%s) was deleted.",
                                             chanObj.name, chanObj.id,
-                                            serverObj.name, serverObj.id)
-                        await self._syncSettings()
+                                            guild.name, guild.id)
                     except Exception: # pylint: disable=broad-except
                         LOGGER.error("Something went terribly wrong for server %s (%s)!",
-                                     exc_info=True)
+                                     guild.name, guild.id, exc_info=True)
 
 def setup(bot):
     """Add the cog to the bot."""
