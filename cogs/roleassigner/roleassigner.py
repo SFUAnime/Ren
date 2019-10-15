@@ -6,12 +6,11 @@ Randomly assigns roles to users.
 import random
 import itertools
 import discord
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
 
-SAVE_FOLDER = "data/lui-cogs/roleAssigner"
 MAX_LENGTH = 2000  # For a message
 
 KEY_ROLES = "roles"
@@ -31,6 +30,21 @@ class RoleAssigner(commands.Cog):
                                       force_registration=True)
 
         self.config.register_guild(**BASE_GUILD)
+
+        # Initialize logger and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.RoleAssigner")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
 
     @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="roleassigner", aliases=["ra"])
@@ -55,7 +69,9 @@ class RoleAssigner(commands.Cog):
 
             await ctx.send(":white_check_mark: **Role Assigner - Add:** Role "
                            "added")
-            #TODO add modify logging statement
+            self.logger.info("%s#%s (%s) added the %s role.", ctx.author.name,
+                             ctx.author.discriminator, ctx.author.id,
+                             role.name)
 
     @roleAssigner.command(name="remove", aliases=["delete", "del", "rm"])
     async def raRemove(self, ctx: Context, role: discord.Role):
@@ -80,7 +96,9 @@ class RoleAssigner(commands.Cog):
                 await ctx.send(
                     ":white_check_mark: **Role Assigner - Remove:** "
                     "Role removed.")
-                #TODO add modify logging statement
+                self.logger.info("%s#%s (%s) removed the %s role.",
+                                 ctx.author.name, ctx.author.discriminator,
+                                 ctx.author.id, role.name)
 
     @roleAssigner.command(name="list", aliases=["ls"])
     async def raList(self, ctx: Context):
@@ -198,8 +216,9 @@ class RoleAssigner(commands.Cog):
             The role you wish to assign to those members you just picked.
         number: int
             The number of members you wish to randomly pick.
-        fromRole: discord.Role
-            The role you wish to pick guild members from.
+        fromRole: discord.Role (optional)
+            The role you wish to pick guild members from. If this is not given,
+            then it will pick from ALL guild members.
         excludeFromRole: discord.Role (optional)
             Any member with this role will not be considered for picking.
         """
