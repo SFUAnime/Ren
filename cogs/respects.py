@@ -61,8 +61,12 @@ class Respects:
             else:
                 # Respects already paid by user!
                 pass
-            await self.bot.delete_message(ctx.message)
-
+            try:
+                await self.bot.delete_message(ctx.message)
+            except (discord.Forbidden, discord.NotFound):
+                await self.bot.say("I currently cannot delete messages. Please give me the"
+                                   " \"Manage Messages\" permission to allow this feature to"
+                                   " work!")
     @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="setf", pass_context=True, no_pm=True)
     async def setf(self, ctx):
@@ -202,8 +206,9 @@ class Respects:
             if self.settings[sid][cid][KEY_MSG]:
                 try:
                     await self.bot.delete_message(self.settings[sid][cid][KEY_MSG])
-                except: # pylint: disable=bare-except
-                    pass
+                except(discord.Forbidden, discord.NotFound):
+                    await self.bot.say("I currently cannot delete messages, please give me \"Manage"
+                                       " Message\" permissions to allow this feature to work!")
                 finally:
                     self.settings[sid][cid][KEY_MSG] = None
 

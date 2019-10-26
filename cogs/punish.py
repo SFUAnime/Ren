@@ -287,7 +287,7 @@ class Punish:
 
     @commands.group(pass_context=True, invoke_without_command=True, no_pm=True,
                     aliases=["mute"])
-    @checks.mod_or_permissions(manage_messages=True)
+    @checks.mod_or_permissions()
     async def punish(self, ctx, user: discord.Member, duration: str = None, *, reason: str = None):
         if ctx.invoked_subcommand:
             return

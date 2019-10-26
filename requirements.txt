@@ -1,3 +1,4 @@
+jsondt
 pip
 https://github.com/Rapptz/discord.py/archive/async.zip
 youtube_dl
