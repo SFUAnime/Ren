@@ -180,7 +180,7 @@ class Tags:
             True if too many tags, False if okay.
         """
 
-        if user.id == self.bot.settings.owner:
+        if user.id == self.bot.settings.owner or user.id in self.bot.settings.co_owners:
             # No limit for bot owner
             return False
 
@@ -543,7 +543,8 @@ class Tags:
         modRole = discord.utils.get(ctx.message.server.roles, name=modRoleName) 
         
         # Check and see if the user is not the tag owner, or is not a mod, or is not an admin.
-        if tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles and modRole not in ctx.message.author.roles:
+        if (tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles 
+                and modRole not in ctx.message.author.roles):
             await self.bot.say('Only the tag owner can edit this tag.')
             return
 
@@ -577,12 +578,15 @@ class Tags:
         sensei = discord.utils.get(ctx.message.server.roles, name="Sensei")
         
         #checks for mod/admin/owner of the tag
-        if tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles and modRole not in ctx.message.author.roles and ctx.message.author.id != ownerID:
+        if (tag.owner_id != ctx.message.author.id and adminRole not in ctx.message.author.roles 
+                and modRole not in ctx.message.author.roles and ctx.message.author.id != ownerID 
+                and ctx.message.author.id not in ctx.bot.settings.co_owners):
             await self.bot.say("Only the tag owner can transfer this tag.")
             return
 
         #checks if the user in question has permissions to create tags
-        if sensei not in user.roles and adminRole not in user.roles and modRole not in user.roles and user.id != ownerID:
+        if (sensei not in user.roles and adminRole not in user.roles and modRole not in user.roles 
+                and user.id != ownerID and user.id not in ctx.bot.settings.co_owners):
             await self.bot.say("The person you are trying to transfer to cannot create commands.")
             return
 
