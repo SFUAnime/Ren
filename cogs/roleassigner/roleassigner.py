@@ -3,13 +3,11 @@
 Randomly assigns roles to users.
 """
 
+import logging
 import random
-import itertools
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
-from redbot.core.utils import paginator
-from redbot.core.bot import Red
 
 MAX_LENGTH = 2000  # For a message
 
@@ -92,7 +90,7 @@ class RoleAssigner(commands.Cog):
                     ":warning: **Role Assigner - Remove:** The role "
                     "doesn't exist on the list!")
             else:
-                roleList.remove(roleName.id)
+                roleList.remove(role.id)
                 await ctx.send(
                     ":white_check_mark: **Role Assigner - Remove:** "
                     "Role removed.")
@@ -151,8 +149,12 @@ class RoleAssigner(commands.Cog):
                     if not anyRoles:
                         # Only assign one role per user. If they have one already,
                         # just skip them
-                        await member.add_roles(roleObjList[index %
-                                                           len(roleObjList)])
+                        try:
+                            await member.add_roles(roleObjList[index %
+                                                               len(roleObjList)])
+                        except discord.NotFound:
+                            self.logger.error("Could not assign role: Member most "
+                                              "likely just left the server!")
 
             msg = ":white_check_mark: **Role Assigner - Assign:** Roles assigned"
             if role:
@@ -189,7 +191,11 @@ class RoleAssigner(commands.Cog):
 
             async with ctx.typing():
                 for member in members:
-                    await member.remove_roles(*roleObjList)
+                    try:
+                        await member.remove_roles(*roleObjList)
+                    except discord.NotFound:
+                        self.logger.error("Could not unassign roles: Member most likely "
+                                          "just left the server!")
 
             msg = ":white_check_mark: **Role Assigner - Unassign:** Roles removed"
             if role:
@@ -272,11 +278,15 @@ class RoleAssigner(commands.Cog):
 
         msg = "**|** "
         for member in picked:
-            await member.add_roles(assignRole)
-            if len(msg) > MAX_LENGTH:
-                await ctx.send(msg)
-                msg = "**|** "
-            msg += "{} **|** ".format(member.name)
+            try:
+                await member.add_roles(assignRole)
+                if len(msg) > MAX_LENGTH:
+                    await ctx.send(msg)
+                    msg = "**|** "
+                msg += "{} **|** ".format(member.name)
+            except discord.NotFound:
+                self.logger.error("Could not assign role: Member most likely just "
+                                  "left the server!")
         await ctx.send(msg)
         msg = (
             ":white_check_mark: **Role Assigner - Random:** The following users "
