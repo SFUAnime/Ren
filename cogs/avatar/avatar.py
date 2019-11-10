@@ -7,9 +7,9 @@ from redbot.core import checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.bot import Red
 
+
 class Avatar(commands.Cog):
     """The Avatar collector."""
-
     def __init__(self, bot: Red):
         self.bot = bot
         self.saveFolder = data_manager.cog_data_path(cog_instance=self)
@@ -30,8 +30,7 @@ class Avatar(commands.Cog):
     @checks.mod_or_permissions()
     @commands.guild_only()
     async def _avatar(self, ctx: Context):
-        """Avatar commands"""
-
+        """Avatar commands."""
     @_avatar.command(name="save")
     async def _saveAvatars(self, ctx: Context):
         """Save all avatars in the current guild."""
@@ -42,9 +41,10 @@ class Avatar(commands.Cog):
 
     @commands.Cog.listener("on_user_update")
     async def newAvatarListener(self, _, updatedUser):
-        """Listener for user updates"""
-        self.logger.info("%s#%s (%s) updated their avatar, saving image", updatedUser.name,
-                         updatedUser.discriminator, updatedUser.id)
+        """Listener for user updates."""
+        self.logger.info("%s#%s (%s) updated their avatar, saving image",
+                         updatedUser.name, updatedUser.discriminator,
+                         updatedUser.id)
         await self.saveAvatar(updatedUser)
 
     async def saveAvatar(self, user: discord.User):
