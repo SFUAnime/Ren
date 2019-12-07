@@ -10,7 +10,7 @@ import logging
 import asyncio
 import random
 import discord
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
 
@@ -37,7 +37,21 @@ class WordFilter(commands.Cog): # pylint: disable=too-many-instance-attributes
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**BASE) # Register default (empty) settings.
-        self.logger = None
+
+        # Initialize logger, and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.WordFilter")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(filename=str(saveFolder) +
+                                          "/info.log",
+                                          encoding="utf-8",
+                                          mode="a")
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s",
+                                  datefmt="[%d/%m/%Y %H:%M:%S]"))
+            self.logger.addHandler(handler)
 
         # self.commandBlacklist = dataIO.load_json(PATH_BLACKLIST)
         # self.filters = dataIO.load_json(PATH_FILTER)
