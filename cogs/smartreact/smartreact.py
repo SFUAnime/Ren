@@ -194,7 +194,7 @@ class SmartReact(commands.Cog):
                         updated_emoji = self.get_updated_emoji(namesList, word, guild)
                     except ValueError:
                         continue # Don't care if doesn't exist
-                    if w != updated_emoji:
+                    if word != updated_emoji:
                         emojiList[emoji][idx] = updated_emoji
 
                 if not ':' in emoji:
