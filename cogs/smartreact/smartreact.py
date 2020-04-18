@@ -228,7 +228,7 @@ class SmartReact(commands.Cog):
             await ctx.message.add_reaction(emoji)
         except (discord.HTTPException, discord.InvalidArgument):
             await ctx.send("That's not an emoji I recognize.")
-            self.logger.error("Could not add reaction", exc_info=True)
+            self.logger.error("Could not add reaction.", exc_info=True)
             return
 
         async with self.config.guild(ctx.guild).emojis() as emojiDict:
