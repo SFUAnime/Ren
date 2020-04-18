@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import asyncio
+import logging
 from datetime import datetime, timedelta
-from typing import List, Union, Optional, cast
+from typing import List, Union, Optional, cast, TYPE_CHECKING
 
 import discord
 
 from redbot.core import Config
-from redbot.core.bot import Red
 
 from .utils.common_filters import (
     filter_invites,
@@ -16,6 +18,11 @@ from .utils.common_filters import (
 from .i18n import Translator
 
 from .generic_casetypes import all_generics
+
+if TYPE_CHECKING:
+    from redbot.core.bot import Red
+
+log = logging.getLogger("red.core.modlog")
 
 __all__ = [
     "Case",
@@ -74,7 +81,8 @@ async def _init(bot: Red):
         await asyncio.sleep(10)  # prevent small delays from causing a 5 minute delay on entry
 
         attempts = 0
-        while attempts < 12:  # wait up to an hour to find a matching case
+        # wait up to an hour to find a matching case
+        while attempts < 12 and guild.me.guild_permissions.view_audit_log:
             attempts += 1
             try:
                 entry = await guild.audit_logs(
@@ -109,7 +117,8 @@ async def _init(bot: Red):
         await asyncio.sleep(10)  # prevent small delays from causing a 5 minute delay on entry
 
         attempts = 0
-        while attempts < 12:  # wait up to an hour to find a matching case
+        # wait up to an hour to find a matching case
+        while attempts < 12 and guild.me.guild_permissions.view_audit_log:
             attempts += 1
             try:
                 entry = await guild.audit_logs(
@@ -302,7 +311,7 @@ class Case:
             )
 
         if isinstance(self.user, int):
-            user = f"Deleted User#0000 ({self.user})"
+            user = f"[Unknown or Deleted User] ({self.user})"
             avatar_url = None
         else:
             user = escape_spoilers(
@@ -446,12 +455,7 @@ class Case:
                 if user_id is None:
                     user_object = None
                 else:
-                    user_object = bot.get_user(user_id)
-                    if user_object is None:
-                        try:
-                            user_object = await bot.fetch_user(user_id)
-                        except discord.NotFound:
-                            user_object = user_id
+                    user_object = bot.get_user(user_id) or user_id
             user_objects[user_key] = user_object
 
         channel = kwargs.get("channel") or guild.get_channel(data["channel"]) or data["channel"]
@@ -496,12 +500,15 @@ class CaseType:
         image: str,
         case_str: str,
         guild: Optional[discord.Guild] = None,
+        **kwargs,
     ):
         self.name = name
         self.default_setting = default_setting
         self.image = image
         self.case_str = case_str
         self.guild = guild
+        if kwargs:
+            log.warning("Got unexpected keys in case %s", ",".join(kwargs.keys()))
 
     async def to_json(self):
         """Transforms the case type into a dict and saves it"""
@@ -559,7 +566,7 @@ class CaseType:
         Returns
         -------
         CaseType
-
+            The case type object created from given data.
         """
         data_copy = data.copy()
         data_copy.pop("name", None)
@@ -685,12 +692,7 @@ async def get_cases_for_member(
         member_id = member.id
 
     if not member:
-        member = bot.get_user(member_id)
-        if not member:
-            try:
-                member = await bot.fetch_user(member_id)
-            except discord.NotFound:
-                member = member_id
+        member = bot.get_user(member_id) or member_id
 
     try:
         modlog_channel = await get_modlog_channel(guild)
@@ -806,6 +808,7 @@ async def get_casetype(name: str, guild: Optional[discord.Guild] = None) -> Opti
     Returns
     -------
     Optional[CaseType]
+        Case type with provided name. If such case type doesn't exist this will be `None`.
     """
     data = await _conf.custom(_CASETYPES, name).all()
     if not data:
