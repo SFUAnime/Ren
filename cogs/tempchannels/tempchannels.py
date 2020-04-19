@@ -151,6 +151,7 @@ class TempChannels(commands.Cog):
         await ctx.send(msg)
 
     @tempChannels.command(name="archive")
+    @checks.admin()
     async def tempChannelsArchive(self, ctx: Context):
         """Toggle archiving the channel after the fact."""
         async with self.config.guild(ctx.guild).all() as guildData:
