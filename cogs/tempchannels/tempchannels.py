@@ -634,9 +634,6 @@ class TempChannels(commands.Cog):
                                 guildData[KEY_CH_CREATED] = False
 
                                 if chanObj and guildData[KEY_ARCHIVE]:
-                                    currentDate = datetime.now().strftime(
-                                        "%Y-%m-%d_%H-%M-%S")
-                                    await chanObj.edit(name=f"tc-{currentDate}")
                                     await chanObj.set_permissions(guild.default_role,
                                         overwrite=PERMS_READ_N)
                                     for role in guild.roles:
@@ -645,6 +642,9 @@ class TempChannels(commands.Cog):
                                         await chanObj.set_permissions(
                                             role, overwrite=None,
                                             reason="Archiving tempchannel")
+                                    currentDate = datetime.now().strftime(
+                                        "%Y-%m-%d_%H-%M-%S")
+                                    await chanObj.edit(name=f"tc-{currentDate}")
                                     self.logger.info(
                                         "Channel #%s (%s) in %s (%s) was archived.",
                                         chanObj.name, chanObj.id, guild.name,
