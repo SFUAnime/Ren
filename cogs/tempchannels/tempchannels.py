@@ -3,6 +3,7 @@
 Creates a temporary channel.
 """
 from copy import deepcopy
+from datetime import datetime
 import logging
 import time
 import asyncio
@@ -13,6 +14,7 @@ from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
 KEY_SETTINGS = "settings"
+KEY_ARCHIVE = "archive"
 KEY_CH_ID = "channel"
 KEY_CH_TOPIC = "channelTopic"
 KEY_CH_NAME = "channelName"
@@ -50,6 +52,7 @@ SLEEP_TIME = 15  # Background loop sleep time in seconds
 
 DEFAULT_GUILD = \
 {
+    KEY_ARCHIVE: False,
     KEY_CH_ID: None,
     KEY_CH_NAME: "temp-channel",
     KEY_CH_TOPIC: "Created with the TempChannels cog!",
@@ -125,6 +128,7 @@ class TempChannels(commands.Cog):
                                          id=tempCh[KEY_CH_CATEGORY])
         msg = (":information_source: TempChannel - Current Settings\n```"
                "Enabled?       {}\n"
+               "Archive after? {}\n"
                "NSFW Prompt:   {}\n"
                "Roles Allowed: {}\n"
                "Roles Denied:  {}\n"
@@ -136,6 +140,7 @@ class TempChannels(commands.Cog):
                "Duration:      {}h {}m"
                "```".format(
                    "Yes" if tempCh[KEY_ENABLED] else "No",
+                   "Yes" if tempCh[KEY_ARCHIVE] else "No",
                    "Yes" if tempCh[KEY_NSFW] else "No", rolesAllow, rolesDeny,
                    tempCh[KEY_CH_NAME], tempCh[KEY_CH_TOPIC],
                    tempCh[KEY_CH_POS],
@@ -144,6 +149,31 @@ class TempChannels(commands.Cog):
                    tempCh[KEY_DURATION_HOURS], tempCh[KEY_DURATION_MINS]))
 
         await ctx.send(msg)
+
+    @tempChannels.command(name="archive")
+    async def tempChannelsArchive(self, ctx: Context):
+        """Toggle archiving the channel after the fact."""
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData[KEY_ARCHIVE]:
+                guildData[KEY_ARCHIVE] = False
+                self.logger.info(
+                    "%s (%s) DISABLED archiving the temp channel for %s (%s)",
+                    ctx.author.name, ctx.author.id, ctx.guild.name,
+                    ctx.guild.id)
+                await ctx.send(
+                    ":negative_squared_cross_mark: TempChannel: Archiving disabled. "
+                    " The channel will be deleted after its lifetime expires.")
+            else:
+                guildData[KEY_ARCHIVE] = True
+                self.logger.info(
+                    "%s (%s) ENABLED archiving the temp channel for %s (%s)",
+                    ctx.author.name, ctx.author.id, ctx.guild.name,
+                    ctx.guild.id)
+                await ctx.send(
+                    ":white_check_mark: TempChannel: Archiving enabled. The channel "
+                    "will have ALL user permissions revoked after its lifetime "
+                    "expires, and will be renamed with the date and time that it "
+                    "was archived.")
 
     @tempChannels.command(name="toggle")
     async def tempChannelsToggle(self, ctx: Context):
@@ -603,7 +633,23 @@ class TempChannels(commands.Cog):
                                 guildData[KEY_CH_ID] = None
                                 guildData[KEY_CH_CREATED] = False
 
-                                if chanObj:
+                                if chanObj and guildData[KEY_ARCHIVE]:
+                                    currentDate = datetime.now().strftime(
+                                        "%Y-%m-%d_%H-%M-%S")
+                                    await chanObj.edit(name=f"tc-{currentDate}")
+                                    await chanObj.set_permissions(guild.default_role,
+                                        overwrite=PERMS_READ_N)
+                                    for role in guild.roles:
+                                        if role == guild.default_role:
+                                            continue
+                                        await chanObj.set_permissions(
+                                            role, overwrite=None,
+                                            reason="Archiving tempchannel")
+                                    self.logger.info(
+                                        "Channel #%s (%s) in %s (%s) was archived.",
+                                        chanObj.name, chanObj.id, guild.name,
+                                        guild.id)
+                                elif chanObj and not guildData[KEY_ARCHIVE]:
                                     await chanObj.delete()
 
                                     self.logger.info(
