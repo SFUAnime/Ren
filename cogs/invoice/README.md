@@ -1,0 +1,1 @@
+This cog was imported from zephyrkul/FluffyCogs at commit 43083f1979a8cd20ddc7f2a37a8bd486ecf01a0b
