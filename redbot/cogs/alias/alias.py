@@ -49,25 +49,25 @@ class Alias(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
-        self._aliases = Config.get_conf(self, 8927348724)
+        self.config = Config.get_conf(self, 8927348724)
 
-        self._aliases.register_global(**self.default_global_settings)
-        self._aliases.register_guild(**self.default_guild_settings)
+        self.config.register_global(**self.default_global_settings)
+        self.config.register_guild(**self.default_guild_settings)
 
     async def unloaded_aliases(self, guild: discord.Guild) -> Generator[AliasEntry, None, None]:
-        return (AliasEntry.from_json(d) for d in (await self._aliases.guild(guild).entries()))
+        return (AliasEntry.from_json(d) for d in (await self.config.guild(guild).entries()))
 
     async def unloaded_global_aliases(self) -> Generator[AliasEntry, None, None]:
-        return (AliasEntry.from_json(d) for d in (await self._aliases.entries()))
+        return (AliasEntry.from_json(d) for d in (await self.config.entries()))
 
     async def loaded_aliases(self, guild: discord.Guild) -> Generator[AliasEntry, None, None]:
         return (
             AliasEntry.from_json(d, bot=self.bot)
-            for d in (await self._aliases.guild(guild).entries())
+            for d in (await self.config.guild(guild).entries())
         )
 
     async def loaded_global_aliases(self) -> Generator[AliasEntry, None, None]:
-        return (AliasEntry.from_json(d, bot=self.bot) for d in (await self._aliases.entries()))
+        return (AliasEntry.from_json(d, bot=self.bot) for d in (await self.config.entries()))
 
     async def is_alias(
         self,
@@ -90,7 +90,7 @@ class Alias(commands.Cog):
 
     def is_command(self, alias_name: str) -> bool:
         """
-        The logic here is that if this returns true, the name shouldnt be used for an alias
+        The logic here is that if this returns true, the name should not be used for an alias
         The function name can be changed when alias is reworked
         """
         command = self.bot.get_command(alias_name)
@@ -123,9 +123,9 @@ class Alias(commands.Cog):
         alias = AliasEntry(alias_name, command, ctx.author, global_=global_)
 
         if global_:
-            settings = self._aliases
+            settings = self.config
         else:
-            settings = self._aliases.guild(ctx.guild)
+            settings = self.config.guild(ctx.guild)
             await settings.enabled.set(True)
 
         async with settings.entries() as curr_aliases:
@@ -137,9 +137,9 @@ class Alias(commands.Cog):
         self, ctx: commands.Context, alias_name: str, global_: bool = False
     ) -> bool:
         if global_:
-            settings = self._aliases
+            settings = self.config
         else:
-            settings = self._aliases.guild(ctx.guild)
+            settings = self.config.guild(ctx.guild)
 
         async with settings.entries() as aliases:
             for alias in aliases:
@@ -279,6 +279,13 @@ class Alias(commands.Cog):
                 ).format(name=alias_name)
             )
             return
+
+        given_command_exists = self.bot.get_command(command.split(maxsplit=1)[0]) is not None
+        if not given_command_exists:
+            await ctx.send(
+                _("You attempted to create a new alias for a command that doesn't exist.")
+            )
+            return
         # endregion
 
         # At this point we know we need to make a new alias
@@ -356,9 +363,7 @@ class Alias(commands.Cog):
                 base_cmd = alias.command.rsplit(" ", 1)[0]
 
             new_msg = copy(ctx.message)
-            new_msg.content = _("{prefix}help {command}").format(
-                prefix=ctx.prefix, command=base_cmd
-            )
+            new_msg.content = f"{ctx.prefix}help {base_cmd}"
             await self.bot.process_commands(new_msg)
         else:
             await ctx.send(_("No such alias exists."))
