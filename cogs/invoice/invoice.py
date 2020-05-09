@@ -7,9 +7,6 @@ from copy import copy
 from redbot.core import checks, commands, Config
 from redbot.core.utils.chat_formatting import box, bordered
 
-# pylint: disable=E0401
-from cog_shared.proxyembed import ProxyEmbed
-
 listener = getattr(commands.Cog, "listener", lambda name=None: (lambda f: f))
 
 
@@ -32,7 +29,7 @@ class InVoice(commands.Cog):
             return
         color = await ctx.embed_colour()
 
-        embed = ProxyEmbed(title=f"Current settings", color=color)
+        embed = discord.Embed(title=f"Current settings", color=color)
         g_settings = await self.config.guild(ctx.guild).all()
         g_msg = []
         for key, value in g_settings.items():
@@ -58,7 +55,7 @@ class InVoice(commands.Cog):
                 key = key.replace("_", " ").title()
                 c_msg.append(f"{key}: {value}")
             embed.add_field(name=f"Channel {vc} settings", value="\n".join(c_msg))
-        await embed.send_to(ctx)
+        await ctx.send(embed=embed)
 
     @invoice.command()
     @commands.guild_only()
