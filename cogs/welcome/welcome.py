@@ -169,47 +169,36 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             #             ctx.message.author.id)
 
     #[p]welcome togglelog
-    @_welcome.command(pass_context=True, no_pm=False, name="togglelog")
-    @checks.serverowner() #Only allow server owner to execute the following command.
+    @welcome.command(name="log", aliases=["togglelog"])
+    @checks.guildowner()
     async def toggleLog(self, ctx):
         """Toggle sending logs to a channel."""
-        self.loadSettings()
-
-        #If no channel is set, send error.
-        if not self.settings[ctx.message.author.server.id][self.keyWelcomeLogChannel] \
-            or not self.settings[ctx.message.author.server.id][self.keyLeaveLogChannel]:
-            await self.bot.say(":negative_squared_cross_mark: Please set a log channel first!")
-            return
-
-        try:
-            if self.settings[ctx.message.author.server.id][self.keyWelcomeLogEnabled]:
-                self.settings[ctx.message.author.server.id][self.keyWelcomeLogEnabled] = False
-                self.settings[ctx.message.author.server.id][self.keyLeaveLogEnabled] = False
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if not guildData[KEY_LOG_JOIN_CHANNEL] or not guildData[KEY_LOG_LEAVE_CHANNEL]:
+                await ctx.send(":negative_squared_cross_mark: Please set a log channel first!")
+                return
+            if guildData[KEY_LOG_JOIN_ENABLED]:
+                guildData[KEY_LOG_JOIN_ENABLED] = False
+                guildData[KEY_LOG_LEAVE_ENABLED] = False
                 isSet = False
             else:
-                self.settings[ctx.message.author.server.id][self.keyWelcomeLogEnabled] = True
-                self.settings[ctx.message.author.server.id][self.keyLeaveLogEnabled] = True
+                guildData[KEY_LOG_JOIN_ENABLED] = True
+                guildData[KEY_LOG_LEAVE_ENABLED] = True
                 isSet = True
-        except KeyError:
-            self.settings[ctx.message.author.server.id][self.keyWelcomeLogEnabled] = True
-            self.settings[ctx.message.author.server.id][self.keyLeaveLogEnabled] = True
-            isSet = True
-
-        self.saveSettings()
         if isSet:
-            await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: "
-                               "Enabled.")
-            LOGGER.info("Welcome channel logging ENABLED by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
+            await ctx.send(":white_check_mark: Server Welcome/Leave - Logging: "
+                           "Enabled.")
+            # LOGGER.info("Welcome channel logging ENABLED by %s#%s (%s)",
+            #             ctx.message.author.name,
+            #             ctx.message.author.discriminator,
+            #             ctx.message.author.id)
         else:
-            await self.bot.say(":negative_squared_cross_mark: Server Welcome/Leave "
-                               "- Logging: Disabled.")
-            LOGGER.info("Welcome channel logging DISABLED by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
+            await ctx.send(":negative_squared_cross_mark: Server Welcome/Leave "
+                           "- Logging: Disabled.")
+            # LOGGER.info("Welcome channel logging DISABLED by %s#%s (%s)",
+            #             ctx.message.author.name,
+            #             ctx.message.author.discriminator,
+            #             ctx.message.author.id)
 
     #[p]welcome setlog
     @_welcome.command(pass_context=True, no_pm=True, name="setlog")
