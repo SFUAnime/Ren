@@ -46,62 +46,64 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         self.config.register_guild(**DEFAULT_GUILD)
 
     #The async function that is triggered on new member join.
+    @commands.Cog.listener()
+    async def on_member_join(self, newMember: discord.Member):
+        await self.sendWelcomeMessage(newMember)
+
     async def sendWelcomeMessage(self, newUser, test=False):
         """Sends the welcome message in DM."""
+        async with self.config.guild(newUser.guild).all() as guildData:
+            if not guildData[KEY_DM_ENABLED]:
+                return
 
-        serverId = newUser.server.id
-        #Do not send DM if it is disabled!
-        if not self.settings[serverId][self.keyWelcomeDMEnabled]:
-            return
 
-        try:
-            welcomeEmbed = discord.Embed(title=self.settings[serverId][self.keyWelcomeTitle])
-            welcomeEmbed.description = self.settings[serverId][self.keyWelcomeMessage]
+            welcomeEmbed = discord.Embed(title=guildData[KEY_TITLE])
+            welcomeEmbed.description = guildData[KEY_MESSAGE]
             welcomeEmbed.colour = discord.Colour.red()
-            if self.keyWelcomeImage in self.settings[serverId].keys() and \
-                    self.settings[serverId][self.keyWelcomeImage]:
-                imageUrl = self.settings[serverId][self.keyWelcomeImage]
+            if guildData[KEY_IMAGE]:
+                imageUrl = guildData[KEY_IMAGE]
                 welcomeEmbed.set_image(url=imageUrl.replace(" ", "%20"))
-            await self.bot.send_message(newUser, embed=welcomeEmbed)
-        except (discord.Forbidden, discord.HTTPException) as errorMsg:
-            LOGGER.error("Could not send message, the user may have"
-                         "turned off DM's from this server."
-                         " Also, make sure the server has a title "
-                         "and message set!", exc_info=True)
-            LOGGER.error(errorMsg)
-            if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
-                channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
-                await self.bot.send_message(channel,
-                                            ":bangbang: ``Server Welcome:`` User "
-                                            "{0.name}#{0.discriminator} ({0.id}) has"
-                                            " joined.  Could not send DM!".format(
-                                                newUser))
-                await self.bot.send_message(channel, errorMsg)
-        else:
-            if self.settings[serverId][self.keyWelcomeLogEnabled] and not test:
-                channel = self.bot.get_channel(self.settings[serverId][self.keyWelcomeLogChannel])
-                await self.bot.send_message(channel,
-                                            ":o: ``Server Welcome:`` User {0.name}#"
-                                            "{0.discriminator} ({0.id}) has joined. "
-                                            "DM sent.".format(newUser))
-                LOGGER.info("User %s#%s (%s) has joined.  DM sent.",
-                            newUser.name,
-                            newUser.discriminator,
-                            newUser.id)
 
-    async def logServerLeave(self, leaveUser):
-        """Logs the server leave to a channel, if enabled."""
-        serverId = leaveUser.server.id
-        if self.settings[serverId][self.keyLeaveLogEnabled]:
-            channel = self.bot.get_channel(self.settings[serverId][self.keyLeaveLogChannel])
-            await self.bot.send_message(channel,
-                                        ":x: ``Server Leave  :`` User {0.name}#"
-                                        "{0.discriminator} ({0.id}) has left the "
-                                        "server.".format(leaveUser))
-            LOGGER.info("User %s#%s (%s) has left the server.",
-                        leaveUser.name,
-                        leaveUser.discriminator,
-                        leaveUser.id)
+            channel = discord.utils.get(newUser.guild.text_channels,
+                                        id=guildData[KEY_LOG_JOIN_CHANNEL])
+
+            try:
+                await newUser.send(embed=welcomeEmbed)
+            except (discord.Forbidden, discord.HTTPException) as errorMsg:
+                # LOGGER.error("Could not send message, the user may have"
+                #              "turned off DM's from this server."
+                #              " Also, make sure the server has a title "
+                #              "and message set!", exc_info=True)
+                # LOGGER.error(errorMsg)
+                if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
+                    await channel.send(f":bangbang: ``Server Welcome:`` User "
+                                       "{newUser.name}#{newUser.discriminator} "
+                                       "({newUser.id}) has joined. Could not send "
+                                       "DM!")
+                    await channel.send(errorMsg)
+            else:
+                if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
+                    await channel.send(f":o: ``Server Welcome:`` User {newMember.name}#"
+                                       "{newUser.discriminator} ({newUser.id}) has "
+                                       "joined. DM sent.")
+                    # LOGGER.info("User %s#%s (%s) has joined.  DM sent.",
+                    #             newUser.name,
+                    #             newUser.discriminator,
+                    #             newUser.id)
+
+    # async def logServerLeave(self, leaveUser):
+    #     """Logs the server leave to a channel, if enabled."""
+    #     serverId = leaveUser.server.id
+    #     if self.settings[serverId][self.keyLeaveLogEnabled]:
+    #         channel = self.bot.get_channel(self.settings[serverId][self.keyLeaveLogChannel])
+    #         await self.bot.send_message(channel,
+    #                                     ":x: ``Server Leave  :`` User {0.name}#"
+    #                                     "{0.discriminator} ({0.id}) has left the "
+    #                                     "server.".format(leaveUser))
+    #         LOGGER.info("User %s#%s (%s) has left the server.",
+    #                     leaveUser.name,
+    #                     leaveUser.discriminator,
+    #                     leaveUser.id)
 
     ####################
     # MESSAGE COMMANDS #
@@ -272,12 +274,11 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         #             imageUrl)
 
    #[p]welcome test
-    @_welcome.command(pass_context=True, no_pm=False)
-    @checks.serverowner() #Only allow server owner to execute the following command.
+    @welcome.command(name="test")
     async def test(self, ctx):
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
-        await self.bot.say("If this server has been configured, you should have received a DM.")
+        await ctx.send("If this server has been configured, you should have received a DM.")
 
 
 def setup(bot):
