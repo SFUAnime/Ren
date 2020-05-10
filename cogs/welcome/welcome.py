@@ -52,7 +52,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         await self.sendWelcomeMessage(newMember)
 
     @commands.Cog.listener()
-    async def on_member_leave(self, leaveMember: discord.Member):
+    async def on_member_remove(self, leaveMember: discord.Member):
         await self.logServerLeave(leaveMember)
 
     async def sendWelcomeMessage(self, newUser, test=False):
@@ -81,15 +81,15 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
                 #              "and message set!", exc_info=True)
                 # LOGGER.error(errorMsg)
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
-                    await channel.send(f":bangbang: ``Server Welcome:`` User "
-                                       "{newUser.name}#{newUser.discriminator} "
-                                       "({newUser.id}) has joined. Could not send "
+                    await channel.send(":bangbang: ``Server Welcome:`` User "
+                                       f"{newUser.name}#{newUser.discriminator} "
+                                       f"({newUser.id}) has joined. Could not send "
                                        "DM!")
                     await channel.send(errorMsg)
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
-                    await channel.send(f":o: ``Server Welcome:`` User {newMember.name}#"
-                                       "{newUser.discriminator} ({newUser.id}) has "
+                    await channel.send(f":o: ``Server Welcome:`` User {newUser.name}#"
+                                       f"{newUser.discriminator} ({newUser.id}) has "
                                        "joined. DM sent.")
                     # LOGGER.info("User %s#%s (%s) has joined.  DM sent.",
                     #             newUser.name,
@@ -104,7 +104,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
                                             id=guildData[KEY_LOG_LEAVE_CHANNEL])
                 if channel:
                     await channel.send(f":x: ``Server Leave  :`` User {leaveUser.name}#"
-                                       "{leaveUser.discriminator} ({leaveUser.id}) has "
+                                       f"{leaveUser.discriminator} ({leaveUser.id}) has "
                                        "left the server.")
                 # LOGGER.info("User %s#%s (%s) has left the server.",
                 #             leaveUser.name,
