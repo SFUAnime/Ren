@@ -51,6 +51,10 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     async def on_member_join(self, newMember: discord.Member):
         await self.sendWelcomeMessage(newMember)
 
+    @commands.Cog.listener()
+    async def on_member_leave(self, leaveMember: discord.Member):
+        await self.logServerLeave(leaveMember)
+
     async def sendWelcomeMessage(self, newUser, test=False):
         """Sends the welcome message in DM."""
         async with self.config.guild(newUser.guild).all() as guildData:
@@ -92,19 +96,20 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
                     #             newUser.discriminator,
                     #             newUser.id)
 
-    # async def logServerLeave(self, leaveUser):
-    #     """Logs the server leave to a channel, if enabled."""
-    #     serverId = leaveUser.server.id
-    #     if self.settings[serverId][self.keyLeaveLogEnabled]:
-    #         channel = self.bot.get_channel(self.settings[serverId][self.keyLeaveLogChannel])
-    #         await self.bot.send_message(channel,
-    #                                     ":x: ``Server Leave  :`` User {0.name}#"
-    #                                     "{0.discriminator} ({0.id}) has left the "
-    #                                     "server.".format(leaveUser))
-    #         LOGGER.info("User %s#%s (%s) has left the server.",
-    #                     leaveUser.name,
-    #                     leaveUser.discriminator,
-    #                     leaveUser.id)
+    async def logServerLeave(self, leaveUser: discord.Member):
+        """Logs the server leave to a channel, if enabled."""
+        async with self.config.guild(leaveUser.guild).all() as guildData:
+            if guildData[KEY_LOG_LEAVE_ENABLED]:
+                channel = discord.utils.get(leaveUser.guild.text_channels,
+                                            id=guildData[KEY_LOG_LEAVE_CHANNEL])
+                if channel:
+                    await channel.send(f":x: ``Server Leave  :`` User {leaveUser.name}#"
+                                       "{leaveUser.discriminator} ({leaveUser.id}) has "
+                                       "left the server.")
+                # LOGGER.info("User %s#%s (%s) has left the server.",
+                #             leaveUser.name,
+                #             leaveUser.discriminator,
+                #             leaveUser.id)
 
     ####################
     # MESSAGE COMMANDS #
