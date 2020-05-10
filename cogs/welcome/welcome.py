@@ -2,6 +2,7 @@
 Sends welcome DMs to users that join the server.
 """
 
+import asyncio
 import discord
 import logging
 
@@ -206,7 +207,6 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     @welcome.command(name="setlog")
     async def setLogChannel(self, ctx: Context):
         """Enables, and sets current channel as log channel."""
-        serverId = ctx.message.author.server.id
         async with self.config.guild(ctx.guild).all() as guildData:
             guildData[KEY_LOG_JOIN_CHANNEL] = ctx.channel.id
             guildData[KEY_LOG_LEAVE_CHANNEL] = ctx.channel.id
@@ -224,7 +224,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     @welcome.command(name="title")
     async def setTitle(self, ctx: Context):
         """Interactively configure the title for the welcome DM."""
-        await ctx.send("What would you like the welcome DM message to be?")
+        await ctx.send("What would you like the welcome DM title to be?")
 
         def check(message: discord.Message):
             return message.author == ctx.message.author and message.channel == ctx.message.channel
@@ -249,7 +249,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         # LOGGER.info(title.content)
 
     #[p]welcome setimage
-    @welcome.group(name="image")
+    @welcome.command(name="image")
     async def setImage(self, ctx: Context, imageUrl: str = None):
         """Sets an image in the embed with a URL.
 
