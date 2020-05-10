@@ -218,73 +218,58 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         #             ctx.message.channel.name,
         #             ctx.message.channel.id)
 
-    #[p]welcome settitle
-    @_welcome.command(pass_context=True, no_pm=False, name="settitle")
-    @checks.serverowner() #Only allow server owner to execute the following command.
-    async def setTitle(self, ctx):
+    #[p]welcome title
+    @welcome.command(name="title")
+    async def setTitle(self, ctx: Context):
         """Interactively configure the title for the welcome DM."""
+        await ctx.send("What would you like the welcome DM message to be?")
 
-        await self.bot.say("What would you like the welcome DM message to be?")
-        title = await self.bot.wait_for_message(timeout=60,
-                                                author=ctx.message.author,
-                                                channel=ctx.message.channel)
+        def check(message: discord.Message):
+            return message.author == ctx.message.author and message.channel == ctx.message.channel
 
-        if title is None:
-            await self.bot.say("No response received, not setting anything!")
+        try:
+            title = await self.bot.wait_for("message", check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send("No response received, not setting anything!")
             return
 
         if len(title.content) > 256:
-            await self.bot.say("The title is too long!")
+            await ctx.send("The title is too long!")
             return
 
-        try:
-            self.loadSettings()
-            serverId = ctx.message.author.server.id
-            if serverId in self.settings:
-                self.settings[serverId][self.keyWelcomeTitle] = title.content
-            else:
-                self.settings[serverId] = {}
-                self.settings[serverId][self.keyWelcomeTitle] = title.content
-            self.saveSettings()
-        except Exception as errorMsg: # pylint: disable=broad-except
-            await self.bot.say("Could not save settings! Please check server logs!")
-            print(errorMsg)
-        else:
-            await self.bot.say("Title set to:")
-            await self.bot.say("```" + title.content + "```")
-            LOGGER.info("Title changed by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author)
-            LOGGER.info(title.content)
+        await self.config.guild(ctx.guild).title.set(title.content)
+        await ctx.send("Title set to:")
+        await ctx.send(f"```{title.content}```")
+        # LOGGER.info("Title changed by %s#%s (%s)",
+        #             ctx.message.author.name,
+        #             ctx.message.author.discriminator,
+        #             ctx.message.author)
+        # LOGGER.info(title.content)
 
     #[p]welcome setimage
-    @_welcome.group(name="setimage", pass_context=True, no_pm=True)
-    async def setImage(self, ctx, imageUrl: str = None):
-        """Sets an image in the embed with a URL.  Empty URL results in no image."""
+    @welcome.group(name="image")
+    async def setImage(self, ctx: Context, imageUrl: str = None):
+        """Sets an image in the embed with a URL.
+
+        Parameters:
+        -----------
+        imageUrl: str (optional)
+            The URL of the image to use in the DM embed. Leave blank to disable.
+        """
         if imageUrl == "":
             imageUrl = None
 
-        try:
-            self.loadSettings()
-            serverId = ctx.message.author.server.id
-            if serverId in self.settings:
-                self.settings[serverId][self.keyWelcomeImage] = imageUrl
-            else:
-                self.settings[serverId] = {}
-                self.settings[serverId][self.keyWelcomeImage] = imageUrl
-            self.saveSettings()
-        except Exception as errorMsg: # pylint: disable=broad-except
-            await self.bot.say("Could not save settings! Please check server logs!")
-            print(errorMsg)
+        await self.config.guild(ctx.guild).image.set(imageUrl)
+        if imageUrl:
+            await ctx.send(f"Welcome image set to `{imageUrl}`. Be sure to test it!")
         else:
-            await self.bot.say("Image set to `{}`. Be sure to test it!".format(imageUrl))
-            LOGGER.info("Image changed by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.id)
-            LOGGER.info("Image set to %s",
-                        imageUrl)
+            await ctx.send("Welcome image disabled.")
+        # LOGGER.info("Image changed by %s#%s (%s)",
+        #             ctx.message.author.name,
+        #             ctx.message.author.discriminator,
+        #             ctx.message.id)
+        # LOGGER.info("Image set to %s",
+        #             imageUrl)
 
    #[p]welcome test
     @_welcome.command(pass_context=True, no_pm=False)
