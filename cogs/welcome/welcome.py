@@ -152,8 +152,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
 
     #[p]welcome toggledm
     @welcome.command(name="dm", aliases=["toggledm"])
-    @checks.guildowner()
-    async def toggledm(self, ctx):
+    async def toggledm(self, ctx: Context):
         """Toggle sending a welcome DM."""
         async with self.config.guild(ctx.guild).all() as guildData:
             if guildData[KEY_DM_ENABLED]:
@@ -178,8 +177,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
 
     #[p]welcome togglelog
     @welcome.command(name="log", aliases=["togglelog"])
-    @checks.guildowner()
-    async def toggleLog(self, ctx):
+    async def toggleLog(self, ctx: Context):
         """Toggle sending logs to a channel."""
         async with self.config.guild(ctx.guild).all() as guildData:
             if not guildData[KEY_LOG_JOIN_CHANNEL] or not guildData[KEY_LOG_LEAVE_CHANNEL]:
@@ -288,7 +286,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
 
    #[p]welcome test
     @welcome.command(name="test")
-    async def test(self, ctx):
+    async def test(self, ctx: Context):
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
         await ctx.send("If this server has been configured, you should have received a DM.")
