@@ -108,54 +108,39 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     ####################
 
     #[p]welcome
-    @commands.group(name="welcome", pass_context=True, no_pm=False)
-    @checks.serverowner() #Only allow server owner to execute the following command.
-    async def _welcome(self, ctx):
+    @commands.group(name="welcome")
+    @commands.guild_only()
+    @checks.guildowner()
+    async def welcome(self, ctx: Context):
         """Server welcome message settings."""
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
 
     #[p]welcome setmessage
-    @_welcome.command(pass_context=True, no_pm=False)
-    @checks.serverowner() #Only allow server owner to execute the following command.
-    async def setmessage(self, ctx):
+    @welcome.command(name="message", aliases=["msg"])
+    async def setmessage(self, ctx: Context):
         """Interactively configure the contents of the welcome DM."""
+        await ctx.send("What would you like the welcome DM message to be?")
 
-        await self.bot.say("What would you like the welcome DM message to be?")
-        message = await self.bot.wait_for_message(timeout=60,
-                                                  author=ctx.message.author,
-                                                  channel=ctx.message.channel)
+        def check(message: discord.Message):
+            return message.author == ctx.message.author and message.channel == ctx.message.channel
 
-        if message is None:
-            await self.bot.say("No response received, not setting anything!")
+        try:
+            message = await self.bot.wait_for("message", check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send("No response received, not setting anything!")
             return
 
         if len(message.content) > 2048:
-            await self.bot.say("Your message is too long!")
+            await ctx.send("Your message is too long!")
             return
 
-        try:
-            self.loadSettings()
-            if ctx.message.author.server.id in self.settings:
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeMessage] = message.content
-            else:
-                self.settings[ctx.message.author.server.id] = {}
-                self.settings[ctx.message.author.server.id] \
-                    [self.keyWelcomeMessage] = message.content
-            self.saveSettings()
-        except Exception as errorMsg: # pylint: disable=broad-except
-            await self.bot.say("Could not save settings! Check the console for "
-                               "details.")
-            print(errorMsg)
-        else:
-            await self.bot.say("Message set to:")
-            await self.bot.say("```" + message.content + "```")
-            LOGGER.info("Message changed by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
-            LOGGER.info(message.content)
+        await self.config.guild(ctx.guild).message.set(message.content)
+        await ctx.send("Message set to:")
+        await ctx.send(f"```{message.content}```")
+        # LOGGER.info("Message changed by %s#%s (%s)",
+        #             ctx.message.author.name,
+        #             ctx.message.author.discriminator,
+        #             ctx.message.author.id)
+        # LOGGER.info(message.content)
 
     #[p]welcome toggledm
     @_welcome.command(pass_context=True, no_pm=False)
