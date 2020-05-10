@@ -208,15 +208,23 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             #             ctx.message.author.discriminator,
             #             ctx.message.author.id)
 
-    #[p]welcome setlog
-    @welcome.command(name="setlog")
-    async def setLogChannel(self, ctx: Context):
-        """Enables, and sets current channel as log channel."""
+    #[p]welcome logchannel
+    @welcome.command(name="logchannel", aliases=["logch"])
+    async def setLogChannel(self, ctx: Context, channel: discord.TextChannel = None):
+        """Set log channel. Defaults to current channel.
+
+        Parameters:
+        -----------
+        channel: discord.TextChannel (optional)
+            The channel to log member join and leaves. Defaults to current channel.
+        """
+        if not channel:
+            channel = ctx.channel
         async with self.config.guild(ctx.guild).all() as guildData:
-            guildData[KEY_LOG_JOIN_CHANNEL] = ctx.channel.id
-            guildData[KEY_LOG_LEAVE_CHANNEL] = ctx.channel.id
+            guildData[KEY_LOG_JOIN_CHANNEL] = channel.id
+            guildData[KEY_LOG_LEAVE_CHANNEL] = channel.id
         await ctx.send(":white_check_mark: Server Welcome/Leave - Logging: "
-                       "Enabled, and will be logged to this channel only.")
+                       f"Member join/leave will be logged to {channel.name}.")
         # LOGGER.info("Welcome channel changed by %s#%s (%s)",
         #             ctx.message.author.name,
         #             ctx.message.author.discriminator,
