@@ -2,69 +2,48 @@
 Sends welcome DMs to users that join the server.
 """
 
-import os
-import logging
 import discord
-from discord.ext import commands
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
-from cogs.utils.dataIO import dataIO
+import logging
 
-# Requires checks utility from:
-# https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from cogs.utils import checks
+from redbot.core import Config, checks, commands
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
 #Global variables
 
-DEFAULT_MESSAGE = "Welcome to the server! Hope you enjoy your stay!"
-DEFAULT_TITLE = "Welcome!"
 LOGGER = None
-SAVE_FOLDER = "data/lui-cogs/welcome/" #Path to save folder.
-SAVE_FILE = "settings.json"
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
+KEY_DM_ENABLED = "dmEnabled"
+KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
+KEY_LOG_JOIN_CHANNEL = "logJoinChannel"
+KEY_LOG_LEAVE_ENABLED = "logLeaveEnabled"
+KEY_LOG_LEAVE_CHANNEL = "logLeaveChannel"
+KEY_TITLE = "title"
+KEY_MESSAGE = "message"
+KEY_IMAGE = "image"
 
-def checkFiles():
-    """Used to initialize an empty database at first startup"""
+DEFAULT_GUILD= \
+{
+    KEY_DM_ENABLED: False,
+    KEY_LOG_JOIN_ENABLED: False,
+    KEY_LOG_JOIN_CHANNEL: None,
+    KEY_LOG_LEAVE_ENABLED: False,
+    KEY_LOG_LEAVE_CHANNEL: None,
+    KEY_TITLE: "Welcome!",
+    KEY_MESSAGE: "Welcome to the server! Hope you enjoy your stay!",
+    KEY_IMAGE: None,
+}
 
-    theFile = SAVE_FOLDER + SAVE_FILE
-    if not dataIO.is_valid_json(theFile):
-        print("Creating default welcome settings.json...")
-        dataIO.save_json(theFile, {})
-
-class Welcome: # pylint: disable=too-many-instance-attributes
+class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     """Send a welcome DM on server join."""
 
-
-    def loadSettings(self):
-        """Loads settings from the JSON file"""
-        self.settings = dataIO.load_json(SAVE_FOLDER+SAVE_FILE)
-
-    def saveSettings(self):
-        """Loads settings from the JSON file"""
-        dataIO.save_json(SAVE_FOLDER+SAVE_FILE, self.settings)
-
-    #Class constructor
-    def __init__(self, bot):
+    # Class constructor
+    def __init__(self, bot: Red):
         self.bot = bot
-
-        #The JSON keys for the settings:
-        self.keyWelcomeDMEnabled = "welcomeDMEnabled"
-        self.keyWelcomeLogEnabled = "welcomeLogEnabled"
-        self.keyWelcomeLogChannel = "welcomeLogChannel"
-        self.keyWelcomeTitle = "welcomeTitle"
-        self.keyWelcomeMessage = "welcomeMessage"
-        self.keyWelcomeImage = "welcomeImage"
-
-        self.keyLeaveLogEnabled = "leaveLogEnabled"
-        self.keyLeaveLogChannel = "leaveLogChannel"
-
-        checkFolder()
-        checkFiles()
-        self.loadSettings()
+        self.config = Config.get_conf(self,
+                                      identifier=5842647,
+                                      force_registration=True)
+        self.config.register_guild(**DEFAULT_GUILD)
 
     #The async function that is triggered on new member join.
     async def sendWelcomeMessage(self, newUser, test=False):
@@ -279,50 +258,6 @@ class Welcome: # pylint: disable=too-many-instance-attributes
             LOGGER.info("Welcome channel set to #%s (%s)",
                         ctx.message.channel.name,
                         ctx.message.channel.id)
-
-    #[p]welcome default
-    @_welcome.command(pass_context=True, no_pm=False)
-    @checks.serverowner() #Only allow server owner to execute the following command.
-    async def default(self, ctx):
-        """RUN FIRST: Set defaults, and enables welcome DM.  Will ask for confirmation."""
-        await self.bot.say("Are you sure you want to revert to default settings? "
-                           "Type \"yes\", otherwise type something else.")
-        message = await self.bot.wait_for_message(timeout=60,
-                                                  author=ctx.message.author,
-                                                  channel=ctx.message.channel)
-
-        if message is None:
-            await self.bot.say(":no_entry: No response received, aborting.")
-            return
-
-        if str.lower(message.content) == "yes":
-            try:
-                self.loadSettings()
-                serverId = ctx.message.author.server.id
-                self.settings[serverId] = {}
-                self.settings[serverId][self.keyWelcomeMessage] = DEFAULT_MESSAGE
-                self.settings[serverId][self.keyWelcomeTitle] = DEFAULT_TITLE
-                self.settings[serverId][self.keyWelcomeImage] = None
-                self.settings[serverId][self.keyWelcomeDMEnabled] = True
-                self.settings[serverId][self.keyWelcomeLogEnabled] = False
-                self.settings[serverId][self.keyWelcomeLogChannel] = None
-                self.settings[serverId][self.keyLeaveLogEnabled] = False
-                self.settings[serverId][self.keyLeaveLogChannel] = None
-                self.saveSettings()
-            except Exception as errorMsg: # pylint: disable=broad-except
-                await self.bot.say(":no_entry: Could not set default settings! "
-                                   "Please check the server logs.")
-                print(errorMsg)
-            else:
-                await self.bot.say(":white_check_mark: Default settings applied.")
-                LOGGER.info("Welcome cog set to its defaults by %s#%s (%s)",
-                            ctx.message.author.name,
-                            ctx.message.author.discriminator,
-                            ctx.message.author.id)
-        else:
-            await self.bot.say(":negative_squared_cross_mark: Not setting any "
-                               "default settings.")
-
 
     #[p]welcome settitle
     @_welcome.command(pass_context=True, no_pm=False, name="settitle")
