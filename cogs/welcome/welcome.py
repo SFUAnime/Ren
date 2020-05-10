@@ -201,32 +201,22 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             #             ctx.message.author.id)
 
     #[p]welcome setlog
-    @_welcome.command(pass_context=True, no_pm=True, name="setlog")
-    @checks.serverowner() #Only allow server owner to execute the following command.
-    async def setLog(self, ctx):
+    @welcome.command(name="setlog")
+    async def setLogChannel(self, ctx: Context):
         """Enables, and sets current channel as log channel."""
-        self.loadSettings()
         serverId = ctx.message.author.server.id
-        try:
-            self.settings[serverId][self.keyWelcomeLogChannel] = ctx.message.channel.id
-            self.settings[serverId][self.keyWelcomeLogEnabled] = True
-            self.settings[serverId][self.keyLeaveLogChannel] = ctx.message.channel.id
-            self.settings[serverId][self.keyLeaveLogEnabled] = True
-        except KeyError as errorMsg: #Typically a KeyError
-            await self.bot.say(":negative_squared_cross_mark: Please set default "
-                               "settings first!")
-            print(errorMsg)
-        else:
-            self.saveSettings()
-            await self.bot.say(":white_check_mark: Server Welcome/Leave - Logging: "
-                               "Enabled, and will be logged to this channel only.")
-            LOGGER.info("Welcome channel changed by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
-            LOGGER.info("Welcome channel set to #%s (%s)",
-                        ctx.message.channel.name,
-                        ctx.message.channel.id)
+        async with self.config.guild(ctx.guild).all() as guildData:
+            guildData[KEY_LOG_JOIN_CHANNEL] = ctx.channel.id
+            guildData[KEY_LOG_LEAVE_CHANNEL] = ctx.channel.id
+        await ctx.send(":white_check_mark: Server Welcome/Leave - Logging: "
+                       "Enabled, and will be logged to this channel only.")
+        # LOGGER.info("Welcome channel changed by %s#%s (%s)",
+        #             ctx.message.author.name,
+        #             ctx.message.author.discriminator,
+        #             ctx.message.author.id)
+        # LOGGER.info("Welcome channel set to #%s (%s)",
+        #             ctx.message.channel.name,
+        #             ctx.message.channel.id)
 
     #[p]welcome settitle
     @_welcome.command(pass_context=True, no_pm=False, name="settitle")
