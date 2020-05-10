@@ -10,9 +10,7 @@ from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
-#Global variables
-
-LOGGER = None
+LOGGER = logging.getLogger("red.luicogs.Welcome")
 
 KEY_DM_ENABLED = "dmEnabled"
 KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
@@ -75,11 +73,11 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             try:
                 await newUser.send(embed=welcomeEmbed)
             except (discord.Forbidden, discord.HTTPException) as errorMsg:
-                # LOGGER.error("Could not send message, the user may have"
-                #              "turned off DM's from this server."
-                #              " Also, make sure the server has a title "
-                #              "and message set!", exc_info=True)
-                # LOGGER.error(errorMsg)
+                LOGGER.error("Could not send message, the user may have"
+                             "turned off DM's from this server."
+                             " Also, make sure the server has a title "
+                             "and message set!", exc_info=True)
+                LOGGER.error(errorMsg)
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(":bangbang: ``Server Welcome:`` User "
                                        f"{newUser.name}#{newUser.discriminator} "
@@ -106,10 +104,10 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
                     await channel.send(f":x: ``Server Leave  :`` User {leaveUser.name}#"
                                        f"{leaveUser.discriminator} ({leaveUser.id}) has "
                                        "left the server.")
-                # LOGGER.info("User %s#%s (%s) has left the server.",
-                #             leaveUser.name,
-                #             leaveUser.discriminator,
-                #             leaveUser.id)
+                LOGGER.info("User %s#%s (%s) has left the server.",
+                            leaveUser.name,
+                            leaveUser.discriminator,
+                            leaveUser.id)
 
     ####################
     # MESSAGE COMMANDS #
@@ -144,11 +142,11 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         await self.config.guild(ctx.guild).message.set(message.content)
         await ctx.send("Message set to:")
         await ctx.send(f"```{message.content}```")
-        # LOGGER.info("Message changed by %s#%s (%s)",
-        #             ctx.message.author.name,
-        #             ctx.message.author.discriminator,
-        #             ctx.message.author.id)
-        # LOGGER.info(message.content)
+        LOGGER.info("Message changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info(message.content)
 
     #[p]welcome toggledm
     @welcome.command(name="dm", aliases=["toggledm"])
@@ -163,17 +161,17 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
                 isSet = True
         if isSet:
             await ctx.send(":white_check_mark: Server Welcome - DM: Enabled.")
-            # LOGGER.info("Message toggle ENABLED by %s#%s (%s)",
-            #             ctx.message.author.name,
-            #             ctx.message.author.discriminator,
-            #             ctx.message.author.id)
+            LOGGER.info("Message toggle ENABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
         else:
             await ctx.send(":negative_squared_cross_mark: Server Welcome - DM: "
                            "Disabled.")
-            # LOGGER.info("Message toggle DISABLED by %s#%s (%s)",
-            #             ctx.message.author.name,
-            #             ctx.message.author.discriminator,
-            #             ctx.message.author.id)
+            LOGGER.info("Message toggle DISABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
 
     #[p]welcome togglelog
     @welcome.command(name="log", aliases=["togglelog"])
@@ -194,17 +192,17 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         if isSet:
             await ctx.send(":white_check_mark: Server Welcome/Leave - Logging: "
                            "Enabled.")
-            # LOGGER.info("Welcome channel logging ENABLED by %s#%s (%s)",
-            #             ctx.message.author.name,
-            #             ctx.message.author.discriminator,
-            #             ctx.message.author.id)
+            LOGGER.info("Welcome channel logging ENABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
         else:
             await ctx.send(":negative_squared_cross_mark: Server Welcome/Leave "
                            "- Logging: Disabled.")
-            # LOGGER.info("Welcome channel logging DISABLED by %s#%s (%s)",
-            #             ctx.message.author.name,
-            #             ctx.message.author.discriminator,
-            #             ctx.message.author.id)
+            LOGGER.info("Welcome channel logging DISABLED by %s#%s (%s)",
+                        ctx.message.author.name,
+                        ctx.message.author.discriminator,
+                        ctx.message.author.id)
 
     #[p]welcome logchannel
     @welcome.command(name="logchannel", aliases=["logch"])
@@ -223,13 +221,13 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             guildData[KEY_LOG_LEAVE_CHANNEL] = channel.id
         await ctx.send(":white_check_mark: Server Welcome/Leave - Logging: "
                        f"Member join/leave will be logged to {channel.name}.")
-        # LOGGER.info("Welcome channel changed by %s#%s (%s)",
-        #             ctx.message.author.name,
-        #             ctx.message.author.discriminator,
-        #             ctx.message.author.id)
-        # LOGGER.info("Welcome channel set to #%s (%s)",
-        #             ctx.message.channel.name,
-        #             ctx.message.channel.id)
+        LOGGER.info("Welcome channel changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author.id)
+        LOGGER.info("Welcome channel set to #%s (%s)",
+                    ctx.message.channel.name,
+                    ctx.message.channel.id)
 
     #[p]welcome title
     @welcome.command(name="title")
@@ -253,11 +251,11 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         await self.config.guild(ctx.guild).title.set(title.content)
         await ctx.send("Title set to:")
         await ctx.send(f"```{title.content}```")
-        # LOGGER.info("Title changed by %s#%s (%s)",
-        #             ctx.message.author.name,
-        #             ctx.message.author.discriminator,
-        #             ctx.message.author)
-        # LOGGER.info(title.content)
+        LOGGER.info("Title changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.author)
+        LOGGER.info(title.content)
 
     #[p]welcome setimage
     @welcome.command(name="image")
@@ -277,12 +275,12 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
             await ctx.send(f"Welcome image set to `{imageUrl}`. Be sure to test it!")
         else:
             await ctx.send("Welcome image disabled.")
-        # LOGGER.info("Image changed by %s#%s (%s)",
-        #             ctx.message.author.name,
-        #             ctx.message.author.discriminator,
-        #             ctx.message.id)
-        # LOGGER.info("Image set to %s",
-        #             imageUrl)
+        LOGGER.info("Image changed by %s#%s (%s)",
+                    ctx.message.author.name,
+                    ctx.message.author.discriminator,
+                    ctx.message.id)
+        LOGGER.info("Image set to %s",
+                    imageUrl)
 
    #[p]welcome test
     @welcome.command(name="test")
