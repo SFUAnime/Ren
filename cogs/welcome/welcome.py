@@ -284,24 +284,3 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
         await ctx.send("If this server has been configured, you should have received a DM.")
-
-
-def setup(bot):
-    """Add the cog to the bot."""
-    global LOGGER # pylint: disable=global-statement
-    checkFolder()   #Make sure the data folder exists!
-    checkFiles()    #Make sure we have settings!
-    customCog = Welcome(bot)
-    LOGGER = logging.getLogger("red.Welcome")
-    if LOGGER.level == 0:
-        # Prevents the LOGGER from being loaded again in case of module reload.
-        LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
-                                      encoding="utf-8",
-                                      mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
-        LOGGER.addHandler(handler)
-    bot.add_listener(customCog.sendWelcomeMessage, 'on_member_join')
-    bot.add_listener(customCog.logServerLeave, 'on_member_remove')
-    bot.add_cog(customCog)
