@@ -143,35 +143,30 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
         # LOGGER.info(message.content)
 
     #[p]welcome toggledm
-    @_welcome.command(pass_context=True, no_pm=False)
-    @checks.serverowner() #Only allow server owner to execute the following command.
+    @welcome.command(name="dm", aliases=["toggledm"])
+    @checks.guildowner()
     async def toggledm(self, ctx):
         """Toggle sending a welcome DM."""
-        self.loadSettings()
-        try:
-            if self.settings[ctx.message.author.server.id][self.keyWelcomeDMEnabled]:
-                self.settings[ctx.message.author.server.id][self.keyWelcomeDMEnabled] = False
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData[KEY_DM_ENABLED]:
+                guildData[KEY_DM_ENABLED] = False
                 isSet = False
             else:
-                self.settings[ctx.message.author.server.id][self.keyWelcomeDMEnabled] = True
+                guildData[KEY_DM_ENABLED] = True
                 isSet = True
-        except KeyError:
-            self.settings[ctx.message.author.server.id][self.keyWelcomeDMEnabled] = True
-            isSet = True
-        self.saveSettings()
         if isSet:
-            await self.bot.say(":white_check_mark: Server Welcome - DM: Enabled.")
-            LOGGER.info("Message toggle ENABLED by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
+            await ctx.send(":white_check_mark: Server Welcome - DM: Enabled.")
+            # LOGGER.info("Message toggle ENABLED by %s#%s (%s)",
+            #             ctx.message.author.name,
+            #             ctx.message.author.discriminator,
+            #             ctx.message.author.id)
         else:
-            await self.bot.say(":negative_squared_cross_mark: Server Welcome - DM: "
-                               "Disabled.")
-            LOGGER.info("Message toggle DISABLED by %s#%s (%s)",
-                        ctx.message.author.name,
-                        ctx.message.author.discriminator,
-                        ctx.message.author.id)
+            await ctx.send(":negative_squared_cross_mark: Server Welcome - DM: "
+                           "Disabled.")
+            # LOGGER.info("Message toggle DISABLED by %s#%s (%s)",
+            #             ctx.message.author.name,
+            #             ctx.message.author.discriminator,
+            #             ctx.message.author.id)
 
     #[p]welcome togglelog
     @_welcome.command(pass_context=True, no_pm=False, name="togglelog")
