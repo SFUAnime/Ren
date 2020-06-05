@@ -185,6 +185,10 @@ class Alias(commands.Cog):
         # At this point we know we need to make a new alias
         #   and that the alias name is valid.
 
+        self.add_alias(ctx, alias_name, command)
+
+    async def add_alias(self, ctx: commands.Context, alias_name: str, command):
+        """Add an alias, potentially from another cog."""
         try:
             await self._aliases.add_alias(ctx, alias_name, command)
         except ArgParseError as e:
@@ -193,6 +197,15 @@ class Alias(commands.Cog):
         await ctx.send(
             _("A new alias with the trigger `{name}` has been created.").format(name=alias_name)
         )
+
+    async def del_alias(self, ctx: commands.Context, alias_name: str):
+        """Delete an alias, potentially from another cog."""
+        if await self._aliases.delete_alias(ctx, alias_name):
+            await ctx.send(
+                _("Alias with the name `{name}` was successfully deleted.").format(name=alias_name)
+            )
+        else:
+            await ctx.send(_("Alias with name `{name}` was not found.").format(name=alias_name))
 
     @checks.is_owner()
     @global_.command(name="add")
@@ -286,12 +299,7 @@ class Alias(commands.Cog):
             await ctx.send(_("There are no aliases on this server."))
             return
 
-        if await self._aliases.delete_alias(ctx, alias_name):
-            await ctx.send(
-                _("Alias with the name `{name}` was successfully deleted.").format(name=alias_name)
-            )
-        else:
-            await ctx.send(_("Alias with name `{name}` was not found.").format(name=alias_name))
+        self.del_alias(ctx, alias_name)
 
     @checks.is_owner()
     @global_.command(name="delete", aliases=["del", "remove"])
