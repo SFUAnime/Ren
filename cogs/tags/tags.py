@@ -867,8 +867,8 @@ class Tags(commands.Cog):
         """Removes all server-specific tags by a user.
         You must have Manage Messages permissions to use this.
         """
-        db = self.config.get(ctx.message.guild.id, {})
-        tags = [key for key, tag in db.items() if tag.owner_id == member.id]
+        db = self.config.get(str(ctx.message.guild.id), {})
+        tags = [key for key, tag in db.items() if tag.owner_id == str(member.id)]
 
         # TODO I'm pretty sure there's a decorator for the following.
         if not ctx.message.channel.permissions_for(ctx.message.guild.me).add_reactions:
@@ -888,7 +888,7 @@ class Tags(commands.Cog):
         author_id = ctx.message.author.id
         def check(reaction, user):
             nonlocal cancel
-            if reaction.message != ctx.message:
+            if reaction.message.id != msg.id:
                 return False
             if user.id != author_id:
                 return False
@@ -901,26 +901,26 @@ class Tags(commands.Cog):
             return False
 
         for emoji in ('\N{WHITE HEAVY CHECK MARK}', '\N{CROSS MARK}'):
-            await self.bot.add_reaction(msg, emoji)
+            await msg.add_reaction(emoji)
 
         try:
             # We set cancel in the check function
             await self.bot.wait_for("reaction_add", check=check, timeout=60.0)
         except asyncio.TimeoutError:
-            await ctx.delete()
+            await msg.delete()
             await ctx.send("Cancelling")
             return
 
         if cancel:
-            await ctx.delete()
+            await msg.delete()
             await ctx.send("Cancelling.")
             return
 
         for key in tags:
             db.pop(key)
 
-        await self.config.put(ctx.message.server.id, db)
-        await ctx.delete()
+        await self.config.put(str(ctx.message.guild.id), db)
+        await msg.delete()
         await ctx.send("Successfully removed all {} tags that belong to {}".format(
                        len(tags), member.display_name))
 
