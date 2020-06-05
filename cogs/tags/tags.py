@@ -1017,6 +1017,3 @@ class Tags(commands.Cog):
             await self.settings.put("dm", True)
             await ctx.send("\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will "
                            "be sent **in a DM**.")
-
-def setup(bot):
-    bot.add_cog(Tags(bot))
