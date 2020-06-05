@@ -23,6 +23,7 @@ from redbot.core.commands.context import Context
 from redbot.core.utils.paginator import Pages
 DEFAULT_MAX = 50 # Default max number of tags per user.
 KEY_MAX = "max"
+KEY_USE_ALIAS = "useAlias"
 DUMP_IN = "data/tags/tags.json"
 DUMP_OUT = "data/tags/export.csv"
 
@@ -333,12 +334,17 @@ class Tags(commands.Cog):
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
-        # TODO Fix this later.
-        # aliasCog = self.bot.get_cog('Alias')
-        # if aliasCog.part_of_existing_command(name, ctx.message.server.id):
-        #     await self.bot.say("This name cannot be used because there is already an internal "
-        #                        "command with this name.")
-        #     return
+        # TODO Consolidate into helper method later.
+        if self.settings.get(KEY_USE_ALIAS, False):
+            aliasCog = self.bot.get_cog('Alias')
+            if not aliasCog:
+                await ctx.send("Could not access the Alias cog. Please load it and "
+                               "try again.")
+                return
+            elif aliasCog.is_command(name):
+                await ctx.send("This name cannot be used because there is already "
+                               "an internal command with this name.")
+                return
 
         limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
         if await self.user_exceeds_tag_limit(ctx.guild, ctx.author):
@@ -366,13 +372,16 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send('Tag "{}" successfully created.'.format(name))
         
-        # await aliasCog.add_alias(ctx.message.server, lookup, "tag {}".format(lookup))
+        if self.settings.get(KEY_USE_ALIAS, False):
+            # Alias is already loaded.
+            await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
     @create.error
     async def create_error(self, ctx: Context, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send('Tag ' + str(error))
         else:
+            await ctx.send("Something went wrong, please check the logs for details.")
             raise error
 
 
@@ -466,6 +475,18 @@ class Tags(commands.Cog):
         its name and its content. This works similar to the tag
         create command.
         """
+        # TODO Consolidate into helper method later.
+        if self.settings.get(KEY_USE_ALIAS, False):
+            aliasCog = self.bot.get_cog('Alias')
+            if not aliasCog:
+                await ctx.send("Could not access the Alias cog. Please load it and "
+                               "try again.")
+                return
+            elif aliasCog.is_command(name):
+                await ctx.send("This name cannot be used because there is already "
+                               "an internal command with this name.")
+                return
+
         if await self.user_exceeds_tag_limit(ctx):
             limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
             await ctx.send("You have too many commands. The maximum number of commands "
@@ -521,9 +542,10 @@ class Tags(commands.Cog):
                              created_at=datetime.datetime.utcnow().timestamp())
         await self.config.put(location, db)
         await ctx.send('Cool. I\'ve made your {0.content} tag.'.format(name))
-        
-        # aliasCog = self.bot.get_cog('Alias')
-        # await aliasCog.add_alias(ctx.message.server, lookup, "tag {}".format(lookup))
+
+        if self.settings.get(KEY_USE_ALIAS, False):
+            # Alias is already loaded.
+            await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
     @make.error
     async def tag_make_error(self, ctx: Context, error):
@@ -693,6 +715,14 @@ class Tags(commands.Cog):
         tags can only be deleted by the bot owner or the tag owner.
         Deleting a tag will delete all of its aliases as well.
         """
+        # TODO Consolidate into helper method later.
+        if self.settings.get(KEY_USE_ALIAS, False):
+            aliasCog = self.bot.get_cog('Alias')
+            if not aliasCog:
+                await ctx.send("Could not access the Alias cog. Please load it and "
+                               "try again.")
+                return
+
         lookup = name.lower()
         server = ctx.message.guild
         try:
@@ -736,8 +766,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send(msg)
         
-        # aliasCog = self.bot.get_cog('Alias')
-        # await aliasCog.del_alias(ctx.message.server, lookup)
+        await aliasCog.del_alias(ctx, lookup)
 
     @tag.command(name="info", aliases=['owner'])
     async def info(self, ctx: Context, *, name : str):
@@ -957,6 +986,21 @@ class Tags(commands.Cog):
         else:
             raise error
     
+    @tag.command(name="togglealias")
+    @commands.guild_only()
+    @checks.mod_or_permissions(manage_messages=True)
+    async def togglealias(self, ctx: Context):
+        """Toggle creating aliases for tags."""
+        if self.settings.get(KEY_USE_ALIAS, False):
+            toAlias = False
+            await ctx.send("\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
+                           "be created **without an alias**.")
+        else:
+            toAlias = True
+            await ctx.send("\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
+                           "be created **with an alias**.")
+        await self.settings.put(KEY_USE_ALIAS, toAlias)
+
     @tag.command(name="toggledm")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
