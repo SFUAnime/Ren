@@ -4,6 +4,8 @@
 # DATE LAST MODIFIED: 2017-04-13
 
 from .config import Config
+from .rolecheck import role_or_mod_or_permissions
+from .constants import *
 
 import csv
 import json
@@ -21,11 +23,6 @@ from redbot.core import checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils.paginator import Pages
-DEFAULT_MAX = 50 # Default max number of tags per user.
-KEY_MAX = "max"
-KEY_USE_ALIAS = "useAlias"
-DUMP_IN = "data/tags/tags.json"
-DUMP_OUT = "data/tags/export.csv"
 
 class TagInfo:
     __slots__ = ('name', 'content', 'owner_id', 'uses', 'location', 'created_at')
@@ -327,7 +324,7 @@ class Tags(commands.Cog):
 
     @tag.command(name="add", aliases=['create'])
     @commands.guild_only()
-    # @checks.sensei_or_mod_or_permissions(manage_messages=True) # TODO Fix this later.
+    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
     async def create(self, ctx: Context, name : str, *, content : str):
         """Creates a new tag owned by you.
         If you create a tag via private message then the tag is a generic
@@ -380,6 +377,8 @@ class Tags(commands.Cog):
     async def create_error(self, ctx: Context, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send('Tag ' + str(error))
+        elif isinstance(error, commands.CheckFailure):
+            pass
         else:
             await ctx.send("Something went wrong, please check the logs for details.")
             raise error
@@ -468,7 +467,7 @@ class Tags(commands.Cog):
 
     @tag.command(ignore_extra=False)
     @commands.guild_only()
-    # @checks.sensei_or_mod_or_permissions(administrator=True) # TODO Fix this later
+    @role_or_mod_or_permissions(role=ALLOWED_ROLE, administrator=True)
     async def make(self, ctx):
         """Interactive makes a tag for you.
         This walks you through the process of creating a tag with
@@ -553,6 +552,8 @@ class Tags(commands.Cog):
     async def tag_make_error(self, ctx: Context, error):
         if isinstance(error, commands.TooManyArguments):
             await ctx.send('Please call just {0.prefix}tag make'.format(ctx))
+        elif isinstance(error, commands.CheckFailure):
+            pass
         else:
             raise error
 
@@ -592,7 +593,7 @@ class Tags(commands.Cog):
         await ctx.send(embed=e)
 
     @tag.command()
-    # @checks.sensei_or_mod_or_permissions(manage_messages=True) # TODO Fix this later.
+    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
     async def edit(self, ctx: Context, name : str, *, content : str):
         """Modifies an existing tag that you own.
         This command completely replaces the original text. If you edit
@@ -632,7 +633,7 @@ class Tags(commands.Cog):
 
     @tag.command(name="transfer")
     @commands.guild_only()
-    # @checks.sensei_or_mod_or_permissions(manage_messages=True) # TODO Fix this later
+    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
     async def transfer(self, ctx: Context, tag_name, user: discord.Member):
         """Transfer your tag to another user.
 
@@ -657,7 +658,7 @@ class Tags(commands.Cog):
         mod_roles = await self.bot.get_mod_roles(server)
         admin_roles = await self.bot.get_admin_roles(server)
 
-        sensei = discord.utils.get(ctx.message.guild.roles, name="Sensei")
+        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
 
         # Check and see if the user requesting the transfer is not the tag owner, or
         # is not a mod, or is not an admin.
@@ -708,7 +709,7 @@ class Tags(commands.Cog):
                            "cancelled.".format(user.name))
 
     @tag.command(name="delete", aliases=["del", "remove", "rm"])
-    # @checks.sensei_or_mod_or_permissions(manage_messages=True) # TODO Fix this later
+    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
     async def remove(self, ctx: Context, *, name : str):
         """Removes a tag that you own.
         The tag owner can always delete their own tags. If someone requests
