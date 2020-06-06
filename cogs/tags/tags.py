@@ -768,7 +768,9 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send(msg)
         
-        await aliasCog.del_alias(ctx, lookup)
+        if self.settings.get(KEY_USE_ALIAS, False):
+            # Alias is already loaded.
+            await aliasCog.del_alias(ctx, lookup)
 
     @tag.command(name="info", aliases=['owner'])
     async def info(self, ctx: Context, *, name : str):
