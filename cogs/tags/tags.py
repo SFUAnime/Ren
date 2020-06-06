@@ -482,12 +482,8 @@ class Tags(commands.Cog):
                 await ctx.send("Could not access the Alias cog. Please load it and "
                                "try again.")
                 return
-            elif aliasCog.is_command(name):
-                await ctx.send("This name cannot be used because there is already "
-                               "an internal command with this name.")
-                return
 
-        if await self.user_exceeds_tag_limit(ctx):
+        if await self.user_exceeds_tag_limit(ctx.guild, ctx.author):
             limit = self.settings.get(KEY_MAX, DEFAULT_MAX)
             await ctx.send("You have too many commands. The maximum number of commands "
                            f"per user is {limit}, please delete some first!")
@@ -522,6 +518,12 @@ class Tags(commands.Cog):
         if lookup in db:
             fmt = 'Sorry. A tag with that name exists already. Redo the command {0.prefix}tag make.'
             await ctx.send(fmt.format(ctx))
+            return
+
+        # Alias is already loaded
+        if self.settings.get(KEY_USE_ALIAS, False) and aliasCog.is_command(lookup):
+            await ctx.send("This name cannot be used because there is already "
+                           "an internal command with this name.")
             return
 
         await ctx.send('Alright. So the name is {0.content}. What about the tag\'s content?'.format(name))
