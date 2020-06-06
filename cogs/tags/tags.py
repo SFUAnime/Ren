@@ -440,7 +440,7 @@ class Tags(commands.Cog):
         old = old_name.lower()
 
         tags = self.get_possible_tags(server)
-        db = self.config.get(server.id, {})
+        db = self.config.get(str(server.id), {})
         try:
             original = tags[old]
         except KeyError:
@@ -459,10 +459,10 @@ class Tags(commands.Cog):
             await ctx.send('A tag with this name already exists.')
             return
 
-        db[lookup] = TagAlias(name=new_name, original=old, owner_id=ctx.message.author.id,
+        db[lookup] = TagAlias(name=new_name, original=old, owner_id=str(ctx.author.id),
                               created_at=datetime.datetime.utcnow().timestamp())
 
-        await self.config.put(server.id, db)
+        await self.config.put(str(server.id), db)
         await ctx.send('Tag alias "{}" that points to "{.name}" successfully '
                        'created.'.format(new_name, original))
 
