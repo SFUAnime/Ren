@@ -1,42 +1,113 @@
 import discord
-from discord.ext import commands
-from __main__ import send_cmd_help
-from cogs.utils.dataIO import dataIO
+
 import asyncio #Used for task loop.
 import os #Used to create folder at first load.
 from datetime import datetime
+import logging
+import requests
 
-saveFolder = "data/lui-cogs/heartbeat/" #Path to save folder.
+from redbot.core import Config, checks, commands, data_manager
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(saveFolder):
-        print("Creating " + saveFolder + " folder...")
-        os.makedirs(saveFolder)
+KEY_INSTANCE_NAME = "instanceName"
+KEY_INTERVAL = "interval"
+KEY_PUSH_URL = "pushUrl"
 
-class Heartbeat:
-    """Heartbeat for uptime checks, to be used with a web server backend."""
+LOGGER = logging.getLogger("red.luicogs.Heartbeat")
 
-    def __init__(self, bot):
+MIN_INTERVAL = 10
+
+DEFAULT_GLOBAL = \
+{
+    KEY_INSTANCE_NAME: "Ren",
+    KEY_INTERVAL: 295,
+    KEY_PUSH_URL: None
+}
+
+class Heartbeat(commands.Cog):
+    """Heartbeat for uptime checks"""
+
+    def __init__(self, bot: Red):
         self.bot = bot
         self.time_interval = 295
-        checkFolder()
+        self.config = Config.get_conf(self,
+                                      identifier=5842647,
+                                      force_registration=True)
+        self.config.register_global(**DEFAULT_GLOBAL)
+        self.bgTask = self.bot.loop.create_task(self._loop())
 
     async def _loop(self):
-        print("Heartbeat is now running, and is running at "+str(self.time_interval)+" second intervals")
+        LOGGER.info("Heartbeat is running, pinging at %s second intervals",
+                    self.time_interval)
         while self == self.bot.get_cog("Heartbeat"):
-
-            #Heartbeat
-            dataIO.save_json("data/lui-cogs/heartbeat/timestamp.json","{}")
             try:
-                await asyncio.sleep(self.time_interval)
+                await asyncio.sleep(await self.config.interval())
+                if await self.config.pushUrl():
+                    LOGGER.info("Pinging %s", await self.config.pushUrl())
+                    requests.get(await self.config.pushUrl())
             except asyncio.CancelledError as e:
                 print("Error in sleeping")
                 raise e
+            except requests.exceptions.HTTPError as error:
+                LOGGER.error("HTTP error occurred: %s", error)
 
-    @commands.command(name="heartbeat", pass_context=False, no_pm=True)
-    async def _check(self):
-        await self.bot.say("**In-house** is responding.")
+    # Cancel the background task on cog unload.
+    def __unload(self):  # pylint: disable=invalid-name
+        LOGGER.info("Cancelling heartbeat")
+        self.bgTask.cancel()
+
+    @commands.command(name="heartbeat", aliases=["hb"])
+    @commands.guild_only()
+    async def _check(self, ctx: Context):
+        name = await self.config.instanceName()
+        await ctx.send(f"**{name}** is responding.")
+
+    @commands.group(name="heartbeatset", aliases=["hbset"])
+    @checks.is_owner()
+    async def hbSettings(self, ctx: Context):
+        """Configure heartbeat settings."""
+
+    @hbSettings.command(name="url")
+    async def url(self, ctx: Context, url: str):
+        """Set the push URL to notify
+
+        Parameters:
+        -----------
+        str: url
+            The URL to notify.
+        """
+        await self.config.pushUrl.set(url)
+        await ctx.send(f"Set the push URL to: `{url}`")
+
+    @hbSettings.command(name="interval")
+    async def interval(self, ctx: Context, interval: int):
+        """Set the heartbeat interval.
+
+        Parameters:
+        -----------
+        interval: int
+            The interval time in seconds.
+        """
+        if interval < MIN_INTERVAL:
+            await ctx.send(f"Please set an interval greater than **{MIN_INTERVAL}** seconds")
+            return
+        await self.config.interval.set(interval)
+        await ctx.send(f"Set interval to: `{interval}` seconds")
+
+    @hbSettings.command(name="name")
+    async def name(self, ctx: Context, name: str):
+        """Set the instance name.
+
+        This is used to display when you run the heartbeat command from the bot.
+
+        Parameters:
+        -----------
+        name: str
+            The instance name.
+        """
+        await self.config.instanceName.set(name)
+        await ctx.send(f"Set the instance name to: `{name}`")
 
 def setup(bot):
     #check_filesystem()
