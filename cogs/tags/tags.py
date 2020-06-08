@@ -1,11 +1,11 @@
-# Manually imported from:
+# Cog from old v2 bot running async branch of discord.py
 # https://github.com/Rapptz/RoboDanny/blob/master/cogs/tags.py
-# DATE IMPORTED: 2017-04-10
-# DATE LAST MODIFIED: 2017-04-13
+# Date first imported: 2017-04-10
+# Ported to rewrite branch of discord.py for Red v3
 
 from .config import Config
-from .rolecheck import role_or_mod_or_permissions
 from .constants import *
+from .rolecheck import role_or_mod_or_permissions
 
 import csv
 import json
@@ -145,7 +145,7 @@ class Tags(commands.Cog):
         str
             The guild ID if the message was from a guild, else 'generic'
         """
-        return 'generic' if message.channel.type == discord.DMChannel else str(message.guild.id)
+        return 'generic' if isinstance(message.channel, discord.DMChannel) else str(message.guild.id)
 
     def clean_tag_content(self, content):
         return content.replace('@everyone', '@\u200beveryone').replace('@here', '@\u200bhere')
