@@ -506,6 +506,10 @@ class Highlight(commands.Cog):
             self.logger.debug("User ID: %s", currentUserId)
             isWordIgnored = False
 
+            # Handle case where user was at-mentioned.
+            if currentUserId in [atMention.id for atMention in msg.mentions]:
+                continue
+
             # Handle case where message author has been blacklisted by the user.
             if KEY_BLACKLIST in data.keys(
             ) and msg.author.id in data[KEY_BLACKLIST]:

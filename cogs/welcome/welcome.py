@@ -116,7 +116,7 @@ class Welcome(commands.Cog): # pylint: disable=too-many-instance-attributes
     #[p]welcome
     @commands.group(name="welcome")
     @commands.guild_only()
-    @checks.guildowner()
+    @checks.mod_or_permissions()
     async def welcome(self, ctx: Context):
         """Server welcome message settings."""
 
