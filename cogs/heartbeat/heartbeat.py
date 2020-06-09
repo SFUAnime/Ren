@@ -44,10 +44,10 @@ class Heartbeat(commands.Cog):
             try:
                 await asyncio.sleep(await self.config.interval())
                 if await self.config.pushUrl():
-                    LOGGER.info("Pinging %s", await self.config.pushUrl())
+                    LOGGER.debug("Pinging %s", await self.config.pushUrl())
                     requests.get(await self.config.pushUrl())
             except asyncio.CancelledError as e:
-                print("Error in sleeping")
+                LOGGER.error("Error in sleeping")
                 raise e
             except requests.exceptions.HTTPError as error:
                 LOGGER.error("HTTP error occurred: %s", error)
@@ -108,9 +108,3 @@ class Heartbeat(commands.Cog):
         """
         await self.config.instanceName.set(name)
         await ctx.send(f"Set the instance name to: `{name}`")
-
-def setup(bot):
-    #check_filesystem()
-    hb_object = Heartbeat(bot)
-    bot.add_cog(hb_object)
-    bot.loop.create_task(hb_object._loop())
