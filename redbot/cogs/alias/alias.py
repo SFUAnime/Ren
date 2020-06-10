@@ -299,7 +299,7 @@ class Alias(commands.Cog):
             await ctx.send(_("There are no aliases on this server."))
             return
 
-        await self.del_alias(ctx, alias_name)
+        self.del_alias(ctx, alias_name)
 
     @checks.is_owner()
     @global_.command(name="delete", aliases=["del", "remove"])
