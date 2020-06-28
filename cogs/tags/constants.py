@@ -1,3 +1,4 @@
+BASE = {"max": {}, "useAlias": False}
 DEFAULT_MAX = 50  # Default max number of tags per user.
 KEY_MAX = "max"
 KEY_USE_ALIAS = "useAlias"
