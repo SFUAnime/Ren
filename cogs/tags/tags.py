@@ -283,9 +283,13 @@ class Tags(commands.Cog):
         if len(lookup) > 100:
             raise RuntimeError("Tag name is a maximum of 100 characters.")
 
-    @tag.command(name="max")
+    @tag.group("settings")
     @commands.guild_only()
     @checks.mod_or_permissions()
+    async def settings(self, ctx: Context):
+        """Tag settings."""
+
+    @settings.command(name="max")
     async def max(self, ctx: Context, role: discord.Role, num_tags: int):
         """Set the max number of tags per member per role.
 
@@ -317,9 +321,7 @@ class Tags(commands.Cog):
                 tiers[role.id] = num_tags
                 await ctx.send(f"The tag limit for {role.name} was set to {num_tags}.")
 
-    @tag.command(name="tiers")
-    @commands.guild_only()
-    @checks.mod_or_permissions()
+    @settings.command(name="tiers")
     async def tiers(self, ctx: Context):
         """Show the tiers and their respective max tags."""
         tiers = await self.configV3.guild(ctx.guild).tiers()
@@ -339,9 +341,7 @@ class Tags(commands.Cog):
             msg = "There are no tiers configured."
         await ctx.send(msg)
 
-    @tag.command(name="dump")
-    @commands.guild_only()
-    @checks.mod_or_permissions()
+    @settings.command(name="dump")
     async def dump(self, ctx: Context):
         """Dumps server-specific tags to a CSV file, sorted by number of uses."""
         sid = str(ctx.guild.id)
@@ -1109,9 +1109,7 @@ class Tags(commands.Cog):
         else:
             raise error
 
-    @tag.command(name="togglealias")
-    @commands.guild_only()
-    @checks.mod_or_permissions(manage_messages=True)
+    @settings.command(name="togglealias")
     async def togglealias(self, ctx: Context):
         """Toggle creating aliases for tags."""
         if self.settings.get(KEY_USE_ALIAS, False):
@@ -1128,9 +1126,7 @@ class Tags(commands.Cog):
             )
         await self.settings.put(KEY_USE_ALIAS, toAlias)
 
-    @tag.command(name="toggledm")
-    @commands.guild_only()
-    @checks.mod_or_permissions(manage_messages=True)
+    @settings.command(name="toggledm")
     async def toggledm(self, ctx: Context):
         """Toggle sending DM for list of tags."""
         self.dm = self.settings.get("dm", False)
