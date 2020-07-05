@@ -207,8 +207,8 @@ class Tags(commands.Cog):
         --------
         (bool, int)
             bool: True if user has too many tags, else False.
-            int: The maximum number of tags this user can have. -1 if they
-            have no limit.
+            int: The maximum number of tags this user can have. If unlimited, then this
+            will be float("inf").
         """
         if await self.bot.is_owner(user):
             # No limit for bot owner
@@ -333,10 +333,11 @@ class Tags(commands.Cog):
                 continue
             validTiers.append((role, maxTags))
         if validTiers:
-            msg = "Below is a list of roles and their tag limits:\n"
+            msgList = ["Below is a list of roles and their tag limits:"]
             validTiers.sort(key=lambda x: x[1])
             for role, maxTags in validTiers:
-                msg += f"{role.name}: {maxTags}\n"
+                msgList.append(f"{role.name}: {maxTags}")
+            msg = "\n".join(msgList)
         else:
             msg = "There are no tiers configured."
         await ctx.send(msg)
