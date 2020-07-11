@@ -183,7 +183,10 @@ class RSSFeed(commands.Cog):
             latestPostTime = 0
 
         news = []
-        feed = feedparser.parse(rssUrl)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(rssUrl) as resp:
+                page = await resp.text()
+        feed = feedparser.parse(page)
 
         for item in feed.entries:
             itemPostTime = date2epoch(item["published"])
