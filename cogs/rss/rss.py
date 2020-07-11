@@ -261,7 +261,7 @@ class RSSFeed(commands.Cog):
                         self.logger.error("Image URL error: %s", error)
 
                     embed.set_footer(
-                        text="This update is from " "{}".format(item.title_detail.base),
+                        text=f"This update is from {item.title_detail.base}",
                         icon_url=RSS_IMAGE_URL,
                     )
 
