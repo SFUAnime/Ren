@@ -577,6 +577,10 @@ class Highlight(commands.Cog):
             time = msg.created_at
             time = time.replace(tzinfo=timezone.utc).astimezone(tz=None).strftime("%H:%M:%S %Z")
             escapedMsg = chat_formatting.escape(msg.content, formatting=True)
+            #If message contains spoilers, then the bot will replace the message
+            #with <<spoilers>>
+            if len(escapedMsg.split("\\|\\|")) > 2:
+                escapedMsg = "<<spoilers>>"
             embedMsg += "[{0}] {1.author.name}#{1.author.discriminator}: {2}" "\n".format(
                 time, msg, escapedMsg
             )
@@ -601,6 +605,8 @@ class Highlight(commands.Cog):
                 user.discriminator,
                 user.id,
             )
+
+
 
     # Event listeners
     @commands.Cog.listener("on_message")
@@ -660,6 +666,34 @@ class Highlight(commands.Cog):
             self.logger.error("Regex error: %s", word)
             self.logger.error(error)
             return False
+    def _respoil(self, msg):
+        """Replaces text within || ||'s with <<Spoilers>> instead
+        Parameters:
+        ----------
+        msg: str
+           The message you want to respoiler
+        """
+        spoiledMsg = ""
+        insideText = ""
+        lineFlag = False
+        isSpoilered = False
+        for x in range(len(msg)):
+            insideText += msg[x]
+            if msg[x] == "|":
+                if lineFlag:
+                    lineFlag = False
+                    if isSpoilered and len(insideText) > 0:
+                        spoiledMsg += "<<spoilers>>"
+                    else:
+                        spoiledMsg += insideText
+                    insideText = ""
+                    isSpoilered = not isSpoilered
+                else:
+                    lineFlag = True
+            else:
+                lineFlag = False
+
+
 
 
 def _isActive(userId, originalMessage, messages, timeout=DEFAULT_TIMEOUT):
