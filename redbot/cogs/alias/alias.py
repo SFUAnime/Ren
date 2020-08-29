@@ -181,10 +181,11 @@ class Alias(commands.Cog):
 
         trackform = _TrackingFormatter()
         command = trackform.format(alias.command, *args)
+        known_content_length = len(prefix) + len(alias.name)
 
         # noinspection PyDunderSlots
         new_message.content = "{}{} {}".format(
-            prefix, command, " ".join(args[trackform.max + 1 :])
+            prefix, command, message.content[known_content_length:]
         )
         await self.bot.process_commands(new_message)
 
