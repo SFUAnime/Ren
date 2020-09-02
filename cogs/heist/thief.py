@@ -12,17 +12,17 @@ from ast import literal_eval
 # Thanks stack overflow http://stackoverflow.com/questions/21872366/plural-string-formatting
 class PluralDict(dict):
     def __missing__(self, key):
-        if '(' in key and key.endswith(')'):
-            key, rest = key.split('(', 1)
+        if "(" in key and key.endswith(")"):
+            key, rest = key.split("(", 1)
             value = super().__getitem__(key)
-            suffix = rest.rstrip(')').split(',')
+            suffix = rest.rstrip(")").split(",")
             if len(suffix) == 1:
-                suffix.insert(0, '')
+                suffix.insert(0, "")
             return suffix[0] if value <= 1 else suffix[1]
         raise KeyError(key)
 
-class Thief:
 
+class Thief:
     def __init__(self):
         self.config = Config.get_conf(self, identifier=22572522, force_registration=True)
         default_guild = {
@@ -40,7 +40,7 @@ class Thief:
                 "Theme": "Heist",
                 "Crew": "None",
                 "Version": "a0.0.1",
-                "Registered": False
+                "Registered": False,
             },
             "Theme": {
                 "Jail": "jail",
@@ -50,11 +50,11 @@ class Thief:
                 "Crew": "crew",
                 "Sentence": "sentence",
                 "Heist": "heist",
-                "Vault": "vault"
+                "Vault": "vault",
             },
             "Players": {},
             "Crew": {},
-            "Targets": {}
+            "Targets": {},
         }
         default_member = {
             "Status": "Free",
@@ -68,7 +68,7 @@ class Thief:
             "Spree": 0,
             "TotalDeaths": 0,
             "TotalJails": 0,
-            "Registered": False
+            "Registered": False,
         }
         self.config.register_guild(**default_guild)
         self.config.register_member(**default_member)
@@ -126,11 +126,11 @@ class Thief:
 
     async def member_caught(self, member):
         cur = await self.config.member(member).TotalJails()
-        await self.config.member(member).TotalJails.set(cur+1)
+        await self.config.member(member).TotalJails.set(cur + 1)
 
     async def member_died(self, member):
         cur = await self.config.member(member).TotalDeaths()
-        await self.config.member(member).TotalDeaths.set(cur+1)
+        await self.config.member(member).TotalDeaths.set(cur + 1)
 
     async def set_member_free(self, member):
         return await self.config.member(member).Status.set("Free")
@@ -168,7 +168,7 @@ class Thief:
     def time_format(seconds):
         m, s = divmod(seconds, 60)
         h, m = divmod(m, 60)
-        data = PluralDict({'hour': h, 'minute': m, 'second': s})
+        data = PluralDict({"hour": h, "minute": m, "second": s})
         if h > 0:
             fmt = "{hour} hour{hour(s)}"
             if data["minute"] > 0 and data["second"] > 0:
@@ -214,12 +214,16 @@ class Thief:
 
         alert, patrol_time = await self.police_alert(author.guild)
         if not list(targets):
-            msg = ("Oh no! There are no targets! To start creating a target, use "
-                   "{}heist createtarget.".format(prefix))
+            msg = (
+                "Oh no! There are no targets! To start creating a target, use "
+                "{}heist createtarget.".format(prefix)
+            )
             return "Failed", msg
         elif config["Start"]:
-            msg = ("A {0} is already underway. Wait for the current one to "
-                   "end to plan another {0}.".format(t_heist))
+            msg = (
+                "A {0} is already underway. Wait for the current one to "
+                "end to plan another {0}.".format(t_heist)
+            )
             return "Failed", msg
         elif author.id in crew:
             msg = "You are already in the {}.".format(t_crew)
@@ -231,32 +235,44 @@ class Thief:
             remaining = self.cooldown_calculator(sentence_raw, time_served)
             sentence = self.time_format(sentence_raw)
             if remaining == "No Cooldown":
-                msg = ("Looks like your {} is over, but you're still in {}! Get released "
-                       "released by typing {}heist release .".format(t_sentence, t_jail, prefix))
+                msg = (
+                    "Looks like your {} is over, but you're still in {}! Get released "
+                    "released by typing {}heist release .".format(t_sentence, t_jail, prefix)
+                )
             else:
-                msg = ("You are in {0}. You are serving a {1} of {2}.\nYou can wait out "
-                       "your remaining {1} of: {3} or pay {4} credits to finish your "
-                       "{5}.".format(t_jail, t_sentence, sentence, remaining, bail, t_bail))
+                msg = (
+                    "You are in {0}. You are serving a {1} of {2}.\nYou can wait out "
+                    "your remaining {1} of: {3} or pay {4} credits to finish your "
+                    "{5}.".format(t_jail, t_sentence, sentence, remaining, bail, t_bail)
+                )
             return "Failed", msg
         elif await self.get_member_status(author) == "Dead":
             death_time = await self.get_member_deathtimer(author)
             base_timer = config["Death"]
             remaining = self.cooldown_calculator(death_time, base_timer)
             if remaining == "No Cooldown":
-                msg = ("Looks like you are still dead, but you can revive at anytime by using the "
-                       "command {}heist revive .".format(prefix))
+                msg = (
+                    "Looks like you are still dead, but you can revive at anytime by using the "
+                    "command {}heist revive .".format(prefix)
+                )
             else:
-                msg = ("You are dead. You can revive in:\n{}\nUse the command {}heist revive when "
-                       "the timer has expired.".format(remaining, prefix))
+                msg = (
+                    "You are dead. You can revive in:\n{}\nUse the command {}heist revive when "
+                    "the timer has expired.".format(remaining, prefix)
+                )
             return "Failed", msg
         elif not await bank.get_balance(author) >= config["Cost"]:
-            msg = ("You do not have enough credits to cover the costs of "
-                   "entry. You need {} credits to participate.".format(cost))
+            msg = (
+                "You do not have enough credits to cover the costs of "
+                "entry. You need {} credits to participate.".format(cost)
+            )
             return "Failed", msg
         elif alert == "Hot":
-            msg = ("The {} are on high alert after the last target. We should "
-                   "wait for things to cool off before hitting another target.\n"
-                   "Time Remaining: {}".format(t_police, patrol_time))
+            msg = (
+                "The {} are on high alert after the last target. We should "
+                "wait for things to cool off before hitting another target.\n"
+                "Time Remaining: {}".format(t_police, patrol_time)
+            )
             return "Failed", msg
         else:
             return "Success", "Success"
@@ -313,13 +329,18 @@ class Thief:
             if chance <= success_rate:
                 good_thing = random.choice(good_out)
                 good_out.remove(good_thing)
-                crew[player.id] = {"Name": escape(player.display_name, formatting=True), "Bonus": good_thing[1]}
+                crew[player.id] = {
+                    "Name": escape(player.display_name, formatting=True),
+                    "Bonus": good_thing[1],
+                }
                 await self.config.guild(guild).Crew.set(crew)
                 await self.add_member_spree(player)
                 results.append(good_thing[0].format(escape(player.display_name, formatting=True)))
             else:
                 bad_thing = random.choice(bad_out)
-                dropout_msg = (bad_thing[0] + "```\n{0} dropped out of the game.```").format(escape(player.display_name, formatting=True))
+                dropout_msg = (bad_thing[0] + "```\n{0} dropped out of the game.```").format(
+                    escape(player.display_name, formatting=True)
+                )
                 await self.failure_handler(player, bad_thing[1])
                 del crew[str(player.id)]
                 await self.config.guild(guild).Crew.set(crew)
@@ -329,12 +350,18 @@ class Thief:
 
     def get_theme(self, config):
         theme = config["Theme"]
-        with open(str(bundled_data_path(self)) + '/{}.txt'.format(theme)) as f:
+        with open(str(bundled_data_path(self)) + "/{}.txt".format(theme)) as f:
             data = f.readlines()
-            good = [list(literal_eval(line.replace("|Good| ", "")))
-                    for line in data if line.startswith("|Good|")]
-            bad = [list(literal_eval(line.replace("|Bad| ", "")))
-                   for line in data if line.startswith("|Bad|")]
+            good = [
+                list(literal_eval(line.replace("|Good| ", "")))
+                for line in data
+                if line.startswith("|Good|")
+            ]
+            bad = [
+                list(literal_eval(line.replace("|Bad| ", "")))
+                for line in data
+                if line.startswith("|Bad|")
+            ]
         return good, bad
 
     async def add_member_jail(self, member):
@@ -375,14 +402,15 @@ class Thief:
         else:
             await self.run_death(user)
 
-
     async def run_death(self, user):
         await self.config.member(user).CrimLevel.set(0)
         await self.config.member(user).OOB.set(False)
         await self.config.member(user).BailC.set(0)
         await self.config.member(user).Sentence.set(0)
         await self.config.member(user).Status.set("Dead")
-        await self.config.member(user).TotalDeaths.set(await self.config.member(user).TotalDeaths() +1)
+        await self.config.member(user).TotalDeaths.set(
+            await self.config.member(user).TotalDeaths() + 1
+        )
         await self.config.member(user).JailC.set(0)
         await self.config.member(user).DeathT(int(time.perf_counter()))
         if (await self.config.guild(user.guild).Config())["Hardcore"]:
@@ -396,10 +424,14 @@ class Thief:
         config = await self.get_guild_settings(guild)
         message_type = config["Crew"]
         if message_type == "Short":
-            name_list = '\n'.join(escape(player.display_name, formatting=True) for player in players[:5])
+            name_list = "\n".join(
+                escape(player.display_name, formatting=True) for player in players[:5]
+            )
             message = "{} crew members, including:```\n{}```".format(crew, name_list)
         elif message_type == "Long":
-            name_list = '\n'.join(escape(player.display_name, formatting=True) for player in players)
+            name_list = "\n".join(
+                escape(player.display_name, formatting=True) for player in players
+            )
             message = "{} crew members, including:```\n{}```".format(crew, name_list)
         else:
             message = "{} crew members".format(crew)
@@ -446,8 +478,15 @@ class Thief:
 
     @staticmethod
     def criminal_level(level):
-        status = ["Greenhorn", "Renegade", "Veteran", "Commander", "War Chief", "Legend",
-                  "Immortal"]
+        status = [
+            "Greenhorn",
+            "Renegade",
+            "Veteran",
+            "Commander",
+            "War Chief",
+            "Legend",
+            "Immortal",
+        ]
         breakpoints = [1, 10, 25, 50, 75, 100]
         return status[bisect.bisect_right(breakpoints, level)]
 
@@ -455,9 +494,11 @@ class Thief:
         config = await self.get_guild_settings(guild)
         keys = ["Jail", "OOB", "Police", "Bail", "Crew", "Sentence", "Heist", "Vault"]
 
-        with open(str(bundled_data_path(self)) + '/{}.txt'.format(theme_name)) as f:
+        with open(str(bundled_data_path(self)) + "/{}.txt".format(theme_name)) as f:
             data = f.readlines()
-            theme = {k[:k.find('=')].strip(): k[k.find('=') + 1:].strip() for k in data if '=' in k}
+            theme = {
+                k[: k.find("=")].strip(): k[k.find("=") + 1 :].strip() for k in data if "=" in k
+            }
             print(theme)
 
         if all(key in theme for key in keys):
@@ -473,7 +514,9 @@ class Thief:
         try:
             await asyncio.sleep(20)  # Start-up Time
             while True:
-                servers = [x for x in bot.guilds if (await self.config.guild(x).Config())["Registered"]]
+                servers = [
+                    x for x in bot.guilds if (await self.config.guild(x).Config())["Registered"]
+                ]
                 for server in servers:
                     targets = await self.config.guild(server).Targets()
                     for target, settings in targets.items():
@@ -483,7 +526,7 @@ class Thief:
                             increment = int(vault_max * 0.04)
                             new_vault = min(vault + increment, vault_max)
                             targets[target]["Vault"] = new_vault
-                    await self.config.guild(server).Targets.set_raw(value=targets)                        
+                    await self.config.guild(server).Targets.set_raw(value=targets)
                 await asyncio.sleep(120)  # task runs every 120 seconds
         except asyncio.CancelledError:
             pass
