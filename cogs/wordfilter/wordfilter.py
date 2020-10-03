@@ -169,14 +169,15 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def _command(self, ctx):
-        """Blacklist command settings. (help for more info)
+        """Command denylist settings.
+
         Settings for controlling filtering on commands.
         """
 
     @_command.command(name="add")
     @commands.guild_only()
     async def _commandAdd(self, ctx, cmd: str):
-        """Add a command (without prefix) to the blacklist.
+        """Add a command (without prefix) to the denylist.
         If the invoked command contains any filtered words, the entire message
         is filtered and the contents of the message will be sent back to the
         user via DM.
@@ -187,48 +188,54 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             cmdDenied.append(cmd)
             await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
             await ctx.send(
-                ":white_check_mark: Word Filter: Command `{1}` is now "
-                "blacklisted.  It will have the entire message filtered "
-                "if it contains any filterable words, and its contents "
-                "DM'd back to the user.".format(cmd)
+                f":white_check_mark: Word Filter: Command `{cmd}` is now "
+                "in the denylist.  It will have the entire message filtered "
+                "if it contains any filterable regex, and its contents "
+                "DM'd back to the user."
             )
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Command "
-                "`{0}` is already blacklisted.".format(cmd)
+                f"`{cmd}` is already in the denylist."
             )
 
     @_command.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     async def _commandRemove(self, ctx, cmd: str):
-        """Remove a command from the blacklist.
+        """Remove a command from the denylist.
+
         The command that is removed from the list will be filtered as normal
-        messages.  That is, if the invoked command contains any filtered words,
-        only the filtered words will be censored and replaced (as opposed to the
+        messages.  That is, if the invoked command contains any filterable regex,
+        only the filtered regex will be censored and replaced (as opposed to the
         entire message being deleted).
+
+        Parameters:
+        -----------
+        cmd: str
+            The command to remove from the denylist.
         """
         guildName = ctx.message.guild.name
 
         cmdDenied = await self.config.guild(ctx.guild).commandDenied()
 
         if not cmdDenied or cmd not in cmdDenied:
-            await self.bot.say(
+            await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Command "
-                "`{0}` wasn't on the blacklist.".format(cmd)
+                f"`{cmd}` wasn't on the denylist."
             )
         else:
             cmdDenied.remove(cmd)
             await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
             await ctx.send(
-                ":white_check_mark: Word Filter: `{0}` removed from "
-                "the command blacklist.".format(cmd)
+                f":white_check_mark: Word Filter: `{cmd}` removed from "
+                "the command denylist."
             )
 
     @_command.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def _commandList(self, ctx):
-        """List blacklisted commands.
-        If the commands on this list are invoked with any filtered words, the
+        """List commands on the denylist.
+        If the commands on this list are invoked with any filtered regex, the
         entire message is filtered and the contents of the message will be sent
         back to the user via DM.
         """
@@ -242,12 +249,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 display.append("`{}`".format(cmd))
 
             page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = "Blacklisted commands for: **{}**".format(guildName)
+            page.embed.title = f"Denylist commands for: **{guildName}**"
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
             await ctx.send(
-                "Sorry, there are no blacklisted commands in " "**{}**".format(guildName)
+                f"Sorry, there are no commands on the denylist for **{guildName}**"
             )
 
     ############################################
