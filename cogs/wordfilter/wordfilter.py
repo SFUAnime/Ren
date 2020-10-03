@@ -260,18 +260,30 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
     ############################################
-    @wordFilter.group(name="whitelist", aliases=["wl"])
+    @wordFilter.group(name="channel", aliases=["ch"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelist(self, ctx):
-        """Channel whitelisting settings."""
+    async def _channel(self, ctx):
+        """Channel allowlist settings.
 
-    @_whitelist.command(name="add")
+        This controls channels that should not be subjected to the word filter.
+        Note that this only matches the channel name, and not the actual channel
+        itself. This means that if you rename a channel's name to one that matches
+        on this list, it WILL NOT be subjected to filtering.
+        """
+
+    @_channel.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistAdd(self, ctx, channelName):
-        """Add channel to whitelist.
+    async def _channelAdd(self, ctx, channelName):
+        """Add a channel to the allowlist.
+
         All messages in the channel will not be filtered.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel to add to the allowlist.
         """
         guildId = ctx.message.guild.id
         channelAllowed = await self.config.guild(ctx.guild).channelAllowed()
@@ -286,20 +298,26 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
             await ctx.send(
                 ":white_check_mark: Word Filter: Channel with name "
-                "`{0}` will not be filtered.".format(channelName)
+                f"`{channelName}` will not be filtered."
             )
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                "`{0}` is already whitelisted.".format(channelName)
+                f"`{channelName}` is already on the allowlist."
             )
 
-    @_whitelist.command(name="del", aliases=["delete", "remove", "rm"])
+    @_channel.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistRemove(self, ctx, channelName):
-        """Remove channel from whitelist
+    async def _channelRemove(self, ctx, channelName):
+        """Remove a channel from the allowlist.
+
         All messages in the removed channel will be subjected to the filter.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel to remove from the allowlist.
         """
         guildName = ctx.message.guild.name
 
@@ -313,21 +331,21 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if not channelAllowed or channelName not in channelAllowed:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                "`{0}` was already not whitelisted.".format(channelName)
+                f"`{channelName}` is not on the allowlist."
             )
         else:
             channelAllowed.remove(channelName)
             await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
             await ctx.send(
-                ":white_check_mark: Word Filter: `{0}` removed from "
-                "the channel whitelist.".format(channelName)
+                f":white_check_mark: Word Filter: `{channelName}` removed from "
+                "the channel allowlist."
             )
 
-    @_whitelist.command(name="list", aliases=["ls"])
+    @_channel.command(name="list", aliases=["ls"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistList(self, ctx):
-        """List whitelisted channels.
+    async def _channelList(self, ctx):
+        """List channels on the allowlist.
         NOTE: do this in a channel outside of the viewing public
         """
         guildName = ctx.message.guild.name
@@ -340,12 +358,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 display.append("`{}`".format(channel))
 
             page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = "Whitelisted channels for: **{}**".format(guildName)
+            page.embed.title = "Allowlist channels for: **{}**".format(guildName)
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
             await ctx.send(
-                "Sorry, there are no whitelisted channels in " "**{}**".format(guildName)
+                f"Sorry, there are no channels in the allowlist for **{guildName}**"
             )
 
     async def checkMessageServerAndChannel(self, msg):
@@ -368,15 +386,15 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         filters = await self.config.guild(msg.guild).filters()
 
-        # Do not filter whitelisted channels
+        # Do not filter allowlist channels
         try:
-            whitelist = await self.config.guild(msg.guild).channelAllowed()
-            for channels in whitelist:
+            allowlist = await self.config.guild(msg.guild).channelAllowed()
+            for channels in allowlist:
                 if channels.lower() == msg.channel.name.lower():
                     return False
         except Exception as error:  # pylint: disable=broad-except
-            # Most likely no whitelisted channels.
-            self.logger.error("Exception occured while checking whitelist channels!")
+            # Most likely no allowlist channels.
+            self.logger.error("Exception occured while checking allowlist channels!")
             self.logger.error(error)
 
         # Check if mod or admin, and do not filter if togglemod is enabled.
