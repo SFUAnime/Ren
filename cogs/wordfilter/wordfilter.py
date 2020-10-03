@@ -54,11 +54,25 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def wordFilter(self, ctx):
         """Smart word filtering"""
 
-    @wordFilter.command(name="add")
+    @wordFilter.group(name="regex", aliases=["re"])
+    async def regex(self, ctx):
+        """Regular expression (regex) settings.
+
+        These commands allow you to manipulate the regex used to filter
+        out messages.
+        """
+
+    @regex.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def addFilter(self, ctx, word: str):
-        """Add word to filter"""
+        """Add a regex to the filter.
+
+        Parameters:
+        -----------
+        word: str
+            The regex string you would like to add to the filter.
+        """
         user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).filters()
@@ -76,11 +90,17 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "for guild **{1}**".format(word, guildName)
             )
 
-    @wordFilter.command(name="del", aliases=["delete", "remove", "rm"])
+    @regex.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def removeFilter(self, ctx, word: str):
-        """Remove word from filter"""
+        """Remove a regex from the filter.
+
+        Parameters:
+        -----------
+        word: str
+            The regex string you would like to remove from the filter.
+        """
         user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).filters()
@@ -98,11 +118,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "guild **{1}**".format(word, guildName)
             )
 
-    @wordFilter.command(name="list", aliases=["ls"])
+    @regex.command(name="list", aliases=["ls"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def listFilter(self, ctx):
-        """List filtered words in raw format.
+        """List the regex used to filter messages in raw format.
         NOTE: do this in a channel outside of the viewing public
         """
         guildName = ctx.message.guild.name
