@@ -12,10 +12,9 @@ all credit goes to the author of RoboDanny: https://github.com/Rapptz/RoboDanny/
 class Config:
     """The "database" object. Internally based on ``json``."""
 
-    def __init__(self, name, **options):
+    def __init__(self, directory, name, **options):
         self.name = name
-        self.cogname = options.pop("cogname", None)
-        self.directory = "data/{}/".format(self.cogname)
+        self.directory = "{}/".format(directory)
         self.object_hook = options.pop("object_hook", None)
         self.encoder = options.pop("encoder", None)
         self.loop = options.pop("loop", asyncio.get_event_loop())
