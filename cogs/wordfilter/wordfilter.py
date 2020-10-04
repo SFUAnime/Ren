@@ -227,8 +227,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             cmdDenied.remove(cmd)
             await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
             await ctx.send(
-                f":white_check_mark: Word Filter: `{cmd}` removed from "
-                "the command denylist."
+                f":white_check_mark: Word Filter: `{cmd}` removed from " "the command denylist."
             )
 
     @_command.command(name="list", aliases=["ls"])
@@ -253,9 +252,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
-            await ctx.send(
-                f"Sorry, there are no commands on the denylist for **{guildName}**"
-            )
+            await ctx.send(f"Sorry, there are no commands on the denylist for **{guildName}**")
 
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
@@ -362,9 +359,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
-            await ctx.send(
-                f"Sorry, there are no channels in the allowlist for **{guildName}**"
-            )
+            await ctx.send(f"Sorry, there are no channels in the allowlist for **{guildName}**")
 
     async def checkMessageServerAndChannel(self, msg):
         """Checks to see if the message is in a server/channel eligible for
