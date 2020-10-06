@@ -19,7 +19,7 @@ import asyncio
 import discord
 import logging
 
-from redbot.core import Config as ConfigV3, checks, commands
+from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils.paginator import Pages
@@ -125,15 +125,16 @@ class Tags(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.config = Config(
+            saveFolder,
             "tags.json",
-            cogname="tags",
             encoder=TagEncoder,
             object_hook=tag_decoder,
             loop=bot.loop,
             load_later=True,
         )
-        self.settings = Config("settings.json", cogname="tags")
+        self.settings = Config(saveFolder, "settings-v2.json")
         self.configV3 = ConfigV3.get_conf(self, identifier=5842647, force_registration=True)
         self.configV3.register_guild(**BASE)  # Register default (empty) settings.
         self.lock = Lock()
