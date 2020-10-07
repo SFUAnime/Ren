@@ -111,6 +111,13 @@ class Birthday(commands.Cog):
             "as the birthday role!".format(role.name)
         )
 
+    @_birthday.command(name="test")
+    @commands.guild_only()
+    async def test(self, ctx):
+        """Test at-mentions."""
+        for msg in CANNED_MESSAGES:
+            await ctx.send(msg.format(ctx.author.mention))
+
     @_birthday.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
