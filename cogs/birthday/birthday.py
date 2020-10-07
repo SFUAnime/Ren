@@ -1,6 +1,7 @@
 """Birthday cog Automatically add users to a specified birthday role on their
 birthday."""
 import logging
+from random import choice
 import time  # To auto remove birthday role on the next day.
 import asyncio
 from datetime import datetime, timedelta
@@ -51,6 +52,38 @@ class Birthday(commands.Cog):
     @checks.mod_or_permissions(administrator=True)
     async def _birthday(self, ctx: Context):
         """Birthday role assignment settings."""
+
+    @_birthday.command(name="setchannel", aliases=["ch"])
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def setChannel(self, ctx, channel: discord.TextChannel=None):
+        """Set the channel to mention members on their birthday.
+
+        Parameters:
+        -----------
+        channel: Optional[discord.TextChannel]
+            A text channel to mention a member's birthday.
+        """
+
+        if channel:
+            await self.config.guild(ctx.message.guild).birthdayChannel.set(channel.id)
+            self.logger.info(
+                "%s#%s (%s) set the birthday channel to %s",
+                ctx.message.author.name,
+                ctx.message.author.discriminator,
+                ctx.message.author.id,
+                channel.name,
+            )
+            await ctx.send(
+                ":white_check_mark: **Birthday - Channel**: **{}** has been set "
+                "as the birthday mention channel!".format(channel.name)
+            )
+        else:
+            await self.config.guild(ctx.message.guild).birthdayChannel.set(None)
+            await ctx.send(
+                ":white_check_mark: **Birthday - Channel**: Birthday mentions "
+                "are now disabled."
+            )
 
     @_birthday.command(name="setrole")
     @commands.guild_only()
