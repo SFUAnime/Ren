@@ -456,6 +456,7 @@ class Birthday(commands.Cog):
                 # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).birthdayRole()
+                bdayChannelId = await self.config.guild(guild).birthdayChannel()
                 if not bdayRoleId:
                     continue
 
@@ -474,6 +475,7 @@ class Birthday(commands.Cog):
                         # Get the necessary Discord objects.
                         role = discord.utils.get(guild.roles, id=bdayRoleId)
                         member = discord.utils.get(guild.members, id=memberId)
+                        channel = discord.utils.get(guild.channels, id=bdayChannelId)
 
                         # Skip if member is no longer in server.
                         if not member:
@@ -499,5 +501,15 @@ class Birthday(commands.Cog):
                                     member.name,
                                     member.discriminator,
                                     member.id,
+                                    exc_info=True,
+                                )
+                            if not channel:
+                                continue
+                            try:
+                                msg = choice(CANNED_MESSAGES)
+                                await channel.send(msg.format(member.mention))
+                            except discord.Forbidden:
+                                self.logger.error(
+                                    "Could not send message!",
                                     exc_info=True,
                                 )
