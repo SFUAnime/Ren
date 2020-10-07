@@ -56,7 +56,7 @@ class Birthday(commands.Cog):
     @_birthday.command(name="setchannel", aliases=["ch"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def setChannel(self, ctx, channel: discord.TextChannel=None):
+    async def setChannel(self, ctx, channel: discord.TextChannel = None):
         """Set the channel to mention members on their birthday.
 
         Parameters:
@@ -81,8 +81,7 @@ class Birthday(commands.Cog):
         else:
             await self.config.guild(ctx.message.guild).birthdayChannel.set(None)
             await ctx.send(
-                ":white_check_mark: **Birthday - Channel**: Birthday mentions "
-                "are now disabled."
+                ":white_check_mark: **Birthday - Channel**: Birthday mentions are now disabled."
             )
 
     @_birthday.command(name="setrole")
@@ -510,6 +509,5 @@ class Birthday(commands.Cog):
                                 await channel.send(msg.format(member.mention))
                             except discord.Forbidden:
                                 self.logger.error(
-                                    "Could not send message!",
-                                    exc_info=True,
+                                    "Could not send message!", exc_info=True,
                                 )
