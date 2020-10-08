@@ -54,11 +54,25 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def wordFilter(self, ctx):
         """Smart word filtering"""
 
-    @wordFilter.command(name="add")
+    @wordFilter.group(name="regex", aliases=["re"])
+    async def regex(self, ctx):
+        """Regular expression (regex) settings.
+
+        These commands allow you to manipulate the regex used to filter
+        out messages.
+        """
+
+    @regex.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def addFilter(self, ctx, word: str):
-        """Add word to filter"""
+        """Add a regex to the filter.
+
+        Parameters:
+        -----------
+        word: str
+            The regex string you would like to add to the filter.
+        """
         user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).filters()
@@ -76,11 +90,17 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "for guild **{1}**".format(word, guildName)
             )
 
-    @wordFilter.command(name="del", aliases=["delete", "remove", "rm"])
+    @regex.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def removeFilter(self, ctx, word: str):
-        """Remove word from filter"""
+        """Remove a regex from the filter.
+
+        Parameters:
+        -----------
+        word: str
+            The regex string you would like to remove from the filter.
+        """
         user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).filters()
@@ -98,11 +118,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "guild **{1}**".format(word, guildName)
             )
 
-    @wordFilter.command(name="list", aliases=["ls"])
+    @regex.command(name="list", aliases=["ls"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def listFilter(self, ctx):
-        """List filtered words in raw format.
+        """List the regex used to filter messages in raw format.
         NOTE: do this in a channel outside of the viewing public
         """
         guildName = ctx.message.guild.name
@@ -149,14 +169,15 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def _command(self, ctx):
-        """Blacklist command settings. (help for more info)
+        """Command denylist settings.
+
         Settings for controlling filtering on commands.
         """
 
     @_command.command(name="add")
     @commands.guild_only()
     async def _commandAdd(self, ctx, cmd: str):
-        """Add a command (without prefix) to the blacklist.
+        """Add a command (without prefix) to the denylist.
         If the invoked command contains any filtered words, the entire message
         is filtered and the contents of the message will be sent back to the
         user via DM.
@@ -167,48 +188,53 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             cmdDenied.append(cmd)
             await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
             await ctx.send(
-                ":white_check_mark: Word Filter: Command `{1}` is now "
-                "blacklisted.  It will have the entire message filtered "
-                "if it contains any filterable words, and its contents "
-                "DM'd back to the user.".format(cmd)
+                f":white_check_mark: Word Filter: Command `{cmd}` is now "
+                "in the denylist.  It will have the entire message filtered "
+                "if it contains any filterable regex, and its contents "
+                "DM'd back to the user."
             )
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Command "
-                "`{0}` is already blacklisted.".format(cmd)
+                f"`{cmd}` is already in the denylist."
             )
 
     @_command.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     async def _commandRemove(self, ctx, cmd: str):
-        """Remove a command from the blacklist.
+        """Remove a command from the denylist.
+
         The command that is removed from the list will be filtered as normal
-        messages.  That is, if the invoked command contains any filtered words,
-        only the filtered words will be censored and replaced (as opposed to the
+        messages.  That is, if the invoked command contains any filterable regex,
+        only the filtered regex will be censored and replaced (as opposed to the
         entire message being deleted).
+
+        Parameters:
+        -----------
+        cmd: str
+            The command to remove from the denylist.
         """
         guildName = ctx.message.guild.name
 
         cmdDenied = await self.config.guild(ctx.guild).commandDenied()
 
         if not cmdDenied or cmd not in cmdDenied:
-            await self.bot.say(
+            await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Command "
-                "`{0}` wasn't on the blacklist.".format(cmd)
+                f"`{cmd}` wasn't on the denylist."
             )
         else:
             cmdDenied.remove(cmd)
             await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
             await ctx.send(
-                ":white_check_mark: Word Filter: `{0}` removed from "
-                "the command blacklist.".format(cmd)
+                f":white_check_mark: Word Filter: `{cmd}` removed from " "the command denylist."
             )
 
     @_command.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def _commandList(self, ctx):
-        """List blacklisted commands.
-        If the commands on this list are invoked with any filtered words, the
+        """List commands on the denylist.
+        If the commands on this list are invoked with any filtered regex, the
         entire message is filtered and the contents of the message will be sent
         back to the user via DM.
         """
@@ -222,29 +248,39 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 display.append("`{}`".format(cmd))
 
             page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = "Blacklisted commands for: **{}**".format(guildName)
+            page.embed.title = f"Denylist commands for: **{guildName}**"
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
-            await ctx.send(
-                "Sorry, there are no blacklisted commands in " "**{}**".format(guildName)
-            )
+            await ctx.send(f"Sorry, there are no commands on the denylist for **{guildName}**")
 
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
     ############################################
-    @wordFilter.group(name="whitelist", aliases=["wl"])
+    @wordFilter.group(name="channel", aliases=["ch"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelist(self, ctx):
-        """Channel whitelisting settings."""
+    async def _channel(self, ctx):
+        """Channel allowlist settings.
 
-    @_whitelist.command(name="add")
+        This controls channels that should not be subjected to the word filter.
+        Note that this only matches the channel name, and not the actual channel
+        itself. This means that if you rename a channel's name to one that matches
+        on this list, it WILL NOT be subjected to filtering.
+        """
+
+    @_channel.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistAdd(self, ctx, channelName):
-        """Add channel to whitelist.
+    async def _channelAdd(self, ctx, channelName):
+        """Add a channel to the allowlist.
+
         All messages in the channel will not be filtered.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel to add to the allowlist.
         """
         guildId = ctx.message.guild.id
         channelAllowed = await self.config.guild(ctx.guild).channelAllowed()
@@ -259,20 +295,26 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
             await ctx.send(
                 ":white_check_mark: Word Filter: Channel with name "
-                "`{0}` will not be filtered.".format(channelName)
+                f"`{channelName}` will not be filtered."
             )
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                "`{0}` is already whitelisted.".format(channelName)
+                f"`{channelName}` is already on the allowlist."
             )
 
-    @_whitelist.command(name="del", aliases=["delete", "remove", "rm"])
+    @_channel.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistRemove(self, ctx, channelName):
-        """Remove channel from whitelist
+    async def _channelRemove(self, ctx, channelName):
+        """Remove a channel from the allowlist.
+
         All messages in the removed channel will be subjected to the filter.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel to remove from the allowlist.
         """
         guildName = ctx.message.guild.name
 
@@ -286,21 +328,21 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if not channelAllowed or channelName not in channelAllowed:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                "`{0}` was already not whitelisted.".format(channelName)
+                f"`{channelName}` is not on the allowlist."
             )
         else:
             channelAllowed.remove(channelName)
             await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
             await ctx.send(
-                ":white_check_mark: Word Filter: `{0}` removed from "
-                "the channel whitelist.".format(channelName)
+                f":white_check_mark: Word Filter: `{channelName}` removed from "
+                "the channel allowlist."
             )
 
-    @_whitelist.command(name="list", aliases=["ls"])
+    @_channel.command(name="list", aliases=["ls"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _whitelistList(self, ctx):
-        """List whitelisted channels.
+    async def _channelList(self, ctx):
+        """List channels on the allowlist.
         NOTE: do this in a channel outside of the viewing public
         """
         guildName = ctx.message.guild.name
@@ -313,13 +355,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 display.append("`{}`".format(channel))
 
             page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = "Whitelisted channels for: **{}**".format(guildName)
+            page.embed.title = f"Allowlist channels for: **{guildName}**"
             page.embed.colour = discord.Colour.red()
             await page.paginate()
         else:
-            await ctx.send(
-                "Sorry, there are no whitelisted channels in " "**{}**".format(guildName)
-            )
+            await ctx.send(f"Sorry, there are no channels in the allowlist for **{guildName}**")
 
     async def checkMessageServerAndChannel(self, msg):
         """Checks to see if the message is in a server/channel eligible for
@@ -341,15 +381,15 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         filters = await self.config.guild(msg.guild).filters()
 
-        # Do not filter whitelisted channels
+        # Do not filter allowlist channels
         try:
-            whitelist = await self.config.guild(msg.guild).channelAllowed()
-            for channels in whitelist:
+            allowlist = await self.config.guild(msg.guild).channelAllowed()
+            for channels in allowlist:
                 if channels.lower() == msg.channel.name.lower():
                     return False
         except Exception as error:  # pylint: disable=broad-except
-            # Most likely no whitelisted channels.
-            self.logger.error("Exception occured while checking whitelist channels!")
+            # Most likely no allowlist channels.
+            self.logger.error("Exception occured while checking allowlist channels!")
             self.logger.error(error)
 
         # Check if mod or admin, and do not filter if togglemod is enabled.
