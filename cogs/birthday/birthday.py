@@ -390,7 +390,9 @@ class Birthday(commands.Cog):
             userConfig[KEY_BDAY_DAY] = None
 
         await ctx.send(
-            ":white_check_mark: **Birthday - Unset**: Unset birthday of **{}** ".format(member.name)
+            ":white_check_mark: **Birthday - Unset**: Unset birthday of **{}** ".format(
+                member.name
+            )
         )
 
         self.logger.info(
