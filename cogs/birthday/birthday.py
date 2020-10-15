@@ -343,7 +343,7 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def unsetMemberBirthday(self, ctx: Context, member: discord.Member):
-        """Remove a users birthday role and birthday from the config.
+        """Remove a user's birthday role and birthday from the config.
 
         Parameters:
         -----------
