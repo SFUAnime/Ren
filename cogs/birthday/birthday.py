@@ -378,6 +378,73 @@ class Birthday(commands.Cog):
         )
         return
 
+    @_birthday.command(name="unset")
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def unsetMemberBirthday(self, ctx: Context, member: discord.Member):
+        """Remove a user's birthday role and birthday from the config.
+
+        Parameters:
+        -----------
+        member: discord.Member
+            The guild member whose birthday role and saved birthday you want to remove.
+        """
+        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        if not rid:
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Delete**: This "
+                "server is not configured, please set a role!"
+            )
+            return
+
+        try:
+            # Find the Role object to remove from the member.
+            role = discord.utils.get(ctx.message.guild.roles, id=rid)
+
+            # Remove role from the user.
+            await member.remove_roles(role)
+        except discord.Forbidden:
+            self.logger.error(
+                "Could not remove %s#%s (%s) from the birthday role, does "
+                "the bot have enough permissions?",
+                member.name,
+                member.discriminator,
+                member.id,
+                exc_info=True,
+            )
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Delete**: "
+                "Could not remove **{}** from the role, the bot does not "
+                "have enough permissions to do so! Please make sure that "
+                "the bot is above the birthday role, and that it has the "
+                "Manage Roles permission!".format(member.name)
+            )
+            return
+
+        async with self.config.member(member).all() as userConfig:
+            userConfig[KEY_IS_ASSIGNED] = False
+            userConfig[KEY_DATE_SET_MONTH] = None
+            userConfig[KEY_BDAY_MONTH] = None
+            userConfig[KEY_DATE_SET_DAY] = None
+            userConfig[KEY_BDAY_DAY] = None
+
+        await ctx.send(
+            ":white_check_mark: **Birthday - Unset**: Unset birthday of **{}** ".format(
+                member.name
+            )
+        )
+
+        self.logger.info(
+            "%s#%s (%s) deleted birthday of %s#%s (%s)",
+            ctx.message.author.name,
+            ctx.message.author.discriminator,
+            ctx.message.author.id,
+            member.name,
+            member.discriminator,
+            member.id,
+        )
+        return
+
     async def checkBirthday(self):
         """Check birthday list once."""
         await self._dailySweep()
