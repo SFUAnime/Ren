@@ -37,6 +37,7 @@ WEBCAM_SUB = (
     "http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
     "?nocache=0.3346598630889852&update=15000&timeout=1800000"
 )
+WEBCAM_SUR = "https://cosmos.surrey.ca/TrafficCameraImages/enc_102_cityparkway_cam1.jpg"
 WEBCAM_TFF = (
     "http://ns-webcams.its.sfu.ca/public/images/terryfox-current.jpg"
     "?nocache=1&update=15000&timeout=1800000"
@@ -69,6 +70,7 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
             One of the following short strings:
             aqpond: AQ Pond
             sub:    AQ overlooking student union building
+            sur:    Surrey Central intersection
             tff:    Terry Fox Field
             trn:    Tower Road North
             trs:    Tower Road South
@@ -87,6 +89,8 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
                 return
             elif cam.lower() == "sub":
                 fetchedData = requests.get(WEBCAM_SUB, headers=headers)
+            elif cam.lower() == "sur":
+                fetchedData = requests.get(WEBCAM_SUR, headers=headers)
             elif cam.lower() == "tff":
                 fetchedData = requests.get(WEBCAM_TFF, headers=headers)
             elif cam.lower() == "trn":
