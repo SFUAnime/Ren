@@ -60,6 +60,7 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         self.bot = bot
         self.cameras = {
             "aqpond": WEBCAM_AQPOND,
+            "gag": WEBCAM_GAGLARDI,
             "sub": WEBCAM_SUB,
             "sur": WEBCAM_SUR,
             "tff": WEBCAM_TFF,
@@ -73,13 +74,14 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
     @commands.command(name="cam")
     @commands.guild_only()
     async def cam(self, ctx: Context, cam: str = ""):
-        """SFU webcam, defaults to Gaglardi.
+        """Show a SFU webcam image.
 
         Parameters:
         -----------
         cam: str
             One of the following short strings:
             aqpond: AQ Pond
+            gag:    Gaglardi intersection
             sub:    AQ overlooking student union building
             sur:    Surrey Central intersection
             tff:    Terry Fox Field
