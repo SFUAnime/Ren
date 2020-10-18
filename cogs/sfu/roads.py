@@ -58,6 +58,17 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
 
     def __init__(self, bot: Red):
         self.bot = bot
+        self.cameras = {
+            "aqpond": WEBCAM_AQPOND,
+            "sub": WEBCAM_SUB,
+            "sur": WEBCAM_SUR,
+            "tff": WEBCAM_TFF,
+            "trn": WEBCAM_TRN,
+            "trs": WEBCAM_TRS,
+            "udn": WEBCAM_UDN,
+        }
+        # We need a custom header or else we get a HTTP 403 Unauthorized
+        self.headers = {"User-agent": "Mozilla/5.0"}
 
     @commands.command(name="cam")
     @commands.guild_only()
@@ -78,29 +89,13 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         """
         await ctx.trigger_typing()
 
-        # We need a custom header or else we get a HTTP 403 Unauthorized
-        headers = {"User-agent": "Mozilla/5.0"}
+        camera = self.cameras.get(cam.lower(), "help")
+        if camera == "help":
+            await self.bot.send_help_for(ctx, self.cam)
+            return
 
         try:
-            if cam.lower() == "aqpond":
-                fetchedData = requests.get(WEBCAM_AQPOND, headers=headers)
-            elif cam.lower() == "help":
-                await self.bot.send_help_for(ctx, self.cam)
-                return
-            elif cam.lower() == "sub":
-                fetchedData = requests.get(WEBCAM_SUB, headers=headers)
-            elif cam.lower() == "sur":
-                fetchedData = requests.get(WEBCAM_SUR, headers=headers)
-            elif cam.lower() == "tff":
-                fetchedData = requests.get(WEBCAM_TFF, headers=headers)
-            elif cam.lower() == "trn":
-                fetchedData = requests.get(WEBCAM_TRN, headers=headers)
-            elif cam.lower() == "trs":
-                fetchedData = requests.get(WEBCAM_TRS, headers=headers)
-            elif cam.lower() == "udn":
-                fetchedData = requests.get(WEBCAM_UDN, headers=headers)
-            else:
-                fetchedData = requests.get(WEBCAM_GAGLARDI, headers=headers)
+            fetchedData = requests.get(camera, headers=self.headers)
             fetchedData.raise_for_status()
         except requests.exceptions.HTTPError:
             await ctx.send(":warning: This webcam is currently unavailable!")
