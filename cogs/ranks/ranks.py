@@ -75,58 +75,55 @@ class Ranks(commands.Cog):
         await ctx.send(msg)
 
     # [p]rank
-    @commands.command(name="rank", pass_context=True, no_pm=True)
-    async def _ranksCheck(self, ctx, ofUser: discord.Member = None): \
+    @commands.command(name="rank")
+    @commands.guild_only()
+    async def _ranksCheck(self, ctx: Context, ofUser: discord.Member=None): \
         # pylint: disable=too-many-locals
         """Check your rank in the server."""
-        if ofUser is None:
-            ofUser = ctx.message.author
+        if not ofUser:
+            ofUser = ctx.author
 
         # Execute a MySQL query to order and check.
-        database = MySQLdb.connect(host=self.settings["mysql_host"],
-                                   user=self.settings["mysql_username"],
-                                   passwd=self.settings["mysql_password"])
-        cursor = database.cursor()
-
+        # TODO: Handle case when MySQL settings are not configured.
+        database = MySQLdb.connect(host=self.settings.mysqlHost(),
+                                   user=self.settings.mysqlUsername(),
+                                   passwd=self.settings.mysqlPassword())
+        embed = discord.Embed()
         # Using query code from:
         # https://stackoverflow.com/questions/13566695/select-increment-counter-in-mysql
         # This code is now included in the stored procedure in the database.
+        with database as cursor:
+            cursor.execute(f"CALL renbot.getUserInfo({ctx.guild.id},{ofUser.id})")
+            embed = discord.Embed()
+            data = cursor.fetchone() # Data from the database.
 
-        cursor.execute("CALL renbot.getUserInfo({0},{1})".format(
-            ctx.message.server.id, ofUser.id))
-        embed = discord.Embed()
-        data = cursor.fetchone() # Data from the database.
-
-        try:
-            LOGGER.info(data)
-            rank = data[0]
-            userID = data[1]
-            level = data[2]
-            levelXP = data[3]
-            currentXP = data[4]
-            totalXP = data[5]
-            currentLevelXP = currentXP - totalXP
-        except IndexError as error:
-            await self.bot.say("Something went wrong when checking your level.  "
+            try:
+                LOGGER.info(data)
+                rank = data[0]
+                userID = data[1]
+                level = data[2]
+                levelXP = data[3]
+                currentXP = data[4]
+                totalXP = data[5]
+                currentLevelXP = currentXP - totalXP
+            except IndexError as error:
+                await ctx.send("Something went wrong when checking your level. "
                                "Please notify the admin!")
-            LOGGER.error(error)
-            database.close()
-            return
+                LOGGER.error(error)
+                return
 
-
-        userObject = ctx.message.server.get_member(str(userID))
+        userObject = ctx.guild.get_member(userID)
 
         embed.set_author(name=userObject.display_name,
                          icon_url=userObject.avatar_url)
         embed.colour = discord.Colour.red()
         embed.add_field(name="Rank", value=int(rank))
         embed.add_field(name="Level", value=level)
-        embed.add_field(name="Exp.", value="{0}/{1} (total {2})".format(
-            currentLevelXP, levelXP, currentXP))
+        embed.add_field(name="Exp.",
+                        value=f"{currentLevelXP}/{levelXP} (total {currentXP})")
         embed.set_footer(text="Note: This EXP is different from Mee6.")
 
-        await self.bot.say(embed=embed)
-        database.close()
+        await ctx.send(embed=embed)
 
     @commands.group(name="ranks", pass_context=True, no_pm=True)
     async def _ranks(self, ctx):
