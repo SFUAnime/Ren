@@ -143,17 +143,15 @@ class Ranks(commands.Cog):
         """Ranking system settings.  Only server admins should see this."""
 
     # [p]ranks settings default
-    @_settings.command(name="default", pass_context=True, no_pm=True)
-    async def _settingsDefault(self, ctx):
+    @_settings.command(name="default")
+    @commands.guild_only()
+    async def _settingsDefault(self, ctx: Context):
         """Set default for max points and cooldown."""
-        sid = ctx.message.server.id
+        self.settings.guild(ctx.guild).cooldown.set(0)
+        self.settings.guild(ctx.guild).maxPoints(25)
 
-        self.settings[sid] = {}
-        self.settings[sid]["cooldown"] = 0
-        self.settings[sid]["maxPoints"] = 25
-
-        await self.bot.say(":information_source: **Ranks - Default:** Defaults set, run "
-                           "`{}rank settings show` to verify the settings.".format(ctx.prefix))
+        await ctx.send(":information_source: **Ranks - Default:** Defaults set, run "
+                       f"`{ctx.prefix}rank settings show` to verify the settings.")
 
     # [p]ranks settings show
     @_settings.command(name="show", pass_context=True, no_pm=True)
