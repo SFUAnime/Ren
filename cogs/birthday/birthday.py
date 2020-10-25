@@ -118,70 +118,11 @@ class Birthday(commands.Cog):
         for msg in CANNED_MESSAGES:
             await ctx.send(msg.format(ctx.author.mention))
 
-    @_birthday.command(name="assign", aliases=["give"])
-    @commands.guild_only()
-    @checks.mod_or_permissions(administrator=True)
-    async def assignRole(self, ctx, member: discord.Member):
-        """Assign the birthday role to a user.
-
-        Parameters:
-        -----------
-        member: discord.Member
-            The guild member that you want to add to the birthday role.
-        """
-        rid = await self.config.guild(ctx.message.guild).birthdayRole()
-        if not rid:
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Assign**: This "
-                "server is not configured, please set a role!"
-            )
-            return
-
-        try:
-            # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.guild.roles, id=rid)
-
-            # Add the role to the guild member.
-            await member.add_roles(role)
-        except discord.Forbidden:
-            self.logger.error(
-                "Could not assign %s#%s (%s) to birthday role, does the bot "
-                "have enough permissions?",
-                member.name,
-                member.discriminator,
-                member.id,
-                exc_info=True,
-            )
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Assign**: Could "
-                "not assign **{}** to the role, the bot does not have enough "
-                "permissions to do so! Please make sure that the bot is "
-                "above the birthday role, and that it has the Manage Roles"
-                "permission!".format(member.name)
-            )
-            return
-
-        await ctx.send(
-            ":white_check_mark: **Birthday - Assign**: Successfully assigned "
-            "**{}** to the birthday role.".format(member.name)
-        )
-
-        self.logger.info(
-            "%s#%s (%s) assigned %s#%s (%s) to the birthday role.",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
-            member.name,
-            member.discriminator,
-            member.id,
-        )
-        return
-
     @_birthday.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addMemberBirthday(
-        self, ctx: Context, member: discord.Member, day: int = 0, month: int = 0
+        self, ctx: Context, member: discord.Member, month: int = None, day: int = None
     ):
         """Add a user's birthday to the list. If date is not specified, it will default to the current day.
         On the day, the bot will automatically add the user to the birthday role.
@@ -191,11 +132,11 @@ class Birthday(commands.Cog):
         member: discord.Member
             The member whose birthdy is being assigned.
 
-        day: int (optional)
-            The birthday day, range between 1 and 31 inclusive, depending on month.
-
         month: int (optional)
             The birthday month, between 1 and 12 inclusive.
+
+        day: int (optional)
+            The birthday day, range between 1 and 31 inclusive, depending on month.
         """
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
 
@@ -207,9 +148,18 @@ class Birthday(commands.Cog):
             )
             return
 
-        if not day or not month:
+        # Check if both the inputs are emty in which case set birthday as current day
+        # If one of the parameters are missing, then raise error
+        if month == None and day == None:
             day = int(time.strftime("%d"))
             month = int(time.strftime("%m"))
+
+        elif month == None or day == None:
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Add**: "
+                "Please enter a valid birthday!"
+            )
+            return
 
         # Check inputs here.
         try:
@@ -223,8 +173,8 @@ class Birthday(commands.Cog):
 
         # Save settings
         async with self.config.member(member).all() as userConfig:
-            userConfig[KEY_BDAY_DAY] = day
             userConfig[KEY_BDAY_MONTH] = month
+            userConfig[KEY_BDAY_DAY] = day
 
         confMsg = await ctx.send(
             ":white_check_mark: **Birthday - Add**: Successfully "
@@ -309,7 +259,7 @@ class Birthday(commands.Cog):
         page.embed.colour = discord.Colour.red()
         await page.paginate()
 
-    @_birthday.command(name="unassign", aliases=["remove", "rm"])
+    @_birthday.command(name="unassign")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def unassignRole(self, ctx: Context, member: discord.Member):
@@ -371,7 +321,7 @@ class Birthday(commands.Cog):
         )
         return
 
-    @_birthday.command(name="delete", aliases=["del"])
+    @_birthday.command(name="delete", aliases=["del", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def deleteMemberBirthday(self, ctx: Context, member: discord.Member):
