@@ -118,7 +118,7 @@ class Birthday(commands.Cog):
         for msg in CANNED_MESSAGES:
             await ctx.send(msg.format(ctx.author.mention))
 
-    @_birthday.command(name="add")
+    @_birthday.command(name="add", aliases=["set"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addMemberBirthday(
@@ -148,7 +148,7 @@ class Birthday(commands.Cog):
             )
             return
 
-        # Check if both the inputs are emty in which case set birthday as current day
+        # Check if both the inputs are empty, for this case set the birthday as current day
         # If one of the parameters are missing, then raise error
         if month == None and day == None:
             day = int(time.strftime("%d"))
