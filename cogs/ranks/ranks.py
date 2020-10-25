@@ -154,54 +154,30 @@ class Ranks(commands.Cog):
                        f"`{ctx.prefix}rank settings show` to verify the settings.")
 
     # [p]ranks settings show
-    @_settings.command(name="show", pass_context=True, no_pm=True)
-    async def _settingsShow(self, ctx):
+    @_settings.command(name="show")
+    @commands.guild_only()
+    async def _settingsShow(self, ctx: Context):
         """Show current settings."""
-        sid = ctx.message.server.id
-
-        try:
-            cooldown = self.settings[sid]["cooldown"]
-            maxPoints = self.settings[sid]["maxPoints"]
-        except KeyError:
-            # Not set.
-            await self.bot.say(":warning: **Ranks - Current Settings**: The server is "
-                               "not configured!  Please run `{}rank settings default` "
-                               "first and try again.".format(ctx.prefix))
-            return
+        cooldown = self.settings.guild(ctx.guild).cooldown()
+        maxPoints = self.settings.guild(ctx.guild).maxPoints()
         msg = ":information_source: **Ranks - Current Settings**:\n```"
-        msg += "Cooldown time:  {0} seconds.\n".format(cooldown)
-        msg += "Maximum points: {0} points per eligible message```".format(maxPoints)
+        msg += f"Cooldown time:  {cooldown} seconds.\n"
+        msg += f"Maximum points: {maxPoints} points per eligible message```"
 
-        await self.bot.say(msg)
+        await ctx.send(msg)
 
     # [p]rank settings cooldown
-    @_settings.command(name="cooldown", pass_context=True)
-    async def _settingsCooldown(self, ctx, seconds: int):
-        """Set the cooldown required between XP gains (in seconds)"""
-        sid = ctx.message.server.id
-
-        if seconds is None:
-            await self.bot.say(":negative_squared_cross_mark: **Ranks - Cooldown**: "
-                               "Please enter a time in seconds!")
-            return
-
+    @_settings.command(name="cooldown")
+    async def _settingsCooldown(self, ctx: Context, seconds: int):
+        """Set the cooldown required between EXP gains (in seconds)"""
         if seconds < 0:
-            await self.bot.say(":negative_squared_cross_mark: **Ranks - Cooldown**: "
-                               "Please enter a valid time in seconds!")
+            await ctx.send(":negative_squared_cross_mark: **Ranks - Cooldown**: "
+                           "Please enter a valid time in seconds!")
             return
 
-        # Save settings
-        self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
+        self.settings.guild(ctx.guild).cooldown.set(seconds)
 
-        # Make sure the server id key exists.
-        if sid not in self.settings.keys():
-            self.settings[sid] = {}
-
-        self.settings[sid]["cooldown"] = seconds
-        dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
-
-        await self.bot.say(":white_check_mark: **Ranks - Cooldown**: Set to {0} "
-                           "seconds.".format(seconds))
+        await ctx.send(f":white_check_mark: **Ranks - Cooldown**: Set to {seconds} seconds.")
         LOGGER.info("Cooldown changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
