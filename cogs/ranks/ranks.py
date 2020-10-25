@@ -206,48 +206,41 @@ class Ranks(commands.Cog):
                     maxPoints)
 
     #[p]rank settings dbsetup
-    @_settings.command(name="dbsetup", pass_context=True)
+    @_settings.command(name="dbsetup")
     @checks.serverowner()
     async def _settingsDbSetup(self, ctx):
         """Perform database set up. DO NOT USE if ranks is working."""
-        await self.bot.say("MySQL Set up:\n"
-                           "What is the host you wish to connect to?")
-        host = await self.bot.wait_for_message(timeout=30,
-                                               author=ctx.message.author,
-                                               channel=ctx.message.channel)
+        await ctx.send("MySQL Set up:\n"
+                       "What is the host you wish to connect to?")
+        def check(message: discord.Message):
+            return message.author == ctx.message.author and message.channel == ctx.message.channel
 
-        if host is None:
-            await self.bot.say("No response received, not setting anything!")
+        try:
+            host = await self.bot.wait_for("message", check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send("No response received, not setting anything!")
             return
 
-        await self.bot.say("What is the username you want to use to connect?")
-        username = await self.bot.wait_for_message(timeout=30,
-                                                   author=ctx.message.author,
-                                                   channel=ctx.message.channel)
-
-        if username is None:
-            await self.bot.say("No response received, not setting anything!")
+        await ctx.send("What is the username you want to use to connect?")
+        try:
+            username = await self.bot.wait_for("message", check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send("No response received, not setting anything!")
             return
 
-        await self.bot.say("What is the password you want to use to connect?  You "
-                           "can use a dummy password and manually change it in the "
-                           "JSON config later.")
-        password = await self.bot.wait_for_message(timeout=30,
-                                                   author=ctx.message.author,
-                                                   channel=ctx.message.channel)
 
-        if password is None:
-            await self.bot.say("No response received, not setting anything!")
+        await ctx.send("What is the password you want to use to connect?")
+        try:
+            password = await self.bot.wait_for("message", check=check, timeout=30.0)
+        except asyncio.TimeoutError:
+            await ctx.send("No response received, not setting anything!")
             return
 
-        # Save settings
-        self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
-        self.settings["mysql_host"] = host.content
-        self.settings["mysql_username"] = username.content
-        self.settings["mysql_password"] = password.content
-        dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
+        self.settings.mysqlHost.set(host.content)
+        self.settings.mysqlUsername.set(username.content)
+        self.settings.mysqlPassword.set(password.content)
 
-        await self.bot.say("Settings saved.")
+        await ctx.send("Settings saved.")
         LOGGER.info("Database connection changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
