@@ -125,12 +125,10 @@ class Ranks(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.group(name="ranks", pass_context=True, no_pm=True)
-    async def _ranks(self, ctx):
+    @commands.group(name="ranks")
+    @commands.guild_only()
+    async def _ranks(self, ctx: Context):
         """Mee6-inspired guild rank management system. WIP"""
-        # Display the help context menu
-        if ctx.invoked_subcommand is None:
-            await send_cmd_help(ctx)
 
     #######################
     # COMMANDS - SETTINGS #
@@ -138,12 +136,11 @@ class Ranks(commands.Cog):
     #Ideally would be nice have this replaced by a web admin panel.
 
     # [p]ranks settings
-    @_ranks.group(name="settings", pass_context=True, no_pm=True)
+    @_ranks.group(name="settings")
+    @commands.guild_only()
     @checks.serverowner()
-    async def _settings(self, ctx):
+    async def _settings(self, ctx: Context):
         """Ranking system settings.  Only server admins should see this."""
-        if str(ctx.invoked_subcommand).lower() == "ranks settings":
-            await send_cmd_help(ctx)
 
     # [p]ranks settings default
     @_settings.command(name="default", pass_context=True, no_pm=True)
