@@ -250,34 +250,28 @@ class Ranks(commands.Cog):
     # HELPER FUNCTIONS #
     ####################
 
-    def addPoints(self, guildID, userID):
+    def addPoints(self, guild, userID):
         """Add rank points between 0 and MAX_POINTS to the user"""
-        try:
-            pointsToAdd = random.randint(0, self.settings[guildID]["maxPoints"])
-        except KeyError:
-            # Most likely key error, use default 25.
-            pointsToAdd = random.randint(0, 25)
+        maxPoints = self.settings.guild(guild).maxPoints()
+        pointsToAdd = random.randint(0, maxPoints)
 
-        database = MySQLdb.connect(host=self.settings["mysql_host"],
-                                   user=self.settings["mysql_username"],
-                                   passwd=self.settings["mysql_password"])
-        cursor = database.cursor()
-        fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
-                               "guildid = {1}".format(userID, guildID))
+        database = MySQLdb.connect(host=self.settings.mysqlHost(),
+                                   user=self.settings.mysqlUsername(),
+                                   passwd=self.settings.mysqlPassword())
+        with database as cursor:
+            fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
+                                   "guildid = {1}".format(userID, guildID))
 
-        currentXP = 0
+            currentXP = 0
 
-        if fetch != 0: # This user has past XP that we can add to.
-            result = cursor.fetchall()
-            currentXP = result[0][0] + pointsToAdd
-        else: # New user
-            currentXP = pointsToAdd
+            if fetch != 0: # This user has past XP that we can add to.
+                result = cursor.fetchall()
+                currentXP = result[0][0] + pointsToAdd
+            else: # New user
+                currentXP = pointsToAdd
 
-        cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES ({0}, "
-                       "{1}, {2})".format(userID, guildID, currentXP))
-        database.commit()
-        cursor.close()
-        database.close()
+            cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
+                           f"{userID}, {guild.id}, {currentXP})")
 
     async def checkFlood(self, message):
         """Check to see if the user is sending messages that are flooding the server.
@@ -328,7 +322,7 @@ class Ranks(commands.Cog):
                          uid)
 
         self.lastspoke[sid][uid]["timestamp"] = timestamp
-        self.addPoints(message.server.id, message.author.id)
+        self.addPoints(message.guild, message.author.id)
 
 def setup(bot):
     """Add the cog to the bot"""
