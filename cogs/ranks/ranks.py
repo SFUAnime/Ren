@@ -7,50 +7,30 @@ import os
 import random
 import MySQLdb # The use of MySQL is debatable, but will use it to incorporate CMPT 354 stuff.
 import discord
-from discord.ext import commands
-from __main__ import send_cmd_help # pylint: disable=no-name-in-module
-from .utils.dataIO import dataIO # pylint: disable=relative-beyond-top-level
 
-# Requires checks utility from:
-# https://github.com/Rapptz/RoboDanny/tree/master/cogs/utils
-from .utils import checks # pylint: disable=relative-beyond-top-level
+from redbot.core import Config, checks, commands
+from redbot.core.bot import Red
+from redbot.core.commands.context import Context
+
+from .constants import *
 
 # Global variables
 LOGGER = None
-SAVE_FOLDER = "data/lui-cogs/ranks/" # Path to save folder.
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
-
-def checkFiles():
-    """Used to initialize an empty JSON settings database at first startup"""
-    base = {}
-
-    theFile = SAVE_FOLDER + "settings.json"
-    if not dataIO.is_valid_json(theFile):
-        print("Creating default ranks settings.json...")
-        dataIO.save_json(theFile, base)
-
-    theFile = SAVE_FOLDER + "lastspoke.json"
-    if not dataIO.is_valid_json(theFile):
-        print("Creating default ranks lastspoke.json...")
-        dataIO.save_json(theFile, base)
-
-class Ranks:
+class Ranks(commands.Cog):
     """Mee6-inspired guild rank management system.
     Not optimized for multi-guild deployments.
     """
 
     # Class constructor
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
-        checkFolder()
-        checkFiles()
-        self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
-        self.lastspoke = dataIO.load_json(SAVE_FOLDER + 'lastspoke.json')
+        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+        self.config.register_guild(**DEFAULT_GUILD)
+        self.config.register_global(**DEFAULT_GLOBAL)
+
+        # TODO: Remove this later
+        self.lastspoke = {}
 
     ############
     # COMMANDS #
