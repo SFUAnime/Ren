@@ -37,44 +37,42 @@ class Ranks(commands.Cog):
     ############
 
     # [p]levels
-    @commands.command(name="levels", pass_context=True, no_pm=True)
-    async def _ranksLevels(self, ctx):
+    @commands.command(name="levels")
+    @commands.guild_only()
+    async def _ranksLevels(self, ctx: Context):
         """Show the server ranking leaderboard"""
         # Execute a MySQL query to order and check.
 
-        database = MySQLdb.connect(host=self.settings["mysql_host"],
-                                   user=self.settings["mysql_username"],
-                                   passwd=self.settings["mysql_password"])
-        cursor = database.cursor()
-        cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = {0} "
-                       "order by xp desc limit 20".format(ctx.message.server.id))
-
-        msg = ":information_source: **Ranks - Leaderboard (WIP)**\n```"
-
+        msg = ":information_source: **Ranks - Leaderboard**\n```"
         rank = 1
-        for row in cursor.fetchall():
-            # row[0]: userID
-            # row[1]: xp
-            userID = row[0]
-            userObject = ctx.message.server.get_member(str(userID))
-            exp = row[1]
+        # TODO: Handle case when MySQL settings are not configured.
+        database = MySQLdb.connect(host=self.settings.mysqlHost(),
+                                   user=self.settings.mysqlUsername(),
+                                   passwd=self.settings.mysqlPassword())
+        with database as cursor:
+            cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = "
+                           f"{ctx.guild.id} order by xp desc limit 20")
+            for row in cursor.fetchall():
+                # row[0]: userID
+                # row[1]: xp
+                userID = row[0]
+                exp = row[1]
 
-            # Lookup the ID against the guild
-            if userObject is None:
-                continue
+                # Lookup the ID against the guild
+                userObject = ctx.guild.get_member(userID)
+                if not userObject:
+                    continue
 
-            msg += str(rank).ljust(3)
-            msg += (str(userObject.display_name) + " ").ljust(23)
-            msg += str(exp).rjust(10) + "\n"
+                msg += str(rank).ljust(3)
+                msg += (str(userObject.display_name) + " ").ljust(23)
+                msg += str(exp).rjust(10) + "\n"
 
-            rank += 1
-            if rank == 11:
-                break
+                rank += 1
+                if rank == 11:
+                    break
 
         msg += "```\n Full rankings at https://ren.injabie3.moe/ranks/"
-        await self.bot.say(msg)
-        cursor.close()
-        database.close()
+        await ctx.send(msg)
 
     # [p]rank
     @commands.command(name="rank", pass_context=True, no_pm=True)
