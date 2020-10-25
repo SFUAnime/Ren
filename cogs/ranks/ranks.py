@@ -186,32 +186,24 @@ class Ranks(commands.Cog):
                     seconds)
 
     #[p]rank settings maxpoints
-    @_settings.command(name="maxpoints", pass_context=True)
-    async def _settingsMaxpoints(self, ctx, maxpoints: int = 25):
-        """Set max points per eligible message.  Defaults to 25 points."""
-        sid = ctx.message.server.id
-
-        if maxpoints < 0:
-            await self.bot.say(":negative_squared_cross_mark: **Ranks - Max Points**: "
-                               "Please enter a positive number.")
+    @_settings.command(name="maxpoints")
+    async def _settingsMaxpoints(self, ctx: Context, maxPoints: int=25):
+        """Set max points per eligible message. Defaults to 25 points."""
+        if maxPoints < 0:
+            await ctx.send(":negative_squared_cross_mark: **Ranks - Max Points**: "
+                           "Please enter a positive number.")
             return
 
-        # Save settings
-        self.settings = dataIO.load_json(SAVE_FOLDER + 'settings.json')
-        # Make sure the server id key exists.
-        if sid not in self.settings.keys():
-            self.settings[sid] = {}
-        self.settings[sid]["maxPoints"] = maxpoints
-        dataIO.save_json(SAVE_FOLDER + 'settings.json', self.settings)
+        self.settings.guild(ctx.guild).maxPoints.set(maxPoints)
 
-        await self.bot.say(":white_check_mark: **Ranks - Max Points**: Users can gain "
-                           "up to {0} points per eligible message.".format(maxpoints))
+        await ctx.send(":white_check_mark: **Ranks - Max Points**: Users can gain "
+                       f"up to {maxPoiunts} points per eligible message.")
         LOGGER.info("Maximum points changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id)
         LOGGER.info("Maximum points per message set to %s.",
-                    maxpoints)
+                    maxPoints)
 
     #[p]rank settings dbsetup
     @_settings.command(name="dbsetup", pass_context=True)
