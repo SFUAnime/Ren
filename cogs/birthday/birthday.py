@@ -130,7 +130,7 @@ class Birthday(commands.Cog):
         Parameters:
         -----------
         member: discord.Member
-            The member whose birthdy is being assigned.
+            The member whose birthday is being assigned.
 
         month: int (optional)
             The birthday month, between 1 and 12 inclusive.
