@@ -522,6 +522,5 @@ class Birthday(commands.Cog):
                                 await channel.send(msg.format(member.mention))
                             except discord.Forbidden:
                                 self.logger.error(
-                                    "Could not send message!",
-                                    exc_info=True,
+                                    "Could not send message!", exc_info=True,
                                 )
