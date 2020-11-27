@@ -48,6 +48,14 @@ class SFUCourses(commands.Cog):
             return
 
         embed = discord.Embed(title=result["Title"])
+
+        valClassTimes = result["Class Times"]
+        valExamTime = result["Exam Time"]
+        if not valClassTimes:
+            valClassTimes = "TBD"
+        if not valExamTime:
+            valExamTime = "TBD"
+
         # print(result)
         embed.add_field(name="Description", inline=False, value=result["Description"])
         embed.add_field(
@@ -59,8 +67,8 @@ class SFUCourses(commands.Cog):
         if result["Prerequisites"]:
             embed.add_field(name="Prerequisites", inline=False, value=result["Prerequisites"])
         embed.add_field(name="Instructor", value=result["Instructor"], inline=False)
-        embed.add_field(name="Class Times", value=result["Class Times"])
-        embed.add_field(name="Exam Time", value=result["Exam Time"])
+        embed.add_field(name="Class Times", value=valClassTimes)
+        embed.add_field(name="Exam Time", value=valExamTime)
         await message.edit(
             content=":information_source: Here is the course outline "
             "you requested, {}!".format(ctx.message.author.mention),
