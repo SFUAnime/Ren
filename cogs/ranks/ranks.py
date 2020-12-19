@@ -261,14 +261,19 @@ class Ranks(commands.Cog):
     # HELPER FUNCTIONS #
     ####################
 
-    def addPoints(self, guild, userID):
+    async def addPoints(self, guild, userID):
         """Add rank points between 0 and MAX_POINTS to the user"""
-        maxPoints = self.config.guild(guild).maxPoints()
+        maxPoints = await self.config.guild(guild).maxPoints()
         pointsToAdd = random.randint(0, maxPoints)
+        if (not await self.config.mysqlHost() or
+            not await self.config.mysqlUsername() or
+            not await self.config.mysqlPassword()):
+            self.logger.debug("DB connection is not configured")
+            return
 
-        database = MySQLdb.connect(host=self.config.mysqlHost(),
-                                   user=self.config.mysqlUsername(),
-                                   passwd=self.config.mysqlPassword())
+        database = MySQLdb.connect(host=await self.config.mysqlHost(),
+                                   user=await self.config.mysqlUsername(),
+                                   passwd=await self.config.mysqlPassword())
         with database as cursor:
             fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
                                    "guildid = {1}".format(userID, guildID))
@@ -335,4 +340,4 @@ class Ranks(commands.Cog):
                          uid)
 
         self.lastspoke[sid][uid]["timestamp"] = timestamp
-        self.addPoints(message.guild, message.author.id)
+        await self.addPoints(message.guild, message.author.id)
