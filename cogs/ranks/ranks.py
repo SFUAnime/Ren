@@ -57,9 +57,9 @@ class Ranks(commands.Cog):
         msg = ":information_source: **Ranks - Leaderboard**\n```"
         rank = 1
         # TODO: Handle case when MySQL settings are not configured.
-        database = MySQLdb.connect(host=self.settings.mysqlHost(),
-                                   user=self.settings.mysqlUsername(),
-                                   passwd=self.settings.mysqlPassword())
+        database = MySQLdb.connect(host=self.config.mysqlHost(),
+                                   user=self.config.mysqlUsername(),
+                                   passwd=self.config.mysqlPassword())
         with database as cursor:
             cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = "
                            f"{ctx.guild.id} order by xp desc limit 20")
@@ -96,9 +96,9 @@ class Ranks(commands.Cog):
 
         # Execute a MySQL query to order and check.
         # TODO: Handle case when MySQL settings are not configured.
-        database = MySQLdb.connect(host=self.settings.mysqlHost(),
-                                   user=self.settings.mysqlUsername(),
-                                   passwd=self.settings.mysqlPassword())
+        database = MySQLdb.connect(host=self.config.mysqlHost(),
+                                   user=self.config.mysqlUsername(),
+                                   passwd=self.config.mysqlPassword())
         embed = discord.Embed()
         # Using query code from:
         # https://stackoverflow.com/questions/13566695/select-increment-counter-in-mysql
@@ -158,8 +158,8 @@ class Ranks(commands.Cog):
     @commands.guild_only()
     async def _settingsDefault(self, ctx: Context):
         """Set default for max points and cooldown."""
-        self.settings.guild(ctx.guild).cooldown.set(0)
-        self.settings.guild(ctx.guild).maxPoints(25)
+        self.config.guild(ctx.guild).cooldown.set(0)
+        self.config.guild(ctx.guild).maxPoints(25)
 
         await ctx.send(":information_source: **Ranks - Default:** Defaults set, run "
                        f"`{ctx.prefix}rank settings show` to verify the settings.")
@@ -169,8 +169,8 @@ class Ranks(commands.Cog):
     @commands.guild_only()
     async def _settingsShow(self, ctx: Context):
         """Show current settings."""
-        cooldown = self.settings.guild(ctx.guild).cooldown()
-        maxPoints = self.settings.guild(ctx.guild).maxPoints()
+        cooldown = self.config.guild(ctx.guild).cooldown()
+        maxPoints = self.config.guild(ctx.guild).maxPoints()
         msg = ":information_source: **Ranks - Current Settings**:\n```"
         msg += f"Cooldown time:  {cooldown} seconds.\n"
         msg += f"Maximum points: {maxPoints} points per eligible message```"
@@ -186,7 +186,7 @@ class Ranks(commands.Cog):
                            "Please enter a valid time in seconds!")
             return
 
-        self.settings.guild(ctx.guild).cooldown.set(seconds)
+        self.config.guild(ctx.guild).cooldown.set(seconds)
 
         await ctx.send(f":white_check_mark: **Ranks - Cooldown**: Set to {seconds} seconds.")
         self.logger.info("Cooldown changed by %s#%s (%s)",
@@ -205,7 +205,7 @@ class Ranks(commands.Cog):
                            "Please enter a positive number.")
             return
 
-        self.settings.guild(ctx.guild).maxPoints.set(maxPoints)
+        self.config.guild(ctx.guild).maxPoints.set(maxPoints)
 
         await ctx.send(":white_check_mark: **Ranks - Max Points**: Users can gain "
                        f"up to {maxPoiunts} points per eligible message.")
@@ -247,9 +247,9 @@ class Ranks(commands.Cog):
             await ctx.send("No response received, not setting anything!")
             return
 
-        self.settings.mysqlHost.set(host.content)
-        self.settings.mysqlUsername.set(username.content)
-        self.settings.mysqlPassword.set(password.content)
+        self.config.mysqlHost.set(host.content)
+        self.config.mysqlUsername.set(username.content)
+        self.config.mysqlPassword.set(password.content)
 
         await ctx.send("Settings saved.")
         self.logger.info("Database connection changed by %s#%s (%s)",
@@ -263,12 +263,12 @@ class Ranks(commands.Cog):
 
     def addPoints(self, guild, userID):
         """Add rank points between 0 and MAX_POINTS to the user"""
-        maxPoints = self.settings.guild(guild).maxPoints()
+        maxPoints = self.config.guild(guild).maxPoints()
         pointsToAdd = random.randint(0, maxPoints)
 
-        database = MySQLdb.connect(host=self.settings.mysqlHost(),
-                                   user=self.settings.mysqlUsername(),
-                                   passwd=self.settings.mysqlPassword())
+        database = MySQLdb.connect(host=self.config.mysqlHost(),
+                                   user=self.config.mysqlUsername(),
+                                   passwd=self.config.mysqlPassword())
         with database as cursor:
             fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
                                    "guildid = {1}".format(userID, guildID))
