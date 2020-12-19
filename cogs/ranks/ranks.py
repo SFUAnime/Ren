@@ -138,7 +138,7 @@ class Ranks(commands.Cog):
     # [p]ranks settings
     @_ranks.group(name="settings")
     @commands.guild_only()
-    @checks.serverowner()
+    @checks.guildowner()
     async def _settings(self, ctx: Context):
         """Ranking system settings.  Only server admins should see this."""
 
@@ -207,7 +207,7 @@ class Ranks(commands.Cog):
 
     #[p]rank settings dbsetup
     @_settings.command(name="dbsetup")
-    @checks.serverowner()
+    @checks.guildowner()
     async def _settingsDbSetup(self, ctx):
         """Perform database set up. DO NOT USE if ranks is working."""
         await ctx.send("MySQL Set up:\n"
@@ -292,12 +292,12 @@ class Ranks(commands.Cog):
         #  - Add points between 0 and MAX_POINTS (use random).
         #  - Return.
 
-        timestamp = message.timestamp.timestamp()
+        timestamp = message.created_at.timestamp()
 
         if message.author.bot:
             return
 
-        if message.channel.is_private:
+        if isinstance(message.channel, discord.DMChannel):
             return
 
         sid = message.guild.id
