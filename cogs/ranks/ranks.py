@@ -57,30 +57,30 @@ class Ranks(commands.Cog):
         msg = ":information_source: **Ranks - Leaderboard**\n```"
         rank = 1
         # TODO: Handle case when MySQL settings are not configured.
-        database = MySQLdb.connect(host=self.config.mysqlHost(),
-                                   user=self.config.mysqlUsername(),
-                                   passwd=self.config.mysqlPassword())
-        with database as cursor:
-            cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = "
-                           f"{ctx.guild.id} order by xp desc limit 20")
-            for row in cursor.fetchall():
-                # row[0]: userID
-                # row[1]: xp
-                userID = row[0]
-                exp = row[1]
+        database = MySQLdb.connect(host=await self.config.mysqlHost(),
+                                   user=await self.config.mysqlUsername(),
+                                   passwd=await self.config.mysqlPassword())
+        cursor = database.cursor()
+        cursor.execute("SELECT userid, xp FROM renbot.xp WHERE guildid = "
+                       f"{ctx.guild.id} order by xp desc limit 20")
+        for row in cursor.fetchall():
+            # row[0]: userID
+            # row[1]: xp
+            userID = row[0]
+            exp = row[1]
 
-                # Lookup the ID against the guild
-                userObject = ctx.guild.get_member(userID)
-                if not userObject:
-                    continue
+            # Lookup the ID against the guild
+            userObject = ctx.guild.get_member(userID)
+            if not userObject:
+                continue
 
-                msg += str(rank).ljust(3)
-                msg += (str(userObject.display_name) + " ").ljust(23)
-                msg += str(exp).rjust(10) + "\n"
+            msg += str(rank).ljust(3)
+            msg += (str(userObject.display_name) + " ").ljust(23)
+            msg += str(exp).rjust(10) + "\n"
 
-                rank += 1
-                if rank == 11:
-                    break
+            rank += 1
+            if rank == 11:
+                break
 
         msg += "```\n Full rankings at https://ren.injabie3.moe/ranks/"
         await ctx.send(msg)
@@ -96,32 +96,33 @@ class Ranks(commands.Cog):
 
         # Execute a MySQL query to order and check.
         # TODO: Handle case when MySQL settings are not configured.
-        database = MySQLdb.connect(host=self.config.mysqlHost(),
-                                   user=self.config.mysqlUsername(),
-                                   passwd=self.config.mysqlPassword())
+        database = MySQLdb.connect(host=await self.config.mysqlHost(),
+                                   user=await self.config.mysqlUsername(),
+                                   passwd=await self.config.mysqlPassword())
         embed = discord.Embed()
         # Using query code from:
         # https://stackoverflow.com/questions/13566695/select-increment-counter-in-mysql
         # This code is now included in the stored procedure in the database.
-        with database as cursor:
-            cursor.execute(f"CALL renbot.getUserInfo({ctx.guild.id},{ofUser.id})")
-            embed = discord.Embed()
-            data = cursor.fetchone() # Data from the database.
+        cursor = database.cursor()
+        cursor.execute("CALL renbot.getUserInfo({},{})".format(str(ctx.guild.id),
+                                                               str(ofUser.id)))
+        embed = discord.Embed()
+        data = cursor.fetchone() # Data from the database.
 
-            try:
-                self.logger.info(data)
-                rank = data[0]
-                userID = data[1]
-                level = data[2]
-                levelXP = data[3]
-                currentXP = data[4]
-                totalXP = data[5]
-                currentLevelXP = currentXP - totalXP
-            except IndexError as error:
-                await ctx.send("Something went wrong when checking your level. "
-                               "Please notify the admin!")
-                self.logger.error(error)
-                return
+        try:
+            self.logger.info(data)
+            rank = data[0]
+            userID = data[1]
+            level = data[2]
+            levelXP = data[3]
+            currentXP = data[4]
+            totalXP = data[5]
+            currentLevelXP = currentXP - totalXP
+        except IndexError as error:
+            await ctx.send("Something went wrong when checking your level. "
+                           "Please notify the admin!")
+            self.logger.error(error)
+            return
 
         userObject = ctx.guild.get_member(userID)
 
@@ -274,20 +275,20 @@ class Ranks(commands.Cog):
         database = MySQLdb.connect(host=await self.config.mysqlHost(),
                                    user=await self.config.mysqlUsername(),
                                    passwd=await self.config.mysqlPassword())
-        with database as cursor:
-            fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
-                                   "guildid = {1}".format(userID, guildID))
+        cursor = database.cursor()
+        fetch = cursor.execute("SELECT xp from renbot.xp WHERE userid = {0} and "
+                               "guildid = {1}".format(userID, guild.id))
 
-            currentXP = 0
+        currentXP = 0
 
-            if fetch != 0: # This user has past XP that we can add to.
-                result = cursor.fetchall()
-                currentXP = result[0][0] + pointsToAdd
-            else: # New user
-                currentXP = pointsToAdd
+        if fetch != 0: # This user has past XP that we can add to.
+            result = cursor.fetchall()
+            currentXP = result[0][0] + pointsToAdd
+        else: # New user
+            currentXP = pointsToAdd
 
-            cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
-                           f"{userID}, {guild.id}, {currentXP})")
+        cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
+                       f"({userID}, {guild.id}, {currentXP})")
 
     @commands.Cog.listener("on_message")
     async def checkFlood(self, message):
