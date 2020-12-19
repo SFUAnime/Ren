@@ -82,6 +82,8 @@ class Ranks(commands.Cog):
             if rank == 11:
                 break
 
+        database.close()
+
         msg += "```\n Full rankings at https://ren.injabie3.moe/ranks/"
         await ctx.send(msg)
 
@@ -108,6 +110,7 @@ class Ranks(commands.Cog):
                                                                str(ofUser.id)))
         embed = discord.Embed()
         data = cursor.fetchone() # Data from the database.
+        database.close()
 
         try:
             self.logger.info(data)
@@ -287,8 +290,11 @@ class Ranks(commands.Cog):
         else: # New user
             currentXP = pointsToAdd
 
+        self.logger.debug("%s - old EXP: %s, new EXP: %s", userID, result[0][0], currentXP)
         cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
                        f"({userID}, {guild.id}, {currentXP})")
+        database.commit()
+        database.close()
 
     @commands.Cog.listener("on_message")
     async def checkFlood(self, message):
@@ -324,6 +330,7 @@ class Ranks(commands.Cog):
             # If the time does not exceed COOLDOWN, return and do nothing.
             cooldown = await self.config.guild(message.guild).cooldown()
             if timestamp - self.lastspoke[sid][uid]["timestamp"] <= cooldown:
+                self.logger.debug("Haven't exceeded cooldown yet, returning")
                 return
             # Update last spoke time with new message time.
         except KeyError:
