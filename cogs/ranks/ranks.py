@@ -159,8 +159,8 @@ class Ranks(commands.Cog):
     @commands.guild_only()
     async def _settingsDefault(self, ctx: Context):
         """Set default for max points and cooldown."""
-        self.config.guild(ctx.guild).cooldown.set(0)
-        self.config.guild(ctx.guild).maxPoints(25)
+        await self.config.guild(ctx.guild).cooldown.set(0)
+        await self.config.guild(ctx.guild).maxPoints.set(25)
 
         await ctx.send(":information_source: **Ranks - Default:** Defaults set, run "
                        f"`{ctx.prefix}rank settings show` to verify the settings.")
@@ -170,8 +170,8 @@ class Ranks(commands.Cog):
     @commands.guild_only()
     async def _settingsShow(self, ctx: Context):
         """Show current settings."""
-        cooldown = self.config.guild(ctx.guild).cooldown()
-        maxPoints = self.config.guild(ctx.guild).maxPoints()
+        cooldown = await self.config.guild(ctx.guild).cooldown()
+        maxPoints = await self.config.guild(ctx.guild).maxPoints()
         msg = ":information_source: **Ranks - Current Settings**:\n```"
         msg += f"Cooldown time:  {cooldown} seconds.\n"
         msg += f"Maximum points: {maxPoints} points per eligible message```"
@@ -187,7 +187,7 @@ class Ranks(commands.Cog):
                            "Please enter a valid time in seconds!")
             return
 
-        self.config.guild(ctx.guild).cooldown.set(seconds)
+        await self.config.guild(ctx.guild).cooldown.set(seconds)
 
         await ctx.send(f":white_check_mark: **Ranks - Cooldown**: Set to {seconds} seconds.")
         self.logger.info("Cooldown changed by %s#%s (%s)",
@@ -206,7 +206,7 @@ class Ranks(commands.Cog):
                            "Please enter a positive number.")
             return
 
-        self.config.guild(ctx.guild).maxPoints.set(maxPoints)
+        await self.config.guild(ctx.guild).maxPoints.set(maxPoints)
 
         await ctx.send(":white_check_mark: **Ranks - Max Points**: Users can gain "
                        f"up to {maxPoiunts} points per eligible message.")
@@ -248,9 +248,9 @@ class Ranks(commands.Cog):
             await ctx.send("No response received, not setting anything!")
             return
 
-        self.config.mysqlHost.set(host.content)
-        self.config.mysqlUsername.set(username.content)
-        self.config.mysqlPassword.set(password.content)
+        await self.config.mysqlHost.set(host.content)
+        await self.config.mysqlUsername.set(username.content)
+        await self.config.mysqlPassword.set(password.content)
 
         await ctx.send("Settings saved.")
         self.logger.info("Database connection changed by %s#%s (%s)",
