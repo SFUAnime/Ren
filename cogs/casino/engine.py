@@ -38,33 +38,33 @@ def game_engine(name=None, choice=None, choices=None):
 class GameEngine(Database):
     """A class that handles setup and teardown for games.
 
-        This is a helper class to make games easier to create games and to
-        provide a level of consistency. This class is only to be used
-        in conjunction with the game_engine decorator.
+    This is a helper class to make games easier to create games and to
+    provide a level of consistency. This class is only to be used
+    in conjunction with the game_engine decorator.
 
-        You only need to specify the name, and depending on the game, a choice or
-        a list of choices to choose from. The decorater will obtain the rest of the
-        attributes.
+    You only need to specify the name, and depending on the game, a choice or
+    a list of choices to choose from. The decorater will obtain the rest of the
+    attributes.
 
-        Attributes
-        -----------
-        game: str
-            The name of the game.
-        choice: str
-            The decision the player chose for the game. When a decision is not
-            required, leave it None.
-        choices: list
-            A list of choices the player must pick from. If a list of choices is not
-            required, leave it None.
-        ctx: object
-            The Red context object necessary for sending/waiting for messages.
-        player: object
-            User or member object necessary for interacting with the player.
-        guild: object
-            The guild object from the Red Context object. This is used to pull data
-            from config.
-        bet: int
-            The amount the player has wagered.
+    Attributes
+    -----------
+    game: str
+        The name of the game.
+    choice: str
+        The decision the player chose for the game. When a decision is not
+        required, leave it None.
+    choices: list
+        A list of choices the player must pick from. If a list of choices is not
+        required, leave it None.
+    ctx: object
+        The Red context object necessary for sending/waiting for messages.
+    player: object
+        User or member object necessary for interacting with the player.
+    guild: object
+        The guild object from the Red Context object. This is used to pull data
+        from config.
+    bet: int
+        The amount the player has wagered.
 
     """
 

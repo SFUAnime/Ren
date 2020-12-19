@@ -48,7 +48,8 @@ class RemindMe(commands.Cog):
             pass
         except Exception as exc:
             log.exception(
-                "Unexpected exception occurred in background loop of RemindMe: ", exc_info=exc,
+                "Unexpected exception occurred in background loop of RemindMe: ",
+                exc_info=exc,
             )
             asyncio.create_task(
                 self.bot.send_to_owners(
@@ -107,7 +108,8 @@ class RemindMe(commands.Cog):
             await self.send_message(ctx, "You don't have any upcoming reminders.")
         else:
             embed = discord.Embed(
-                title="Reminders for {}".format(author.name), color=await ctx.embed_color(),
+                title="Reminders for {}".format(author.name),
+                color=await ctx.embed_color(),
             )
             embed.set_thumbnail(url=author.avatar_url)
             current_timestamp = int(current_time.time())
@@ -244,7 +246,8 @@ class RemindMe(commands.Cog):
                 # Ask if the user really wants to do this
                 pred = MessagePredicate.yes_or_no(ctx)
                 await self.send_message(
-                    ctx, "Are you **sure** you want to remove all of your reminders? (yes/no)",
+                    ctx,
+                    "Are you **sure** you want to remove all of your reminders? (yes/no)",
                 )
                 try:
                     await ctx.bot.wait_for("message", check=pred, timeout=30)

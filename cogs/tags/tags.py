@@ -730,7 +730,7 @@ class Tags(commands.Cog):
     async def transfer(self, ctx: Context, tag_name, user: discord.Member):
         """Transfer your tag to another user.
 
-        This can be done by the creator of the tag. Cannot transfer 
+        This can be done by the creator of the tag. Cannot transfer
         if the user being transfered to is over the tag limit.
 
         Parameters:

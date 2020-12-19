@@ -67,8 +67,8 @@ class StarboardEvents:
         self, starboard: StarboardEntry, member: Union[discord.Member, discord.User]
     ) -> bool:
         """Checks if the user is allowed to add to the starboard
-           Allows bot owner to always add messages for testing
-           disallows users from adding their own messages"""
+        Allows bot owner to always add messages for testing
+        disallows users from adding their own messages"""
         if isinstance(member, discord.User):
             return True
         user_roles = set([role.id for role in member.roles])

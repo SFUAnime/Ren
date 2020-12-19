@@ -53,7 +53,7 @@ class Birthday(commands.Cog):
     async def _birthday(self, ctx: Context):
         """Birthday role assignment settings."""
 
-    @_birthday.command(name="setchannel", aliases=["ch"])
+    @_birthday.command(name="channel", aliases=["ch"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def setChannel(self, ctx, channel: discord.TextChannel = None):
@@ -84,7 +84,7 @@ class Birthday(commands.Cog):
                 ":white_check_mark: **Birthday - Channel**: Birthday mentions are now disabled."
             )
 
-    @_birthday.command(name="setrole")
+    @_birthday.command(name="role")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def setRole(self, ctx, role: discord.Role):
@@ -118,125 +118,69 @@ class Birthday(commands.Cog):
         for msg in CANNED_MESSAGES:
             await ctx.send(msg.format(ctx.author.mention))
 
-    @_birthday.command(name="add")
+    @_birthday.command(name="add", aliases=["set"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def addMember(self, ctx, member: discord.Member):
-        """Immediately add a member to the birthday role.
+    async def addMemberBirthday(
+        self, ctx: Context, member: discord.Member, month: int = None, day: int = None
+    ):
+        """Add a user's birthday to the list. If date is not specified, it will default to the current day.
+        On the day, the bot will automatically add the user to the birthday role.
 
         Parameters:
         -----------
         member: discord.Member
-            The guild member that you want to add to the birthday role.
-        """
-        rid = await self.config.guild(ctx.message.guild).birthdayRole()
-        if not rid:
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Add**: This "
-                "server is not configured, please set a role!"
-            )
-            return
+            The member whose birthday is being assigned.
 
-        try:
-            # Find the Role object to add to the user.
-            role = discord.utils.get(ctx.message.guild.roles, id=rid)
-
-            # Add the role to the guild member.
-            await member.add_roles(role)
-        except discord.Forbidden:
-            self.logger.error(
-                "Could not add %s#%s (%s) to birthday role, does the bot "
-                "have enough permissions?",
-                member.name,
-                member.discriminator,
-                member.id,
-                exc_info=True,
-            )
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Add**: Could "
-                "not add **{}** to the list, the bot does not have enough "
-                "permissions to do so! Please make sure that the bot is "
-                "above the birthday role, and that it has the Manage Roles"
-                "permission!".format(member.name)
-            )
-            return
-
-        # Save settings
-        async with self.config.member(member).all() as userConfig:
-            userConfig[KEY_IS_ASSIGNED] = True
-            userConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-            userConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
-
-        await ctx.send(
-            ":white_check_mark: **Birthday - Add**: Successfully added "
-            "**{}** to the list and assigned the role.".format(member.name)
-        )
-
-        self.logger.info(
-            "%s#%s (%s) added %s#%s (%s) to the birthday role.",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
-            member.name,
-            member.discriminator,
-            member.id,
-        )
-        return
-
-    @_birthday.command(name="set")
-    @commands.guild_only()
-    @checks.mod_or_permissions(administrator=True)
-    async def setMemberBirthday(
-        self, ctx: Context, month: int, day: int, forMember: discord.Member = None
-    ):
-        """Set a user's birth date.  Defaults to you.  On the day, the bot will
-        automatically add the user to the birthday role.
-
-        Parameters:
-        -----------
-        month: int
+        month: int (optional)
             The birthday month, between 1 and 12 inclusive.
 
-        day: int
+        day: int (optional)
             The birthday day, range between 1 and 31 inclusive, depending on month.
-
-        forMember: discord.Member (optional)
-            The user this birthday is being assigned to.  If not specified. it
-            defaults to you.
         """
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
 
         # Check if guild is initialized.
         if not rid:
             await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Set**: "
+                ":negative_squared_cross_mark: **Birthday - Add**: "
                 "This server is not configured, please set a role!"
             )
             return
 
-        if not forMember:
-            forMember = ctx.message.author
+        # Check if both the inputs are empty, for this case set the birthday as current day
+        # If one of the parameters are missing, then raise error
+        if month == None and day == None:
+            day = int(time.strftime("%d"))
+            month = int(time.strftime("%m"))
+
+        elif month == None or day == None:
+            await ctx.send(
+                ":negative_squared_cross_mark: **Birthday - Add**: "
+                "Please enter a valid birthday!"
+            )
+            return
 
         # Check inputs here.
         try:
             userBirthday = datetime(2020, month, day)
         except ValueError:
             await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Set**: "
+                ":negative_squared_cross_mark: **Birthday - Add**: "
                 "Please enter a valid birthday!"
             )
             return
 
         # Save settings
-        async with self.config.member(forMember).all() as userConfig:
+        async with self.config.member(member).all() as userConfig:
             userConfig[KEY_BDAY_MONTH] = month
             userConfig[KEY_BDAY_DAY] = day
 
         confMsg = await ctx.send(
-            ":white_check_mark: **Birthday - Set**: Successfully "
-            "set **{0}**'s birthday to **{1:%B} {1:%d}**. "
+            ":white_check_mark: **Birthday - Add**: Successfully "
+            "added **{0}**'s birthday as **{1:%B} {1:%d}**. "
             "The role will be assigned automatically on this "
-            "day.".format(forMember.name, userBirthday)
+            "day.".format(member.name, userBirthday)
         )
 
         # Explicitly check to see if user should be added to role, if the month
@@ -246,19 +190,19 @@ class Birthday(commands.Cog):
         await asyncio.sleep(5)  # pylint: disable=no-member
 
         await confMsg.edit(
-            content=":white_check_mark: **Birthday - Set**: Successfully "
-            "set **{0}**'s birthday, and the role will be automatically "
-            "assigned on the day.".format(forMember.name)
+            content=":white_check_mark: **Birthday - Add**: Successfully "
+            "added **{0}**'s birthday, and the role will be automatically "
+            "assigned on the day.".format(member.name)
         )
 
         self.logger.info(
-            "%s#%s (%s) set the birthday of %s#%s (%s) to %s",
+            "%s#%s (%s) added the birthday of %s#%s (%s) as %s",
             ctx.message.author.name,
             ctx.message.author.discriminator,
             ctx.message.author.id,
-            forMember.name,
-            forMember.discriminator,
-            forMember.id,
+            member.name,
+            member.discriminator,
+            member.id,
             userBirthday.strftime("%B %d"),
         )
         return
@@ -267,7 +211,7 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def list(self, ctx: Context):
-        """Lists the birthdays of users."""
+        """Lists the birthdays of users in the server."""
 
         sortedList = []  # List to sort by month, day.
         display = []  # List of text for paginator to use.  Will be constructed from sortedList.
@@ -286,15 +230,16 @@ class Birthday(commands.Cog):
                 memberDetails["ID"] = memberId
                 sortedList.append(memberDetails)
 
-        # Sort by month, day.
-        sortedList.sort(key=lambda x: (x[KEY_BDAY_MONTH], x[KEY_BDAY_DAY]))
-
+        # Check if any birthdays have been set before sorting
         if not sortedList:
             await ctx.send(
                 ":warning: **Birthday - List**: There are no birthdates "
                 "set on this server. Please add some first!"
             )
             return
+
+        # Sort by month, day.
+        sortedList.sort(key=lambda x: (x[KEY_BDAY_MONTH], x[KEY_BDAY_DAY]))
 
         for user in sortedList:
             # Get the associated user Discord object.
@@ -314,11 +259,11 @@ class Birthday(commands.Cog):
         page.embed.colour = discord.Colour.red()
         await page.paginate()
 
-    @_birthday.command(name="del", aliases=["remove", "delete", "rm"])
+    @_birthday.command(name="unassign")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def deleteMember(self, ctx: Context, member: discord.Member):
-        """Remove a user from the birthday role manually.
+    async def unassignRole(self, ctx: Context, member: discord.Member):
+        """Unassign the birthday role from a user.
 
         Parameters:
         -----------
@@ -328,7 +273,7 @@ class Birthday(commands.Cog):
         rid = await self.config.guild(ctx.message.guild).birthdayRole()
         if not rid:
             await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Delete**: This "
+                ":negative_squared_cross_mark: **Birthday - Unassign**: This "
                 "server is not configured, please set a role!"
             )
             return
@@ -341,7 +286,7 @@ class Birthday(commands.Cog):
             await member.remove_roles(role)
         except discord.Forbidden:
             self.logger.error(
-                "Could not remove %s#%s (%s) from the birthday role, does "
+                "Could not unassign %s#%s (%s) from the birthday role, does "
                 "the bot have enough permissions?",
                 member.name,
                 member.discriminator,
@@ -349,8 +294,8 @@ class Birthday(commands.Cog):
                 exc_info=True,
             )
             await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Delete**: "
-                "Could not remove **{}** from the role, the bot does not "
+                ":negative_squared_cross_mark: **Birthday - Unassign**: "
+                "Could not unassign **{}** from the role, the bot does not "
                 "have enough permissions to do so! Please make sure that "
                 "the bot is above the birthday role, and that it has the "
                 "Manage Roles permission!".format(member.name)
@@ -359,16 +304,14 @@ class Birthday(commands.Cog):
 
         async with self.config.member(member).all() as userConfig:
             userConfig[KEY_IS_ASSIGNED] = False
-            userConfig[KEY_DATE_SET_MONTH] = None
-            userConfig[KEY_DATE_SET_DAY] = None
 
         await ctx.send(
-            ":white_check_mark: **Birthday - Delete**: Removed "
-            "**{}** from the birthday role.".format(member.name)
+            ":white_check_mark: **Birthday - Unassign**: Successfully "
+            "unassigned **{}** from the birthday role.".format(member.name)
         )
 
         self.logger.info(
-            "%s#%s (%s) removed %s#%s (%s) from the birthday role",
+            "%s#%s (%s) unassigned %s#%s (%s) from the birthday role",
             ctx.message.author.name,
             ctx.message.author.discriminator,
             ctx.message.author.id,
@@ -378,11 +321,11 @@ class Birthday(commands.Cog):
         )
         return
 
-    @_birthday.command(name="unset")
+    @_birthday.command(name="delete", aliases=["del", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def unsetMemberBirthday(self, ctx: Context, member: discord.Member):
-        """Remove a user's birthday role and birthday from the config.
+    async def deleteMemberBirthday(self, ctx: Context, member: discord.Member):
+        """Delete a user's birthday role and birthday from the list.
 
         Parameters:
         -----------
@@ -423,19 +366,17 @@ class Birthday(commands.Cog):
 
         async with self.config.member(member).all() as userConfig:
             userConfig[KEY_IS_ASSIGNED] = False
-            userConfig[KEY_DATE_SET_MONTH] = None
             userConfig[KEY_BDAY_MONTH] = None
-            userConfig[KEY_DATE_SET_DAY] = None
             userConfig[KEY_BDAY_DAY] = None
 
         await ctx.send(
-            ":white_check_mark: **Birthday - Unset**: Unset birthday of **{}** ".format(
+            ":white_check_mark: **Birthday - Delete**: Deleted birthday of **{}** ".format(
                 member.name
             )
         )
 
         self.logger.info(
-            "%s#%s (%s) deleted birthday of %s#%s (%s)",
+            "%s#%s (%s) deleted the birthday of %s#%s (%s)",
             ctx.message.author.name,
             ctx.message.author.discriminator,
             ctx.message.author.id,
@@ -470,7 +411,7 @@ class Birthday(commands.Cog):
         async with membersLock:
             # Check each guild.
             for guild in guilds:
-                # Make sure the guild is configured with birthdya role.
+                # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).birthdayRole()
                 if not bdayRoleId:
@@ -480,9 +421,8 @@ class Birthday(commands.Cog):
                 memberData = await self.config.all_members(guild)  # dict
                 for memberId, memberDetails in memberData.items():
                     # If assigned and the date is different than the date assigned, remove role.
-                    if memberDetails[KEY_IS_ASSIGNED] and (
-                        memberDetails[KEY_DATE_SET_MONTH] != int(time.strftime("%m"))
-                        or memberDetails[KEY_DATE_SET_DAY] != int(time.strftime("%d"))
+                    if memberDetails[KEY_IS_ASSIGNED] and memberDetails[KEY_BDAY_DAY] != int(
+                        time.strftime("%d")
                     ):
 
                         role = discord.utils.get(guild.roles, id=bdayRoleId)
@@ -493,14 +433,14 @@ class Birthday(commands.Cog):
                             try:
                                 await member.remove_roles(role)
                                 self.logger.info(
-                                    "Removed role from %s#%s (%s)",
+                                    "Removed birthday role from %s#%s (%s)",
                                     member.name,
                                     member.discriminator,
                                     member.id,
                                 )
                             except discord.Forbidden:
                                 self.logger.error(
-                                    "Could not remove role from %s#%s (%s)!",
+                                    "Could not remove birthday role from %s#%s (%s)",
                                     member.name,
                                     member.discriminator,
                                     member.id,
@@ -566,8 +506,7 @@ class Birthday(commands.Cog):
                                 # Update the list.
                                 async with self.config.member(member).all() as memberConfig:
                                     memberConfig[KEY_IS_ASSIGNED] = True
-                                    memberConfig[KEY_DATE_SET_MONTH] = int(time.strftime("%m"))
-                                    memberConfig[KEY_DATE_SET_DAY] = int(time.strftime("%d"))
+
                             except discord.Forbidden:
                                 self.logger.error(
                                     "Could not add role to %s#%s (%s)",
@@ -583,5 +522,6 @@ class Birthday(commands.Cog):
                                 await channel.send(msg.format(member.mention))
                             except discord.Forbidden:
                                 self.logger.error(
-                                    "Could not send message!", exc_info=True,
+                                    "Could not send message!",
+                                    exc_info=True,
                                 )

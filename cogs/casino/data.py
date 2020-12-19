@@ -214,7 +214,7 @@ class Database:
 
     async def casino_is_global(self):
         """Checks to see if the casino is storing data on
-           a per server basis or globally."""
+        a per server basis or globally."""
         return await self.config.Settings.Global()
 
     async def get_data(self, ctx, player=None):

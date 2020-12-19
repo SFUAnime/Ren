@@ -671,8 +671,7 @@ class Casino(Database, commands.Cog):
 
     @casinoset.command()
     async def multiplier(self, ctx: commands.Context, game: str, multiplier: float):
-        """Sets the payout multiplier for a game.
-        """
+        """Sets the payout multiplier for a game."""
         settings = await super().get_data(ctx)
         games = await settings.Games.all()
         if is_input_unsupported(multiplier):
