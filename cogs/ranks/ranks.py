@@ -273,6 +273,7 @@ class Ranks(commands.Cog):
             cursor.execute("REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
                            f"{userID}, {guild.id}, {currentXP})")
 
+    @commands.Cog.listener("on_message")
     async def checkFlood(self, message):
         """Check to see if the user is sending messages that are flooding the server.
         If yes, then do not add points.
@@ -299,12 +300,13 @@ class Ranks(commands.Cog):
         if message.channel.is_private:
             return
 
-        sid = message.server.id
+        sid = message.guild.id
         uid = message.author.id
 
         try:
             # If the time does not exceed COOLDOWN, return and do nothing.
-            if timestamp - self.lastspoke[sid][uid]["timestamp"] <= self.settings[sid]["cooldown"]:
+            cooldown = await self.config.guild(message.guild).cooldown()
+            if timestamp - self.lastspoke[sid][uid]["timestamp"] <= cooldown:
                 return
             # Update last spoke time with new message time.
         except KeyError:
@@ -341,4 +343,3 @@ def setup(bot):
         LOGGER.addHandler(handler)
     rankingSystem = Ranks(bot)
     bot.add_cog(rankingSystem)
-    bot.add_listener(rankingSystem.checkFlood, 'on_message')
