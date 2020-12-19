@@ -8,14 +8,11 @@ import random
 import MySQLdb # The use of MySQL is debatable, but will use it to incorporate CMPT 354 stuff.
 import discord
 
-from redbot.core import Config, checks, commands
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
 from .constants import *
-
-# Global variables
-LOGGER = None
 
 class Ranks(commands.Cog):
     """Mee6-inspired guild rank management system.
@@ -31,6 +28,20 @@ class Ranks(commands.Cog):
 
         # TODO: Remove this later
         self.lastspoke = {}
+
+        # Initialize logger, and save to cog folder.
+        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.Ranks")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(
+                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
+            )
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
+            )
+            self.logger.addHandler(handler)
 
     ############
     # COMMANDS #
@@ -98,7 +109,7 @@ class Ranks(commands.Cog):
             data = cursor.fetchone() # Data from the database.
 
             try:
-                LOGGER.info(data)
+                self.logger.info(data)
                 rank = data[0]
                 userID = data[1]
                 level = data[2]
@@ -109,7 +120,7 @@ class Ranks(commands.Cog):
             except IndexError as error:
                 await ctx.send("Something went wrong when checking your level. "
                                "Please notify the admin!")
-                LOGGER.error(error)
+                self.logger.error(error)
                 return
 
         userObject = ctx.guild.get_member(userID)
@@ -178,11 +189,11 @@ class Ranks(commands.Cog):
         self.settings.guild(ctx.guild).cooldown.set(seconds)
 
         await ctx.send(f":white_check_mark: **Ranks - Cooldown**: Set to {seconds} seconds.")
-        LOGGER.info("Cooldown changed by %s#%s (%s)",
+        self.logger.info("Cooldown changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id)
-        LOGGER.info("Cooldown set to %s seconds",
+        self.logger.info("Cooldown set to %s seconds",
                     seconds)
 
     #[p]rank settings maxpoints
@@ -198,11 +209,11 @@ class Ranks(commands.Cog):
 
         await ctx.send(":white_check_mark: **Ranks - Max Points**: Users can gain "
                        f"up to {maxPoiunts} points per eligible message.")
-        LOGGER.info("Maximum points changed by %s#%s (%s)",
+        self.logger.info("Maximum points changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id)
-        LOGGER.info("Maximum points per message set to %s.",
+        self.logger.info("Maximum points per message set to %s.",
                     maxPoints)
 
     #[p]rank settings dbsetup
@@ -241,7 +252,7 @@ class Ranks(commands.Cog):
         self.settings.mysqlPassword.set(password.content)
 
         await ctx.send("Settings saved.")
-        LOGGER.info("Database connection changed by %s#%s (%s)",
+        self.logger.info("Database connection changed by %s#%s (%s)",
                     ctx.message.author.name,
                     ctx.message.author.discriminator,
                     ctx.message.author.id)
@@ -317,7 +328,7 @@ class Ranks(commands.Cog):
             except KeyError:
                 self.lastspoke[sid] = {}
                 self.lastspoke[sid][uid] = {}
-            LOGGER.error("%s#%s (%s) has not spoken since last restart, adding new "
+            self.logger.error("%s#%s (%s) has not spoken since last restart, adding new "
                          "timestamp",
                          message.author.name,
                          message.author.discriminator,
@@ -325,21 +336,3 @@ class Ranks(commands.Cog):
 
         self.lastspoke[sid][uid]["timestamp"] = timestamp
         self.addPoints(message.guild, message.author.id)
-
-def setup(bot):
-    """Add the cog to the bot"""
-    global LOGGER # pylint: disable=global-statement
-    checkFolder()   # Make sure the data folder exists!
-    checkFiles()    # Make sure we have a local database!
-    LOGGER = logging.getLogger("red.Ranks")
-    if LOGGER.level == 0:
-        # Prevents the LOGGER from being loaded again in case of module reload.
-        LOGGER.setLevel(logging.INFO)
-        handler = logging.FileHandler(filename=SAVE_FOLDER+"info.log",
-                                      encoding="utf-8",
-                                      mode="a")
-        handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",
-                                               datefmt="[%d/%m/%Y %H:%M:%S]"))
-        LOGGER.addHandler(handler)
-    rankingSystem = Ranks(bot)
-    bot.add_cog(rankingSystem)
