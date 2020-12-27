@@ -549,10 +549,6 @@ class Highlight(commands.Cog):
 
         user = msg.author
 
-        # Prevent messages from being sent in after hours
-        if msg.channel.name == "after-hours":
-            return
-
         # Prevent bots from triggering your highlight word.
         if user.bot:
             return
