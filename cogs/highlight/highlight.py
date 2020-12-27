@@ -10,7 +10,7 @@ from threading import Lock
 import asyncio
 import aiohttp
 import discord
-from redbot.core import Config, commands, data_manager
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils import chat_formatting
@@ -73,6 +73,36 @@ class Highlight(commands.Cog):
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of
         at-mentions."""
+
+    @highlight.group(name="guild")
+    @commands.guild_only()
+    @checks.mod_or_permissions()
+    async def guildSettings(self, ctx: Context):
+        """Guild-wide settings"""
+
+    @guildSettings.group(name="channel", aliases=["ch"])
+    async def guildChannels(self, ctx: Context):
+        """Channel denylist.
+
+        Channels on this list will NOT trigger user highlights.
+        """
+
+    @guildChannels.command(name="show", aliases=["ls"])
+    async def guildChannelsDenyList(self, ctx: Context):
+        """List the channels in the denylist."""
+
+    @guildChannels.command(name="add")
+    async def guildChannelsDenyAdd(self, ctx: Context):
+        """Add a channel to the denylist.
+
+        Channels in this list will NOT trigger user highlights.
+        """
+
+    @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
+    async def guildChannelsDenyDelete(self, ctx: Context):
+        """Remove a channel from the denylist.
+
+        """
 
     @highlight.command(name="add")
     @commands.guild_only()
