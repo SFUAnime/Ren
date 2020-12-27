@@ -663,20 +663,6 @@ class Highlight(commands.Cog):
         else:
             self.logger.info("New channel is not called dark hour and will not be " "blacklisted")
 
-    @commands.Cog.listener("on_guild_channel_delete")
-    async def onGuildChannelDelete(self, channel: discord.abc.GuildChannel):
-        """Background listener to check if dark-hour has been deleted."""
-        channelBlId = await self.config.guild(channel.guild).ignoreChannelID()
-        if channelBlId and channel.id == channelBlId:
-            await self.config.guild(channel.guild).ignoreChannelID.set(None)
-            self.logger.info(
-                "Dark hour deletion has been detected and channelBlId has " "been reset"
-            )
-        else:
-            self.logger.info(
-                "Deleted channel is not dark hour so dark hour ID remains " "unchanged"
-            )
-
     def _isWordMatch(self, word, string):
         """See if the word/regex matches anything in string.
 
