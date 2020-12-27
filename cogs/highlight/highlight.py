@@ -511,15 +511,18 @@ class Highlight(commands.Cog):
             return
 
         user = msg.author
-        channelBlId = await self.config.guild(msg.channel.guild).ignoreChannelID()
 
         # Prevent messages from being sent in after hours
         if msg.channel.name == "after-hours":
             return
 
-        # Prevent messages in a blacklisted channel from triggering highlight word
         # Prevent bots from triggering your highlight word.
-        if channelBlId and msg.channel.id == channelBlId or user.bot:
+        if user.bot:
+            return
+
+        # Prevent messages in a denylist channel from triggering highlight words
+        if msg.channel.name in await self.config.guild(msg.channel.guild).denylistChannels():
+            self.logger.debug("Message is from a denylist channel, returning")
             return
 
         # Don't send notification for filtered messages
