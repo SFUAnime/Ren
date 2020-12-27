@@ -10,10 +10,10 @@ from threading import Lock
 import asyncio
 import aiohttp
 import discord
-from redbot.core import Config, commands, data_manager
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils import chat_formatting
+from redbot.core.utils import chat_formatting, paginator
 
 DEFAULT_TIMEOUT = 20
 DELETE_TIME = 5
@@ -32,7 +32,10 @@ BASE_GUILD_MEMBER = {
     KEY_WORDS_IGNORE: [],
 }
 
-BASE_GUILD = {KEY_IGNORE: None}
+BASE_GUILD = {
+    KEY_IGNORE: None,
+    "denylistChannels": [],
+}
 
 
 class Highlight(commands.Cog):
@@ -106,6 +109,68 @@ class Highlight(commands.Cog):
     async def highlight(self, ctx):
         """Slack-like feature to be notified based on specific words outside of
         at-mentions."""
+
+    @highlight.group(name="guild")
+    @commands.guild_only()
+    @checks.mod_or_permissions()
+    async def guildSettings(self, ctx: Context):
+        """Guild-wide settings"""
+
+    @guildSettings.group(name="channel", aliases=["ch"])
+    async def guildChannels(self, ctx: Context):
+        """Channel denylist.
+
+        Channels on this list will NOT trigger user highlights.
+        """
+
+    @guildChannels.command(name="show", aliases=["ls"])
+    async def guildChannelsDenyList(self, ctx: Context):
+        """List the channels in the denylist."""
+        dlChannels = await self.config.guild(ctx.guild).denylistChannels()
+
+        if dlChannels:
+            page = paginator.Pages(ctx=ctx, entries=dlChannels, show_entry_count=True)
+            page.embed.title = "Denylist channels for: **{}**".format(ctx.guild.name)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
+        else:
+            await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
+
+    @guildChannels.command(name="add")
+    async def guildChannelsDenyAdd(self, ctx: Context, channelName: str):
+        """Add a channel to the denylist.
+
+        Channels in this list will NOT trigger user highlights.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel name you wish to not trigger user highlights for.
+        """
+        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
+            if channelName in dlChannels:
+                await ctx.send(f"**{channelName}** is already on the denylist.")
+            else:
+                dlChannels.append(channelName)
+                await ctx.send(
+                    f"Messages in **{channelName}** will no longer trigger highlights for users"
+                )
+
+    @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
+    async def guildChannelsDenyDelete(self, ctx: Context, channelName: str):
+        """Remove a channel from the denylist.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel name you wish to remove from the denylist.
+        """
+        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
+            if channelName in dlChannels:
+                dlChannels.remove(channelName)
+                await ctx.send(f"**{channelName}** removed from the denylist.")
+            else:
+                await ctx.send(f"**{channelName}** is not on the denylist.")
 
     @highlight.command(name="add")
     @commands.guild_only()
@@ -483,15 +548,14 @@ class Highlight(commands.Cog):
             return
 
         user = msg.author
-        channelBlId = await self.config.guild(msg.channel.guild).ignoreChannelID()
 
-        # Prevent messages from being sent in after hours
-        if msg.channel.name == "after-hours":
+        # Prevent bots from triggering your highlight word.
+        if user.bot:
             return
 
-        # Prevent messages in a blacklisted channel from triggering highlight word
-        # Prevent bots from triggering your highlight word.
-        if channelBlId and msg.channel.id == channelBlId or user.bot:
+        # Prevent messages in a denylist channel from triggering highlight words
+        if msg.channel.name in await self.config.guild(msg.channel.guild).denylistChannels():
+            self.logger.debug("Message is from a denylist channel, returning")
             return
 
         # Don't send notification for filtered messages
@@ -615,36 +679,6 @@ class Highlight(commands.Cog):
     async def onMessage(self, msg):
         """Background listener to check messages for highlight DMs."""
         await self.checkHighlights(msg)
-
-    @commands.Cog.listener("on_guild_channel_create")
-    async def onGuildChannelCreate(self, channel: discord.abc.GuildChannel):
-        """Background listener to check if dark-hour has been created."""
-        self.logger.info(
-            "New Channel creation has been detected. Name: %s, ID: %s", channel.name, channel.id
-        )
-        if channel.name == "dark-hour":
-            await self.config.guild(channel.guild).ignoreChannelID.set(channel.id)
-            self.logger.info(
-                "Dark hour has been detected and channel id %s "
-                "will be blacklisted from highlights.",
-                channel.id,
-            )
-        else:
-            self.logger.info("New channel is not called dark hour and will not be " "blacklisted")
-
-    @commands.Cog.listener("on_guild_channel_delete")
-    async def onGuildChannelDelete(self, channel: discord.abc.GuildChannel):
-        """Background listener to check if dark-hour has been deleted."""
-        channelBlId = await self.config.guild(channel.guild).ignoreChannelID()
-        if channelBlId and channel.id == channelBlId:
-            await self.config.guild(channel.guild).ignoreChannelID.set(None)
-            self.logger.info(
-                "Dark hour deletion has been detected and channelBlId has " "been reset"
-            )
-        else:
-            self.logger.info(
-                "Deleted channel is not dark hour so dark hour ID remains " "unchanged"
-            )
 
     def _isWordMatch(self, word, string):
         """See if the word/regex matches anything in string.
