@@ -684,22 +684,6 @@ class Highlight(commands.Cog):
         """Background listener to check messages for highlight DMs."""
         await self.checkHighlights(msg)
 
-    @commands.Cog.listener("on_guild_channel_create")
-    async def onGuildChannelCreate(self, channel: discord.abc.GuildChannel):
-        """Background listener to check if dark-hour has been created."""
-        self.logger.info(
-            "New Channel creation has been detected. Name: %s, ID: %s", channel.name, channel.id
-        )
-        if channel.name == "dark-hour":
-            await self.config.guild(channel.guild).ignoreChannelID.set(channel.id)
-            self.logger.info(
-                "Dark hour has been detected and channel id %s "
-                "will be blacklisted from highlights.",
-                channel.id,
-            )
-        else:
-            self.logger.info("New channel is not called dark hour and will not be " "blacklisted")
-
     def _isWordMatch(self, word, string):
         """See if the word/regex matches anything in string.
 
