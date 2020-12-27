@@ -13,6 +13,9 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
+WEBCAM_BRH = (
+    "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
+)
 WEBCAM_GAGLARDI = (
     "http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
     "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4"
@@ -63,6 +66,7 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         self.bot = bot
         self.cameras = {
             "aqpond": WEBCAM_AQPOND,
+            "brh": WEBCAM_BRH,
             "gag": WEBCAM_GAGLARDI,
             "sbh": WEBCAM_SBH,
             "sub": WEBCAM_SUB,
@@ -85,6 +89,7 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         cam: str
             One of the following short strings:
             aqpond: AQ Pond
+            brh:    Barbara Rae Housing (Burnaby Residence)
             gag:    Gaglardi intersection
             sbh:    Shadbolt Housing (Burnaby Residence)
             sub:    AQ overlooking student union building
