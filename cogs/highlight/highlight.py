@@ -158,7 +158,13 @@ class Highlight(commands.Cog):
 
     @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
     async def guildChannelsDenyDelete(self, ctx: Context, channelName: str):
-        """Remove a channel from the denylist."""
+        """Remove a channel from the denylist.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel name you wish to remove from the denylist.
+        """
         async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
             if channelName in dlChannels:
                 dlChannels.remove(channelName)
