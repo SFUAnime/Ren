@@ -13,7 +13,7 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils import chat_formatting
+from redbot.core.utils import chat_formatting, paginator
 
 DEFAULT_TIMEOUT = 20
 DELETE_TIME = 5
@@ -32,7 +32,10 @@ BASE_GUILD_MEMBER = {
     KEY_WORDS_IGNORE: [],
 }
 
-BASE_GUILD = {KEY_IGNORE: None}
+BASE_GUILD = {
+    KEY_IGNORE: None,
+    "denylistChannels": [],
+}
 
 
 class Highlight(commands.Cog):
@@ -90,19 +93,47 @@ class Highlight(commands.Cog):
     @guildChannels.command(name="show", aliases=["ls"])
     async def guildChannelsDenyList(self, ctx: Context):
         """List the channels in the denylist."""
+        dlChannels = await self.config.guild(ctx.guild).denylistChannels()
+
+        if dlChannels:
+            page = paginator.Pages(ctx=ctx, entries=dlChannels, show_entry_count=True)
+            page.embed.title = "Denylist channels for: **{}**".format(ctx.guild.name)
+            page.embed.colour = discord.Colour.red()
+            await page.paginate()
+        else:
+            await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
 
     @guildChannels.command(name="add")
-    async def guildChannelsDenyAdd(self, ctx: Context):
+    async def guildChannelsDenyAdd(self, ctx: Context, channelName: str):
         """Add a channel to the denylist.
 
         Channels in this list will NOT trigger user highlights.
+
+        Parameters:
+        -----------
+        channelName: str
+            The channel name you wish to not trigger user highlights for.
         """
+        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
+            if channelName in dlChannels:
+                await ctx.send(f"**{channelName}** is already on the denylist.")
+            else:
+                dlChannels.append(channelName)
+                await ctx.send(
+                    f"Messages in **{channelName}** will no longer trigger highlights for users"
+                )
 
     @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
-    async def guildChannelsDenyDelete(self, ctx: Context):
-        """Remove a channel from the denylist.
-
-        """
+    async def guildChannelsDenyDelete(self, ctx: Context, channelName: str):
+        """Remove a channel from the denylist."""
+        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
+            if channelName in dlChannels:
+                dlChannels.remove(channelName)
+                await ctx.send(
+                    f"**{channelName}** removed from the denylist."
+                )
+            else:
+                await ctx.send(f"**{channelName}** is not on the denylist.")
 
     @highlight.command(name="add")
     @commands.guild_only()
