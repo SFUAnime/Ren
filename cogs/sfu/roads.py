@@ -13,9 +13,7 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
-WEBCAM_BRH = (
-    "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
-)
+WEBCAM_BRH = "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
 WEBCAM_GAGLARDI = (
     "http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
     "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4"
@@ -40,9 +38,7 @@ WEBCAM_SUB = (
     "http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
     "?nocache=0.3346598630889852&update=15000&timeout=1800000"
 )
-WEBCAM_SBH = (
-    "http://ns-webcams.its.sfu.ca/public/images/sbhroof-current.jpg?nocache=1"
-)
+WEBCAM_SBH = "http://ns-webcams.its.sfu.ca/public/images/sbhroof-current.jpg?nocache=1"
 WEBCAM_SUR = "https://cosmos.surrey.ca/TrafficCameraImages/enc_102_cityparkway_cam1.jpg"
 WEBCAM_TFF = (
     "http://ns-webcams.its.sfu.ca/public/images/terryfox-current.jpg"
