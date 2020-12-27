@@ -129,9 +129,7 @@ class Highlight(commands.Cog):
         async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
             if channelName in dlChannels:
                 dlChannels.remove(channelName)
-                await ctx.send(
-                    f"**{channelName}** removed from the denylist."
-                )
+                await ctx.send(f"**{channelName}** removed from the denylist.")
             else:
                 await ctx.send(f"**{channelName}** is not on the denylist.")
 
