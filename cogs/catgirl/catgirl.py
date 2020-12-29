@@ -114,7 +114,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def catboyCmd(self, ctx):
         """This command says it all (database still WIP)"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
+        await ctx.channel.trigger_typing()
 
         embed = getImage(self.catboys, "Catboy")
 
@@ -215,7 +215,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def trap(self, ctx):
         """Say no more fam, gotchu covered ;)"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await self.bot.send_typing(ctx.message.channel)
+        await ctx.channel.trigger_typing()
 
         embed = getImage(self.catgirlsLocalTrap, "Nekomimi")
 
