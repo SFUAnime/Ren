@@ -1,4 +1,5 @@
 import asyncio
+import warnings
 from datetime import timedelta
 from typing import List, Iterable, Union, TYPE_CHECKING, Dict
 
@@ -38,12 +39,13 @@ async def mass_purge(messages: List[discord.Message], channel: discord.TextChann
 
     """
     while messages:
-        if len(messages) > 1:
+        # discord.NotFound can be raised when `len(messages) == 1` and the message does not exist.
+        # As a result of this obscure behavior, this error needs to be caught just in case.
+        try:
             await channel.delete_messages(messages[:100])
-            messages = messages[100:]
-        else:
-            await messages[0].delete()
-            messages = []
+        except discord.errors.HTTPException:
+            pass
+        messages = messages[100:]
         await asyncio.sleep(1.5)
 
 
@@ -65,7 +67,7 @@ async def slow_deletion(messages: Iterable[discord.Message]):
             pass
 
 
-def get_audit_reason(author: discord.Member, reason: str = None):
+def get_audit_reason(author: discord.Member, reason: str = None, *, shorten: bool = False):
     """Construct a reason to appear in the audit log.
 
     Parameters
@@ -74,6 +76,9 @@ def get_audit_reason(author: discord.Member, reason: str = None):
         The author behind the audit log action.
     reason : str
         The reason behind the audit log action.
+    shorten : bool
+        When set to ``True``, the returned audit reason string will be
+        shortened to fit the max length allowed by Discord audit logs.
 
     Returns
     -------
@@ -81,16 +86,25 @@ def get_audit_reason(author: discord.Member, reason: str = None):
         The formatted audit log reason.
 
     """
-    return (
+    audit_reason = (
         "Action requested by {} (ID {}). Reason: {}".format(author, author.id, reason)
         if reason
         else "Action requested by {} (ID {}).".format(author, author.id)
     )
+    if shorten and len(audit_reason) > 512:
+        audit_reason = f"{audit_reason[:509]}..."
+    return audit_reason
 
 
 async def is_allowed_by_hierarchy(
     bot: "Red", settings: "Config", guild: discord.Guild, mod: discord.Member, user: discord.Member
 ):
+    warnings.warn(
+        "`is_allowed_by_hierarchy()` is deprecated since Red 3.4.1"
+        " and will be removed in the first minor release after 2020-11-31.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not await settings.guild(guild).respect_hierarchy():
         return True
     is_special = mod == guild.owner or await bot.is_owner(mod)
@@ -123,29 +137,26 @@ async def is_mod_or_superior(
         If the wrong type of ``obj`` was passed.
 
     """
-    user = None
     if isinstance(obj, discord.Message):
         user = obj.author
     elif isinstance(obj, discord.Member):
         user = obj
     elif isinstance(obj, discord.Role):
-        pass
+        gid = obj.guild.id
+        if obj in await bot.get_admin_role_ids(gid):
+            return True
+        if obj in await bot.get_mod_role_ids(gid):
+            return True
+        return False
     else:
         raise TypeError("Only messages, members or roles may be passed")
 
-    server = obj.guild
-    admin_role_id = await bot.db.guild(server).admin_role()
-    mod_role_id = await bot.db.guild(server).mod_role()
-
-    if isinstance(obj, discord.Role):
-        return obj.id in [admin_role_id, mod_role_id]
-
     if await bot.is_owner(user):
         return True
-    elif discord.utils.find(lambda r: r.id in (admin_role_id, mod_role_id), user.roles):
+    if await bot.is_mod(user):
         return True
-    else:
-        return False
+
+    return False
 
 
 def strfdelta(delta: timedelta):
@@ -208,27 +219,21 @@ async def is_admin_or_superior(
         If the wrong type of ``obj`` was passed.
 
     """
-    user = None
     if isinstance(obj, discord.Message):
         user = obj.author
     elif isinstance(obj, discord.Member):
         user = obj
     elif isinstance(obj, discord.Role):
-        pass
+        return obj.id in await bot.get_admin_role_ids(obj.guild.id)
     else:
         raise TypeError("Only messages, members or roles may be passed")
 
-    admin_role_id = await bot.db.guild(obj.guild).admin_role()
-
-    if isinstance(obj, discord.Role):
-        return obj.id == admin_role_id
-
-    if user and await bot.is_owner(user):
+    if await bot.is_owner(user):
         return True
-    elif discord.utils.get(user.roles, id=admin_role_id):
+    if await bot.is_admin(user):
         return True
-    else:
-        return False
+
+    return False
 
 
 async def check_permissions(ctx: "Context", perms: Dict[str, bool]) -> bool:
@@ -241,7 +246,7 @@ async def check_permissions(ctx: "Context", perms: Dict[str, bool]) -> bool:
     Parameters
     ----------
     ctx : Context
-        The command invokation context to check.
+        The command invocation context to check.
     perms : Dict[str, bool]
         A dictionary mapping permissions to their required states.
         Valid permission names are those listed as properties of

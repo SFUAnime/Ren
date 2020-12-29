@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import Callable, ClassVar, List, Optional, Pattern, Sequence, Tuple, Union, cast
 
@@ -8,7 +10,7 @@ from redbot.core import commands
 _ID_RE = re.compile(r"([0-9]{15,21})$")
 _USER_MENTION_RE = re.compile(r"<@!?([0-9]{15,21})>$")
 _CHAN_MENTION_RE = re.compile(r"<#([0-9]{15,21})>$")
-_ROLE_MENTION_RE = re.compile(r"<&([0-9]{15,21})>$")
+_ROLE_MENTION_RE = re.compile(r"<@&([0-9]{15,21})>$")
 
 
 class MessagePredicate(Callable[[discord.Message], bool]):
@@ -68,17 +70,17 @@ class MessagePredicate(Callable[[discord.Message], bool]):
         channel: Optional[discord.TextChannel] = None,
         user: Optional[discord.abc.User] = None,
     ) -> "MessagePredicate":
-        """Match if the reaction fits the described context.
+        """Match if the message fits the described context.
 
         Parameters
         ----------
         ctx : Optional[Context]
-            The current invokation context.
+            The current invocation context.
         channel : Optional[discord.TextChannel]
             The channel we expect a message in. If unspecified,
             defaults to ``ctx.channel``. If ``ctx`` is unspecified
             too, the message's channel will be ignored.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             The user we expect a message from. If unspecified,
             defaults to ``ctx.author``. If ``ctx`` is unspecified
             too, the message's author will be ignored.
@@ -113,7 +115,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -145,7 +147,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -187,7 +189,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -227,7 +229,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -267,7 +269,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -313,7 +315,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -357,7 +359,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -405,7 +407,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -454,7 +456,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -503,7 +505,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -533,7 +535,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -563,7 +565,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -574,7 +576,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
         """
         valid_int = cls.valid_int(ctx, channel, user)
         valid_float = cls.valid_float(ctx, channel, user)
-        return cls(lambda self, m: valid_int(m) or valid_float(m) and float(m.content) < value)
+        return cls(lambda self, m: (valid_int(m) or valid_float(m)) and float(m.content) < value)
 
     @classmethod
     def greater(
@@ -594,7 +596,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -605,7 +607,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
         """
         valid_int = cls.valid_int(ctx, channel, user)
         valid_float = cls.valid_float(ctx, channel, user)
-        return cls(lambda self, m: valid_int(m) or valid_float(m) and float(m.content) > value)
+        return cls(lambda self, m: (valid_int(m) or valid_float(m)) and float(m.content) > value)
 
     @classmethod
     def length_less(
@@ -625,7 +627,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -655,7 +657,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -688,7 +690,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -729,7 +731,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -744,7 +746,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             if not same_context(m):
                 return False
             try:
-                self.result = collection.index(m.content)
+                self.result = collection.index(m.content.lower())
             except ValueError:
                 return False
             else:
@@ -774,7 +776,7 @@ class MessagePredicate(Callable[[discord.Message], bool]):
             Same as ``ctx`` in :meth:`same_context`.
         channel : Optional[discord.TextChannel]
             Same as ``channel`` in :meth:`same_context`.
-        user : Optional[discord.TextChannel]
+        user : Optional[discord.abc.User]
             Same as ``user`` in :meth:`same_context`.
 
         Returns
@@ -864,7 +866,7 @@ class ReactionPredicate(Callable[[discord.Reaction, discord.abc.User], bool]):
     Attributes
     ----------
     result : Any
-        The object which the message content matched with. This is
+        The object which the reaction matched with. This is
         dependent on the predicate used - see each predicate's
         documentation for details, not every method will assign this
         attribute. Defaults to ``None``.

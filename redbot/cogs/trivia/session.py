@@ -4,9 +4,9 @@ import time
 import random
 from collections import Counter
 import discord
-from redbot.core import bank
+from redbot.core import bank, errors
 from redbot.core.i18n import Translator
-from redbot.core.utils.chat_formatting import box, bold, humanize_list
+from redbot.core.utils.chat_formatting import box, bold, humanize_list, humanize_number
 from redbot.core.utils.common_filters import normalize_smartquotes
 from .log import LOG
 
@@ -98,7 +98,25 @@ class TriviaSession:
         session = cls(ctx, question_list, settings)
         loop = ctx.bot.loop
         session._task = loop.create_task(session.run())
+        session._task.add_done_callback(session._error_handler)
         return session
+
+    def _error_handler(self, fut):
+        """Catches errors in the session task."""
+        try:
+            fut.result()
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            LOG.error("A trivia session has encountered an error.\n", exc_info=exc)
+            asyncio.create_task(
+                self.ctx.send(
+                    _(
+                        "An unexpected error occurred in the trivia session.\nCheck your console or logs for details."
+                    )
+                )
+            )
+            self.stop()
 
     async def run(self):
         """Run the trivia session.
@@ -238,7 +256,7 @@ class TriviaSession:
         return _pred
 
     async def end_game(self):
-        """End the trivia session and display scrores."""
+        """End the trivia session and display scores."""
         if self.scores:
             await self.send_table()
         multiplier = self.settings["payout_multiplier"]
@@ -285,14 +303,17 @@ class TriviaSession:
                 amount = int(multiplier * score)
                 if amount > 0:
                     LOG.debug("Paying trivia winner: %d credits --> %s", amount, str(winner))
-                    await bank.deposit_credits(winner, int(multiplier * score))
+                    try:
+                        await bank.deposit_credits(winner, int(multiplier * score))
+                    except errors.BalanceTooHigh as e:
+                        await bank.set_balance(winner, e.max_balance)
                     await self.ctx.send(
                         _(
                             "Congratulations, {user}, you have received {num} {currency}"
                             " for coming first."
                         ).format(
                             user=winner.display_name,
-                            num=amount,
+                            num=humanize_number(amount),
                             currency=await bank.get_currency_name(self.ctx.guild),
                         )
                     )

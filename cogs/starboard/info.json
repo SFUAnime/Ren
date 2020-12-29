@@ -1,0 +1,28 @@
+{
+    "author" : [
+        "TrustyJAID"
+    ],
+    "description" : "Create a starboard channel to save those amazing posts!",
+    "disabled" : false,
+    "hidden" : false,
+    "install_msg" : "Create a starboard!",
+    "max_bot_version" : "0.0.0",
+    "min_bot_version" : "3.1.8",
+    "min_python_version" : [
+        3,
+        7,
+        2
+    ],
+    "name" : "Starboard",
+    "permissions" : [
+        "embed_links"
+    ],
+    "required_cogs" : {},
+    "requirements" : [],
+    "short" : "Starboard",
+    "tags" : [
+        "starboard",
+        "star"
+    ],
+    "type" : "COG"
+}
