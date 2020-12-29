@@ -5,30 +5,33 @@ import discord
 from redbot.core import Config, commands
 from redbot.core.bot import Red
 
-#Global variables
-KEY_CATGIRL = "catgirls" # Key for JSON files.
-KEY_CATBOY = "catboys" # Key containing other images.
-KEY_IMAGE_URL = "url" # Key for URL
-KEY_ISPIXIV = "is_pixiv" # Key that specifies if image is from pixiv.
+# Global variables
+KEY_CATGIRL = "catgirls"  # Key for JSON files.
+KEY_CATBOY = "catboys"  # Key containing other images.
+KEY_IMAGE_URL = "url"  # Key for URL
+KEY_ISPIXIV = "is_pixiv"  # Key that specifies if image is from pixiv.
 KEY_ISSEIGA = "is_seiga"
-KEY_PIXIV_ID = "id" # Key for Pixiv ID, used to create URL to pixiv image page, if applicable.
+KEY_PIXIV_ID = "id"  # Key for Pixiv ID, used to create URL to pixiv image page, if applicable.
 KEY_SEIGA_ID = "id"
 PREFIX_PIXIV = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id={}"
 PREFIX_SEIGA = "http://seiga.nicovideo.jp/seiga/im{}"
-SAVE_FOLDER = "data/lui-cogs/catgirl/" # Path to save folder.
+SAVE_FOLDER = "data/lui-cogs/catgirl/"  # Path to save folder.
 
-EMPTY = {KEY_CATGIRL : [], KEY_CATBOY : []}
-BASE = \
-{"web" : {KEY_CATGIRL : [{KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
-                          "id" : "null",
-                          "is_pixiv" : False}],
-          KEY_CATBOY : []},
- "local" : EMPTY,
- "localx10" : EMPTY,
- "pending" : EMPTY
+EMPTY = {KEY_CATGIRL: [], KEY_CATBOY: []}
+BASE = {
+    "web": {
+        KEY_CATGIRL: [
+            {KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg", "id": "null", "is_pixiv": False}
+        ],
+        KEY_CATBOY: [],
+    },
+    "local": EMPTY,
+    "localx10": EMPTY,
+    "pending": EMPTY,
 }
 
-class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
+
+class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     """Display cute nyaas~"""
 
     async def refreshDatabase(self):
@@ -121,13 +124,13 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
             # No permission to send, ignore.
             pass
 
-    #[p]catgirl
+    # [p]catgirl
     @commands.command(name="catgirl")
     async def _catgirl(self, ctx):
         """Displays a random, cute catgirl :3"""
         await self.catgirlCmd(ctx)
 
-    #[p]catboy
+    # [p]catboy
     @commands.command(name="catboy")
     async def _catboy(self, ctx):
         """This command says it all (database still WIP)"""
@@ -137,7 +140,7 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
     async def _nyaa(self, ctx):
         """Nekomimi universe!"""
 
-    #[p]nyaa about
+    # [p]nyaa about
     @_nyaa.command(name="about")
     async def about(self, ctx):
         """Displays information about this module"""
@@ -147,46 +150,52 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
         embed.add_field(name="Name", value="Catgirl Module")
         embed.add_field(name="Author", value=customAuthor)
         embed.add_field(name="Initial Version Date", value="2017-02-11")
-        embed.add_field(name="Description",
-                        value="A module to display pseudo-random catgirl images.  Image "
-                        "links are stored in the local database, separated into different "
-                        "lists (depending on if they are hosted locally or on another "
-                        "domain).  See https://github.com/Injabie3/lui-cogs for more info.")
+        embed.add_field(
+            name="Description",
+            value="A module to display pseudo-random catgirl images.  Image "
+            "links are stored in the local database, separated into different "
+            "lists (depending on if they are hosted locally or on another "
+            "domain).  See https://github.com/Injabie3/lui-cogs for more info.",
+        )
         embed.set_footer(text="lui-cogs/catgirl")
         await ctx.send(embed=embed)
 
-    #[p]nyaa catgirl
+    # [p]nyaa catgirl
     @_nyaa.command(name="catgirl")
     async def catgirl(self, ctx):
         """Displays a random, cute catgirl :3"""
         await self.catgirlCmd(ctx)
 
-    #[p]nyaa numbers
+    # [p]nyaa numbers
     @_nyaa.command(name="numbers")
     async def numbers(self, ctx):
         """Displays the number of images in the database."""
-        msg = ("There are:\n"
-               "- **{}** catgirls available.\n"
-               "- **{}** catboys available.\n"
-               "- **{}** pending images.".format(len(self.catgirls),
-                                                 len(self.catboys),
-                                                 len(self.picturesPending[KEY_CATGIRL])))
+        msg = (
+            "There are:\n"
+            "- **{}** catgirls available.\n"
+            "- **{}** catboys available.\n"
+            "- **{}** pending images.".format(
+                len(self.catgirls), len(self.catboys), len(self.picturesPending[KEY_CATGIRL])
+            )
+        )
         await ctx.send(msg)
 
-    #[p]nyaa refresh - Also allow for refresh in a DM to the bot.
+    # [p]nyaa refresh - Also allow for refresh in a DM to the bot.
     @_nyaa.command(pass_context=True, no_pm=False)
     async def refresh(self, ctx):
         """Refreshes the internal database of nekomimi images."""
         await self.refreshDatabase()
-        msg = ("List reloaded.  There are:\n"
-               "- **{}** catgirls available.\n"
-               "- **{}** catboys available.\n"
-               "- **{}** pending images.".format(len(self.catgirls),
-                                                 len(self.catboys),
-                                                 len(self.picturesPending[KEY_CATGIRL])))
+        msg = (
+            "List reloaded.  There are:\n"
+            "- **{}** catgirls available.\n"
+            "- **{}** catboys available.\n"
+            "- **{}** pending images.".format(
+                len(self.catgirls), len(self.catboys), len(self.picturesPending[KEY_CATGIRL])
+            )
+        )
         await ctx.send(msg)
 
-    #[p]nyaa local
+    # [p]nyaa local
     @_nyaa.command(name="local")
     async def local(self, ctx):
         """Displays a random, cute catgirl from the local database."""
@@ -201,7 +210,7 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
             # No permission to send, ignore.
             pass
 
-    #[p]nyaa trap
+    # [p]nyaa trap
     @_nyaa.command(name="trap")
     async def trap(self, ctx):
         """Say no more fam, gotchu covered ;)"""
@@ -216,13 +225,13 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
             # No permission to send, ignore.
             pass
 
-    #[p]nyaa catboy
+    # [p]nyaa catboy
     @_nyaa.command(pass_context=True, no_pm=False)
     async def catboy(self, ctx):
         """Displays a random, cute catboy :3"""
         await self.catboyCmd(ctx)
 
-    #[p] nyaa debug
+    # [p] nyaa debug
     @_nyaa.command()
     async def debug(self, ctx):
         """Sends entire list via DM for debugging."""
@@ -246,7 +255,7 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
         msg += "```"
         await ctx.message.author.send(msg)
 
-    #[p]nyaa add
+    # [p]nyaa add
     @commands.guild_only()
     @_nyaa.command(name="add")
     async def add(self, ctx, link: str, description: str = ""):
@@ -264,17 +273,14 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
         temp["id"] = None
         temp["is_pixiv"] = False
 
-
         self.picturesPending[KEY_CATGIRL].append(temp)
         await self.config.pending.put(self.picturesPending)
 
         # Get owner ID.
-        owner = discord.utils.get(self.bot.get_all_members(),
-                                  id=self.bot.owner_id)
+        owner = discord.utils.get(self.bot.get_all_members(), id=self.bot.owner_id)
 
         try:
-            await owner.send("New catgirl image is pending approval. Please check "
-                             "the list!")
+            await owner.send("New catgirl image is pending approval. Please check " "the list!")
         except discord.errors.InvalidArgument:
             await ctx.send("Added, but could not notify owner.")
         else:
@@ -287,6 +293,7 @@ class Catgirl(commands.Cog): # pylint: disable=too-many-instance-attributes
             random.shuffle(self.catboys)
             random.shuffle(self.catgirlsLocal)
             await asyncio.sleep(3600)
+
 
 def getImage(imageList, title):
     """Pick an image from a list, and construct a discord.Embed object
@@ -308,14 +315,12 @@ def getImage(imageList, title):
     embed.title = title
     embed.url = image[KEY_IMAGE_URL].replace(" ", "%20")
     if KEY_ISPIXIV in image and image[KEY_ISPIXIV]:
-        source = "[{}]({})".format("Original Source",
-                                   PREFIX_PIXIV.format(image[KEY_PIXIV_ID]))
+        source = "[{}]({})".format("Original Source", PREFIX_PIXIV.format(image[KEY_PIXIV_ID]))
         embed.add_field(name="Pixiv", value=source)
         customFooter = "ID: " + image[KEY_PIXIV_ID]
         embed.set_footer(text=customFooter)
     elif KEY_ISSEIGA in image and image[KEY_ISSEIGA]:
-        source = "[{}]({})".format("Original Source",
-                                   PREFIX_SEIGA.format(image[KEY_SEIGA_ID]))
+        source = "[{}]({})".format("Original Source", PREFIX_SEIGA.format(image[KEY_SEIGA_ID]))
         embed.add_field(name="Nico Nico Seiga", value=source)
         customFooter = "ID: {}".format(image[KEY_SEIGA_ID])
         embed.set_footer(text=customFooter)
