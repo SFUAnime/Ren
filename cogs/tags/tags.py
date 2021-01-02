@@ -247,6 +247,7 @@ class Tags(commands.Cog):
         return (False, limit)
 
     @commands.group(name="tag", invoke_without_command=True)
+    @commands.guild_only()
     async def tag(self, ctx: Context, *, name: str):
         """Allows you to tag text for later retrieval.
         If a subcommand is not called, then this will search the tag database
