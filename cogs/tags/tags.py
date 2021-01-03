@@ -246,14 +246,16 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
-    def checkAliasCog(self, name: str=None):
+    def checkAliasCog(self, name: str = None):
         aliasCog = None
         if self.settings.get(KEY_USE_ALIAS, False):
             aliasCog = self.bot.get_cog("Alias")
             if not aliasCog:
                 raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
             elif name and aliasCog.is_command(name):
-                raise RuntimeError("This name cannot be used because there is already an internal command with this name.")
+                raise RuntimeError(
+                    "This name cannot be used because there is already an internal command with this name."
+                )
         return aliasCog
 
     async def canModifyTag(self, tag, member: discord.Member, guild: discord.Guild):
