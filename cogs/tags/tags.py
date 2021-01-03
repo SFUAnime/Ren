@@ -246,6 +246,16 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
+    def checkAliasCog(self, name: str=None):
+        aliasCog = None
+        if self.settings.get(KEY_USE_ALIAS, False):
+            aliasCog = self.bot.get_cog("Alias")
+            if not aliasCog:
+                raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
+            elif name and aliasCog.is_command(name):
+                raise RuntimeError("This name cannot be used because there is already an internal command with this name.")
+        return aliasCog
+
     async def canModifyTag(self, tag, member: discord.Member, guild: discord.Guild):
         """Check to see if a user can modify a given tag.
 
@@ -428,18 +438,10 @@ class Tags(commands.Cog):
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
-            elif aliasCog.is_command(name):
-                await ctx.send(
-                    "This name cannot be used because there is already "
-                    "an internal command with this name."
-                )
-                return
+        try:
+            aliasCog = self.checkAliasCog(name)
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
         if exceedsLimit:
@@ -587,12 +589,10 @@ class Tags(commands.Cog):
         its name and its content. This works similar to the tag
         create command.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
+        try:
+            aliasCog = self.checkAliasCog()
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
         if exceedsLimit:
@@ -844,12 +844,10 @@ class Tags(commands.Cog):
         tags can only be deleted by the bot owner or the tag owner.
         Deleting a tag will delete all of its aliases as well.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
+        try:
+            aliasCog = self.checkAliasCog()
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         lookup = name.lower()
         server = ctx.message.guild
