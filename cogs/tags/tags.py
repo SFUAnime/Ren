@@ -246,6 +246,44 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
+    async def canModifyTag(self, tag, member: discord.Member, guild: discord.Guild):
+        """Check to see if a user can modify a given tag.
+
+        A user can modify a tag if:
+        - They were the original creator.
+        - The user is a server admin.
+        - The user is a server moderator.
+        - The user is a bot owner.
+
+        Parameters
+        ----------
+        tag:
+            The tag that we wish to modify.
+        member: discord.Member
+            The member that wishes to modify a tag.
+        guild: discord.Guild
+            The guild this tag is from.
+
+        Returns
+        -------
+        bool:
+            True if the user can modify the tag, else False.
+        """
+        mod_roles = await self.bot.get_mod_roles(guild)
+        admin_roles = await self.bot.get_admin_roles(guild)
+        sensei = discord.utils.get(guild.roles, name=ALLOWED_ROLE)
+
+        # Check and see if the user requesting the transfer is not the tag owner, or
+        # is not a mod, or is not an admin.
+        if (
+            tag.owner_id != str(member.id)
+            and not list(set(admin_roles) & set(member.roles))
+            and not list(set(mod_roles) & set(member.roles))
+            and not await self.bot.is_owner(member)
+        ):
+            return False
+        return True
+
     @commands.group(name="tag", invoke_without_command=True)
     @commands.guild_only()
     async def tag(self, ctx: Context, *, name: str):
@@ -706,17 +744,7 @@ class Tags(commands.Cog):
             await ctx.send("Cannot edit tag aliases. Remake it if you want to re-point it.")
             return
 
-        mod_roles = await self.bot.get_mod_roles(server)
-        admin_roles = await self.bot.get_admin_roles(server)
-        roles = ctx.author.roles
-
-        # Check and see if the user is not the tag owner, or is not a mod, or is not an admin.
-        if (
-            tag.owner_id != str(ctx.message.author.id)
-            and not list(set(admin_roles) & set(roles))
-            and not list(set(mod_roles) & set(roles))
-            and not await self.bot.is_owner(ctx.author)
-        ):
+        if not await self.canModifyTag(tag, ctx.author, ctx.guild):
             await ctx.send("Only the tag owner can edit this tag.")
             return
 
@@ -749,23 +777,14 @@ class Tags(commands.Cog):
             await ctx.send(e)
             return
 
-        mod_roles = await self.bot.get_mod_roles(server)
-        admin_roles = await self.bot.get_admin_roles(server)
-
-        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
-
-        # Check and see if the user requesting the transfer is not the tag owner, or
-        # is not a mod, or is not an admin.
-        if (
-            tag.owner_id != str(ctx.message.author.id)
-            and not list(set(admin_roles) & set(ctx.author.roles))
-            and not list(set(mod_roles) & set(ctx.author.roles))
-            and not await self.bot.is_owner(ctx.author)
-        ):
+        if not await self.canModifyTag(tag, ctx.author, ctx.guild):
             await ctx.send("Only the tag owner can transfer this tag.")
             return
 
         # Check if the user to transfer to has permissions to create tags
+        mod_roles = await self.bot.get_mod_roles(ctx.guild)
+        admin_roles = await self.bot.get_admin_roles(ctx.guild)
+        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
         if (
             sensei not in user.roles
             and not list(set(admin_roles) & set(user.roles))
