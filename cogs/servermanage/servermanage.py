@@ -4,6 +4,7 @@ import time
 import asyncio
 from datetime import datetime, timedelta
 from os.path import splitext
+from os import remove
 from pathlib import Path
 import discord
 from redbot.core import Config, checks, commands, data_manager
@@ -41,13 +42,13 @@ class ServerManage(commands.Cog):
         self.config.register_guild(**BASE_GUILD)
 
         # Initialize logger, and save to cog folder.
-        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.dataFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.ServerManage")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
             handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
+                filename=str(self.dataFolder) + "/info.log", encoding="utf-8", mode="a"
             )
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
@@ -59,6 +60,7 @@ class ServerManage(commands.Cog):
         # self.bgTask = self.bot.loop.create_task(self.birthdayLoop())
 
     # Cancel the background task on cog unload.
+
     def __unload(self):  # pylint: disable=invalid-name
         # TODO add task later
         # self.bgTask.cancel()
@@ -126,19 +128,18 @@ class ServerManage(commands.Cog):
             return
         except InvalidImageError:
             await ctx.send("Please upload a PNG or GIF image!")
+            return
 
-        await ctx.send("We made it here")
         # Check to see if this exists already
         icons = await self.config.guild(ctx.guild).icons()
         if iconName in icons.keys():
             await ctx.send("This icon already exists!")
             return
 
-        # Save the image.
-        saveFolder = data_manager.cog_data_path(cog_instance=self)
+        # Save the image
         image = ctx.message.attachments[0]
         extension = splitext(image.filename)[1].lower()
-        directory = "{}/{}/icons/".format(str(saveFolder), ctx.guild.id)
+        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
         Path(directory).mkdir(parents=True, exist_ok=True)
         filepath = f"{directory}{iconName}{extension}"
         await ctx.message.attachments[0].save(filepath, use_cached=True)
@@ -146,6 +147,14 @@ class ServerManage(commands.Cog):
             icons[iconName] = {}
             icons[iconName]["filename"] = f"{iconName}{extension}"
         await ctx.send("Icon saved!")
+        self.logger.info(
+            "User %s#%s (%s) added a icon '%s%s'",
+            ctx.message.author.name,
+            ctx.message.author.discriminator,
+            ctx.message.author.id,
+            iconName,
+            extension,
+        )
 
     @serverIcons.command(name="remove", aliases=["del", "delete", "rm"])
     async def iconRemove(self, ctx: Context, iconName: str):
@@ -157,6 +166,34 @@ class ServerManage(commands.Cog):
             The icon name you wish to remove.
         """
 
+        # Check to see if this icon exists in dictionary
+        icons = await self.config.guild(ctx.guild).icons()
+        if iconName not in icons.keys():
+            await ctx.send("This icon dosent exist!")
+            return
+
+        # Delete image
+        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
+        fileName = icons[iconName]["filename"]
+        try:
+            remove(f"{directory}{fileName}")
+
+        except FileNotFoundError:
+            self.logger.error("File does not exist %s", fileName)
+
+        # Delete key from dictonary
+        async with self.config.guild(ctx.guild).icons() as icons:
+            del icons[iconName]
+
+        await ctx.send("Icon deleted!")
+        self.logger.info(
+            "User %s#%s (%s) deleted a icon '%s'",
+            ctx.message.author.name,
+            ctx.message.author.discriminator,
+            ctx.message.author.id,
+            fileName,
+        )
+
     @serverIcons.command(name="show")
     async def iconShow(self, ctx: Context, iconName: str):
         """Show a server icon from the database.
@@ -166,6 +203,24 @@ class ServerManage(commands.Cog):
         iconName: str
             The icon name you wish to show.
         """
+
+        # Check to see if this icon exists in dictionary
+        icons = await self.config.guild(ctx.guild).icons()
+        if iconName not in icons.keys():
+            await ctx.send("This icon dosent exist!")
+            return
+
+        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
+        fileName = icons[iconName]["filename"]
+
+        # Send file to discord
+        try:
+            iconImage = discord.File(f"{directory}{fileName}", filename=fileName)
+            await ctx.send(file=iconImage)
+
+        except FileNotFoundError:
+            await ctx.send(":warning: Error: The file does not exist")
+            self.logger.error("File does not exist %s", fileName)
 
     @serverIcons.command(name="list", aliases=["ls"])
     async def iconList(self, ctx: Context):
