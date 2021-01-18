@@ -2,7 +2,6 @@
 
 # SFU Anime Club - Ren
 [![discord.py](https://img.shields.io/badge/discord-py-blue.svg)](https://github.com/Rapptz/discord.py)
-[![Build Status](https://api.travis-ci.org/SFUAnime/Ren.svg?branch=V3/prod)](https://travis-ci.org/SFUAnime/Ren)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 **Ren** is one of SFU Anime Club's mascots, and is also our main Discord bot. It is a
