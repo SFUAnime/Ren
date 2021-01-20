@@ -17,6 +17,7 @@ from threading import Lock
 
 import asyncio
 import discord
+from os.path import isfile, join
 import logging
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
@@ -126,8 +127,19 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        #if tags.json doesnt exist, create it 
+        universal_path = join(str(saveFolder), "tags.json") 
+        print(universal_path)
+        if not isfile(universal_path):
+            with open(universal_path, "w+") as f:
+                empty = dict()
+                
+
+                json.dump(empty, f)
+
+
         self.config = Config(
-            saveFolder,
+            str(saveFolder),
             "tags.json",
             encoder=TagEncoder,
             object_hook=tag_decoder,
