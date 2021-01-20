@@ -127,16 +127,14 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
-        #if tags.json doesnt exist, create it 
-        universal_path = join(str(saveFolder), "tags.json") 
+        # if tags.json doesnt exist, create it
+        universal_path = join(str(saveFolder), "tags.json")
         print(universal_path)
         if not isfile(universal_path):
             with open(universal_path, "w+") as f:
                 empty = dict()
-                
 
                 json.dump(empty, f)
-
 
         self.config = Config(
             str(saveFolder),
