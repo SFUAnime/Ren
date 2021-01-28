@@ -17,6 +17,7 @@ from threading import Lock
 
 import asyncio
 import discord
+from os.path import isfile, join
 import logging
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
@@ -126,8 +127,15 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        # if tags.json doesnt exist, create it
+        universal_path = join(str(saveFolder), "tags.json")
+        if not isfile(universal_path):
+            with open(universal_path, "w+") as f:
+                empty = dict()
+                json.dump(empty, f)
+
         self.config = Config(
-            saveFolder,
+            str(saveFolder),
             "tags.json",
             encoder=TagEncoder,
             object_hook=tag_decoder,
@@ -246,7 +254,58 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
+    def checkAliasCog(self, name: str = None):
+        aliasCog = None
+        if self.settings.get(KEY_USE_ALIAS, False):
+            aliasCog = self.bot.get_cog("Alias")
+            if not aliasCog:
+                raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
+            elif name and aliasCog.is_command(name):
+                raise RuntimeError(
+                    "This name cannot be used because there is already an internal command with this name."
+                )
+        return aliasCog
+
+    async def canModifyTag(self, tag, member: discord.Member, guild: discord.Guild):
+        """Check to see if a user can modify a given tag.
+
+        A user can modify a tag if:
+        - They were the original creator.
+        - The user is a server admin.
+        - The user is a server moderator.
+        - The user is a bot owner.
+
+        Parameters
+        ----------
+        tag:
+            The tag that we wish to modify.
+        member: discord.Member
+            The member that wishes to modify a tag.
+        guild: discord.Guild
+            The guild this tag is from.
+
+        Returns
+        -------
+        bool:
+            True if the user can modify the tag, else False.
+        """
+        mod_roles = await self.bot.get_mod_roles(guild)
+        admin_roles = await self.bot.get_admin_roles(guild)
+        sensei = discord.utils.get(guild.roles, name=ALLOWED_ROLE)
+
+        # Check and see if the user requesting the transfer is not the tag owner, or
+        # is not a mod, or is not an admin.
+        if (
+            tag.owner_id != str(member.id)
+            and not list(set(admin_roles) & set(member.roles))
+            and not list(set(mod_roles) & set(member.roles))
+            and not await self.bot.is_owner(member)
+        ):
+            return False
+        return True
+
     @commands.group(name="tag", invoke_without_command=True)
+    @commands.guild_only()
     async def tag(self, ctx: Context, *, name: str):
         """Allows you to tag text for later retrieval.
         If a subcommand is not called, then this will search the tag database
@@ -389,18 +448,10 @@ class Tags(commands.Cog):
         tag that can be accessed in all servers. Otherwise the tag you
         create can only be accessed in the server that it was created in.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
-            elif aliasCog.is_command(name):
-                await ctx.send(
-                    "This name cannot be used because there is already "
-                    "an internal command with this name."
-                )
-                return
+        try:
+            aliasCog = self.checkAliasCog(name)
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
         if exceedsLimit:
@@ -548,12 +599,10 @@ class Tags(commands.Cog):
         its name and its content. This works similar to the tag
         create command.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
+        try:
+            aliasCog = self.checkAliasCog()
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
         if exceedsLimit:
@@ -705,17 +754,7 @@ class Tags(commands.Cog):
             await ctx.send("Cannot edit tag aliases. Remake it if you want to re-point it.")
             return
 
-        mod_roles = await self.bot.get_mod_roles(server)
-        admin_roles = await self.bot.get_admin_roles(server)
-        roles = ctx.author.roles
-
-        # Check and see if the user is not the tag owner, or is not a mod, or is not an admin.
-        if (
-            tag.owner_id != str(ctx.message.author.id)
-            and not list(set(admin_roles) & set(roles))
-            and not list(set(mod_roles) & set(roles))
-            and not await self.bot.is_owner(ctx.author)
-        ):
+        if not await self.canModifyTag(tag, ctx.author, ctx.guild):
             await ctx.send("Only the tag owner can edit this tag.")
             return
 
@@ -748,23 +787,14 @@ class Tags(commands.Cog):
             await ctx.send(e)
             return
 
-        mod_roles = await self.bot.get_mod_roles(server)
-        admin_roles = await self.bot.get_admin_roles(server)
-
-        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
-
-        # Check and see if the user requesting the transfer is not the tag owner, or
-        # is not a mod, or is not an admin.
-        if (
-            tag.owner_id != str(ctx.message.author.id)
-            and not list(set(admin_roles) & set(ctx.author.roles))
-            and not list(set(mod_roles) & set(ctx.author.roles))
-            and not await self.bot.is_owner(ctx.author)
-        ):
+        if not await self.canModifyTag(tag, ctx.author, ctx.guild):
             await ctx.send("Only the tag owner can transfer this tag.")
             return
 
         # Check if the user to transfer to has permissions to create tags
+        mod_roles = await self.bot.get_mod_roles(ctx.guild)
+        admin_roles = await self.bot.get_admin_roles(ctx.guild)
+        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
         if (
             sensei not in user.roles
             and not list(set(admin_roles) & set(user.roles))
@@ -824,12 +854,10 @@ class Tags(commands.Cog):
         tags can only be deleted by the bot owner or the tag owner.
         Deleting a tag will delete all of its aliases as well.
         """
-        # TODO Consolidate into helper method later.
-        if self.settings.get(KEY_USE_ALIAS, False):
-            aliasCog = self.bot.get_cog("Alias")
-            if not aliasCog:
-                await ctx.send("Could not access the Alias cog. Please load it and " "try again.")
-                return
+        try:
+            aliasCog = self.checkAliasCog()
+        except RuntimeError as error:
+            return await ctx.send(error)
 
         lookup = name.lower()
         server = ctx.message.guild
