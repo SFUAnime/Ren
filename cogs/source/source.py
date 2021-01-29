@@ -3,7 +3,7 @@ import tracemoepy
 from tracemoepy.errors import EmptyImage, EntityTooLarge, ServerError, TooManyRequests
 
 
-async def postSourceFunction(self, ctx, imageURL):
+async def postSourceFunction(ctx, imageURL):
     """helper method"""
     try:
         tracemoe = tracemoepy.tracemoe.TraceMoe()
@@ -65,7 +65,7 @@ class Source(commands.Cog):
             return
         else:
             imageURL = ctx.message.attachments[0].url
-            await postSourceFunction(self, ctx, imageURL)
+            await postSourceFunction(ctx, imageURL)
             return
 
     @sourceCommand.command(name="url")
@@ -76,4 +76,4 @@ class Source(commands.Cog):
         -----------
         imageURL: a url pointing to a image from an anime episode. Can be surrounded with <> to suppress embeds in Discord
         """
-        await postSourceFunction(self, ctx, imageURL)
+        await postSourceFunction(ctx, imageURL)
