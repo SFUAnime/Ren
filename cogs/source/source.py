@@ -23,7 +23,6 @@ class Source(commands.Cog):
             await postSourceFunction(self, ctx, imageURL)
             return
 
-
     # @commands.command()
     @sourceCommand.command(name="url")
     async def urlSource(self, ctx, imageURL):

@@ -1,9 +1,9 @@
 import tracemoepy
 from tracemoepy.errors import EmptyImage, EntityTooLarge, ServerError, TooManyRequests
 
+
 async def postSourceFunction(self, ctx, imageURL):
-    """helper method
-    """
+    """helper method"""
     try:
         tracemoe = tracemoepy.tracemoe.TraceMoe()
         result = tracemoe.search(imageURL.strip("<>"), is_url=True)
