@@ -20,15 +20,12 @@ class Source(commands.Cog):
         make sure to attach a png or jpg image, or type 'source url URL_HERE'
         """
 
-        helpmsg = "Looks for source of image\nMake sure to attach a png or jpg image, or type 'source url URL_HERE'"
         tracemoe = tracemoepy.tracemoe.TraceMoe()
         try:
             await ctx.trigger_typing()
             try:
                 attachment = ctx.message.attachments[0].url
             except:
-                # await ctx.send(helpmsg)
-                # await self.bot.send_help_for(self, command="source")
                 await ctx.send_help(command="source")
                 return
             result = tracemoe.search(attachment.strip("<>"), is_url=True)
