@@ -1,7 +1,6 @@
 from redbot.core import commands
 import tracemoepy
 from tracemoepy.errors import EmptyImage, EntityTooLarge, ServerError, TooManyRequests
-import math
 from discord import Embed
 
 
@@ -29,10 +28,10 @@ class Source(commands.Cog):
                 await ctx.send_help(command="source")
                 return
             result = tracemoe.search(attachment.strip("<>"), is_url=True)
-            titleEnglish = f"{result.docs[0].title_english}"
-            anilistID = f"{result.docs[0].anilist_id}"
-            episode = f"{result.docs[0].episode}"
-            similarity = float(f"{result.docs[0].similarity}")
+            titleEnglish = result.docs[0].title_english
+            anilistID = result.docs[0].anilist_id
+            episode = result.docs[0].episode
+            similarity = float(result.docs[0].similarity)
             URL = "https://anilist.co/anime/" + anilistID
 
             # embed = Embed(title=titleEnglish, url=URL)
