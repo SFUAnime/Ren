@@ -13,8 +13,7 @@ class Source(commands.Cog):
     # @commands.command()
     @commands.group(name="source", invoke_without_command=True)
     async def sourceCommand(self, ctx):
-        """
-        Looks for source of image
+        """Looks for source of image
 
         Parameters:
         -----------
