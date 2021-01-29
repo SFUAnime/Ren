@@ -86,8 +86,7 @@ class Source(commands.Cog):
     # @commands.command()
     @sourceCommand.command(name="url")
     async def urlSource(self, ctx, imageURL):
-        """
-        Looks for source of image
+        """Looks for source of image
 
         Parameters:
         -----------
