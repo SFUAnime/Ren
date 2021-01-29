@@ -1,9 +1,6 @@
 from redbot.core import commands
 import tracemoepy
-from tracemoepy.errors import TooManyRequests
-from tracemoepy.errors import EntityTooLarge
-from tracemoepy.errors import ServerError
-from tracemoepy.errors import EmptyImage
+from tracemoepy.errors import EmptyImage, EntityTooLarge, ServerError, TooManyRequests
 import math
 from discord import Embed
 
