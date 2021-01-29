@@ -87,7 +87,7 @@ class Source(commands.Cog):
 
         Parameters:
         -----------
-        imageURL: a url pointing to a image from an anime episode. Can be surrounded with < or > to supressed embeds in discord
+        imageURL: a url pointing to a image from an anime episode. Can be surrounded with <> to suppress embeds in Discord
         """
         tracemoe = tracemoepy.tracemoe.TraceMoe()
         try:
