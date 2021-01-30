@@ -8,16 +8,7 @@ import discord
 from redbot.core import commands, data_manager, Config
 from PIL import Image, ImageChops, ImageOps
 
-SAVE_FOLDER = "data/lui-cogs/triggered/"  # Path to save folder.
-SAVE_FILE = "settings.json"
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
-
-# def checkFolder():
-#     """Used to create the data folder at first startup"""
-#     if not os.path.exists(SAVE_FOLDER):
-#         print("Creating " + SAVE_FOLDER + " folder...")
-#         os.makedirs(SAVE_FOLDER)
-
 
 class Triggered(commands.Cog):
     """We triggered, fam."""
@@ -34,13 +25,13 @@ class Triggered(commands.Cog):
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user)
+            savePath = await self._createTrigger(user, False)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(savePath))
 
-    async def _createTrigger(self, user):
+    async def _createTrigger(self, user, deepFry):
         """Fetches the user's avatar, and creates a triggered GIF
         Parameters:
         -----------
@@ -82,10 +73,3 @@ class Triggered(commands.Cog):
             savePath, format="GIF", append_images=images, save_all=True, duration=25, loop=0
         )
         return savePath
-
-
-# def setup(bot):
-#     """Add the cog to the bot."""
-#     checkFolder()
-#     customCog = Triggered(bot)
-#     bot.add_cog(customCog)
