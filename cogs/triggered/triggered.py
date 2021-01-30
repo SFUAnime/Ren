@@ -1,4 +1,3 @@
-  
 """Triggered cog
 `triggered from spoopy.
 """
@@ -6,37 +5,40 @@
 import os
 import urllib.request
 import discord
-from discord.ext import commands
+from redbot.core import commands, data_manager, Config
 from PIL import Image, ImageChops, ImageOps
 
-SAVE_FOLDER = "data/lui-cogs/triggered/" # Path to save folder.
+SAVE_FOLDER = "data/lui-cogs/triggered/"  # Path to save folder.
 SAVE_FILE = "settings.json"
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
 
-def checkFolder():
-    """Used to create the data folder at first startup"""
-    if not os.path.exists(SAVE_FOLDER):
-        print("Creating " + SAVE_FOLDER + " folder...")
-        os.makedirs(SAVE_FOLDER)
+# def checkFolder():
+#     """Used to create the data folder at first startup"""
+#     if not os.path.exists(SAVE_FOLDER):
+#         print("Creating " + SAVE_FOLDER + " folder...")
+#         os.makedirs(SAVE_FOLDER)
 
-class Triggered:
+
+class Triggered(commands.Cog):
     """We triggered, fam."""
 
     # Class constructor
     def __init__(self, bot):
         self.bot = bot
+        self.saveFolder = data_manager.cog_data_path(cog_instance=self)
 
     @commands.command(name="triggered", pass_context=True)
     async def triggered(self, ctx, user: discord.Member = None):
         """Are you triggered? Say no more."""
         if not user:
             user = ctx.message.author
-        await self.bot.send_typing(ctx.message.channel)
-        savePath = await self._createTrigger(user)
-        if not savePath:
-            await self.bot.say("Something went wrong, try again.")
-            return
-        await self.bot.send_file(ctx.message.channel, savePath)
+        async with ctx.typing():
+            # bot is typing here...
+            savePath = await self._createTrigger(user)
+            if not savePath:
+                await self.bot.say("Something went wrong, try again.")
+                return
+            await ctx.send(file=discord.File(savePath))
 
     async def _createTrigger(self, user):
         """Fetches the user's avatar, and creates a triggered GIF
@@ -47,8 +49,8 @@ class Triggered:
         --------
         savePath: str, or None
         """
-        path = "{}{}.png".format(SAVE_FOLDER, user.id)
-        savePath = "{}{}-trig.gif".format(SAVE_FOLDER, user.id)
+        path = os.path.join(self.saveFolder, "{}.png".format(user.id))
+        savePath = os.path.join(self.saveFolder, "{}-trig.gif".format(user.id))
 
         opener = urllib.request.build_opener()
         # We need a custom header or else we get a HTTP 403 Unauthorized
@@ -68,9 +70,7 @@ class Triggered:
         if not avatar:
             return
 
-        offsets = [(15, 15), (5, 10), (-15, -15),
-                   (10, -10), (10, 0), (-15, 10),
-                   (10, -5)]
+        offsets = [(15, 15), (5, 10), (-15, -15), (10, -10), (10, 0), (-15, 10), (10, -5)]
         images = []
 
         for xcoord, ycoord in offsets:
@@ -78,17 +78,14 @@ class Triggered:
             image = ImageOps.crop(image, 15)
             images.append(image)
         avatar = ImageOps.crop(avatar, 15)
-        avatar.save(savePath, format="GIF",
-                    append_images=images,
-                    save_all=True,
-                    duration=25,
-                    loop=0)
+        avatar.save(
+            savePath, format="GIF", append_images=images, save_all=True, duration=25, loop=0
+        )
         return savePath
 
 
-
-def setup(bot):
-    """Add the cog to the bot."""
-    checkFolder()
-    customCog = Triggered(bot)
-    bot.add_cog(customCog)
+# def setup(bot):
+#     """Add the cog to the bot."""
+#     checkFolder()
+#     customCog = Triggered(bot)
+#     bot.add_cog(customCog)
