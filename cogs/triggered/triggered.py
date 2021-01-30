@@ -19,7 +19,7 @@ def checkFolder():
         print("Creating " + SAVE_FOLDER + " folder...")
         os.makedirs(SAVE_FOLDER)
 
-class Triggered: # pylint: disable=too-few-public-methods
+class Triggered:
     """We triggered, fam."""
 
     # Class constructor
