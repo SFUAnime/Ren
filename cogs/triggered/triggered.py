@@ -5,8 +5,8 @@
 import os
 import urllib.request
 import discord
-from redbot.core import commands, data_manager, Config
-from PIL import Image, ImageChops, ImageOps
+from redbot.core import commands, data_manager
+from PIL import Image, ImageChops, ImageOps, ImageFilter, ImageEnhance
 
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
 
@@ -19,37 +19,53 @@ class Triggered(commands.Cog):
         self.bot = bot
         self.saveFolder = data_manager.cog_data_path(cog_instance=self)
 
-    @commands.command(name="triggered", pass_context=True)
+    @commands.command(name="triggered")
     async def triggered(self, ctx, user: discord.Member = None):
         """Are you triggered? Say no more."""
         if not user:
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, False)
+            savePath = await self._createTrigger(user, False, False)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(savePath))
 
-    @commands.command(name="triggered", pass_context=True)
+    @commands.command(name="reallytriggered")
     async def hypertriggered(self, ctx, user: discord.Member = None):
         """Are you triggered? Say no more."""
         if not user:
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, True)
+            savePath = await self._createTrigger(user, False, True)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(savePath))
 
-    async def _createTrigger(self, user, deepFry):
+    @commands.command(name="hypertriggered")
+    async def deepfry(self, ctx, user: discord.Member = None):
+        """Are you triggered? Say no more."""
+        if not user:
+            user = ctx.message.author
+        async with ctx.typing():
+            # bot is typing here...
+            savePath = await self._createTrigger(user, True, False)
+            if not savePath:
+                await self.bot.say("Something went wrong, try again.")
+                return
+            await ctx.send(file=discord.File(savePath))
+
+    async def _createTrigger(self, user, deepFry, hyper):
         """Fetches the user's avatar, and creates a triggered GIF
         Parameters:
         -----------
         user: discord.Member
+        deepFry: bool
+        hyper: bool
+
         Returns:
         --------
         savePath: str, or None
@@ -78,13 +94,23 @@ class Triggered(commands.Cog):
         offsets = [(15, 15), (5, 10), (-15, -15), (10, -10), (10, 0), (-15, 10), (10, -5)]
         images = []
 
+        # if hyper mode is set
+        if hyper:
+            red_overlay = Image.new(mode="RGBA", size=avatar.size, color=(255, 0, 0, 255))
+            mask = Image.new(mode="RGBA", size=avatar.size, color=(255, 255, 255, 127))
+            avatar = Image.composite(avatar, red_overlay, mask)
+
+        if deepFry:
+            avatar = ImageEnhance.Color(avatar).enhance(5)
+            avatar = ImageEnhance.Sharpness(avatar).enhance(24)
+            avatar = ImageEnhance.Contrast(avatar).enhance(4)
+
         for xcoord, ycoord in offsets:
             image = ImageChops.offset(avatar, xcoord, ycoord)
             image = ImageOps.crop(image, 15)
-            if deepFry:
-                red_overlay = PIL.Image.new()
             images.append(image)
         avatar = ImageOps.crop(avatar, 15)
+
         avatar.save(
             savePath, format="GIF", append_images=images, save_all=True, duration=25, loop=0
         )
