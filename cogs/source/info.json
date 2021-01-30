@@ -1,0 +1,10 @@
+{
+    "author" : ["Thomas"],
+    "install_msg" : "A collection of cogs, transferred over from nicobot I helped develop",
+    "name" : "eilacogs",
+    "short" : "eilacogs?",
+    "description" : "Some cogs transferred over from nicobot which I helped develop",
+    "min_python_version": [3, 8, 1],
+    "requirements": ["tracemoepy"],
+	"tags": []
+}
