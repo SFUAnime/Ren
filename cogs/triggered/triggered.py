@@ -10,6 +10,7 @@ from PIL import Image, ImageChops, ImageOps
 
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
 
+
 class Triggered(commands.Cog):
     """We triggered, fam."""
 
@@ -26,6 +27,19 @@ class Triggered(commands.Cog):
         async with ctx.typing():
             # bot is typing here...
             savePath = await self._createTrigger(user, False)
+            if not savePath:
+                await self.bot.say("Something went wrong, try again.")
+                return
+            await ctx.send(file=discord.File(savePath))
+
+    @commands.command(name="triggered", pass_context=True)
+    async def hypertriggered(self, ctx, user: discord.Member = None):
+        """Are you triggered? Say no more."""
+        if not user:
+            user = ctx.message.author
+        async with ctx.typing():
+            # bot is typing here...
+            savePath = await self._createTrigger(user, True)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
@@ -67,6 +81,8 @@ class Triggered(commands.Cog):
         for xcoord, ycoord in offsets:
             image = ImageChops.offset(avatar, xcoord, ycoord)
             image = ImageOps.crop(image, 15)
+            if deepFry:
+                red_overlay = PIL.Image.new()
             images.append(image)
         avatar = ImageOps.crop(avatar, 15)
         avatar.save(
