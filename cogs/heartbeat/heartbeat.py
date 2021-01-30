@@ -50,6 +50,9 @@ class Heartbeat(commands.Cog):
         LOGGER.info("Cancelling heartbeat")
         self.bgTask.cancel()
 
+    def cog_unload(self):
+        self.__unload()
+
     @commands.command(name="heartbeat", aliases=["hb"])
     @commands.guild_only()
     async def _check(self, ctx: Context):

@@ -43,6 +43,9 @@ class TempChannels(commands.Cog):
     def __unload(self):  # pylint: disable=invalid-name
         self.bgTask.cancel()
 
+    def cog_unload(self):
+        self.__unload()
+
     async def _syncSettings(self):
         """Force settings to file and reload."""
         await self.config.put(KEY_SETTINGS, self.settings)
