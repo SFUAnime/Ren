@@ -7,6 +7,9 @@ import urllib.request
 import discord
 from redbot.core import commands, data_manager
 from PIL import Image, ImageChops, ImageOps, ImageFilter, ImageEnhance
+from enum import Enum
+
+Modes = Enum("Modes", "triggered reallytriggered hypertriggered")
 
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
 
@@ -26,7 +29,7 @@ class Triggered(commands.Cog):
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, False, False)
+            savePath = await self._createTrigger(user, mode=Modes.triggered)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
@@ -34,12 +37,12 @@ class Triggered(commands.Cog):
 
     @commands.command(name="reallytriggered")
     async def hypertriggered(self, ctx, user: discord.Member = None):
-        """Are you triggered? Say no more."""
+        """Are you in an elevated state of triggered? Say no more."""
         if not user:
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, False, True)
+            savePath = await self._createTrigger(user, mode=Modes.reallytriggered)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
@@ -47,24 +50,23 @@ class Triggered(commands.Cog):
 
     @commands.command(name="hypertriggered")
     async def deepfry(self, ctx, user: discord.Member = None):
-        """Are you triggered? Say no more."""
+        """Are you incredibly triggered? Say no more."""
         if not user:
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, True, False)
+            savePath = await self._createTrigger(user, mode=Modes.hypertriggered)
             if not savePath:
                 await self.bot.say("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(savePath))
 
-    async def _createTrigger(self, user, deepFry, hyper):
-        """Fetches the user's avatar, and creates a triggered GIF
+    async def _createTrigger(self, user, mode=Modes.triggered):
+        """Fetches the user's avatar, and creates a triggered GIF, applies additional PIL image transformations based on specified mode
         Parameters:
         -----------
         user: discord.Member
-        deepFry: bool
-        hyper: bool
+        mode: Mode
 
         Returns:
         --------
@@ -95,12 +97,12 @@ class Triggered(commands.Cog):
         images = []
 
         # if hyper mode is set
-        if hyper:
+        if mode == Modes.reallytriggered:
             red_overlay = Image.new(mode="RGBA", size=avatar.size, color=(255, 0, 0, 255))
             mask = Image.new(mode="RGBA", size=avatar.size, color=(255, 255, 255, 127))
             avatar = Image.composite(avatar, red_overlay, mask)
 
-        if deepFry:
+        elif mode == Modes.hypertriggered:
             avatar = ImageEnhance.Color(avatar).enhance(5)
             avatar = ImageEnhance.Sharpness(avatar).enhance(24)
             avatar = ImageEnhance.Contrast(avatar).enhance(4)
