@@ -310,10 +310,11 @@ class Ranks(commands.Cog):
         if fetch != 0:  # This user has past XP that we can add to.
             result = cursor.fetchall()
             currentXP = result[0][0] + pointsToAdd
+            self.logger.debug("%s - old EXP: %s, new EXP: %s", userID, result[0][0], currentXP)
         else:  # New user
             currentXP = pointsToAdd
+            self.logger.debug("%s - no EXP, new EXP: %s", userID, currentXP)
 
-        self.logger.debug("%s - old EXP: %s, new EXP: %s", userID, result[0][0], currentXP)
         cursor.execute(
             "REPLACE INTO renbot.xp (userid, guildid, xp) VALUES "
             f"({userID}, {guild.id}, {currentXP})"
