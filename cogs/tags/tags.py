@@ -5,8 +5,10 @@
 
 from .config import Config
 from .constants import *
+from .exceptions import *
 from .rolecheck import role_or_mod_or_permissions
 
+from copy import deepcopy
 import csv
 import json
 import re
@@ -17,6 +19,7 @@ from threading import Lock
 
 import asyncio
 import discord
+from os.path import isfile, join
 import logging
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
@@ -126,8 +129,15 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        # if tags.json doesnt exist, create it
+        universal_path = join(str(saveFolder), "tags.json")
+        if not isfile(universal_path):
+            with open(universal_path, "w+") as f:
+                empty = dict()
+                json.dump(empty, f)
+
         self.config = Config(
-            saveFolder,
+            str(saveFolder),
             "tags.json",
             encoder=TagEncoder,
             object_hook=tag_decoder,
@@ -138,6 +148,8 @@ class Tags(commands.Cog):
         self.configV3 = ConfigV3.get_conf(self, identifier=5842647, force_registration=True)
         self.configV3.register_guild(**BASE)  # Register default (empty) settings.
         self.lock = Lock()
+        tagGroup = self.get_commands()[0]
+        self.tagCommands = tagGroup.all_commands.keys()
 
     def get_database_location(self, message: discord.Message):
         """Get the database of tags.
@@ -257,6 +269,15 @@ class Tags(commands.Cog):
                     "This name cannot be used because there is already an internal command with this name."
                 )
         return aliasCog
+
+    def checkValidCommandName(self, name: str):
+        """Check to see if we can use the name as a tag"""
+        if name in self.tagCommands:
+            raise ReservedTagNameError("This tag name is reserved, please use a different name!")
+        if any(char.isspace() for char in name):
+            raise SpaceInTagNameError(
+                "There is a space in the tag name, please use a different name!"
+            )
 
     async def canModifyTag(self, tag, member: discord.Member, guild: discord.Guild):
         """Check to see if a user can modify a given tag.
@@ -442,6 +463,7 @@ class Tags(commands.Cog):
         """
         try:
             aliasCog = self.checkAliasCog(name)
+            self.checkValidCommandName(name)
         except RuntimeError as error:
             return await ctx.send(error)
 
@@ -630,6 +652,13 @@ class Tags(commands.Cog):
             return
 
         lookup = name.content.lower()
+
+        try:
+            self.checkValidCommandName(lookup)
+        except RuntimeError as error:
+            await ctx.send(f"{error}")
+            return
+
         if lookup in db:
             fmt = (
                 "Sorry. A tag with that name exists already. Redo the command {0.prefix}tag make."
@@ -835,6 +864,63 @@ class Tags(commands.Cog):
             await ctx.send(
                 "Tag has been rejected by {}. Transfer has been " "cancelled.".format(user.name)
             )
+
+    @tag.command(name="rename")
+    async def rename(self, ctx: Context, oldName: str, newName: str):
+        """Renames a tag.
+
+        This is useful to help preserve tag statistics.
+
+        Parameters
+        ----------
+        oldName: str
+            The old tag name.
+        newName: str
+            The new tag name.
+        """
+        try:
+            aliasCog = self.checkAliasCog(newName)
+            self.checkValidCommandName(newName)
+        except RuntimeError as error:
+            return await ctx.send(error)
+
+        newName = newName.lower().strip()
+        oldName = oldName.lower()
+        try:
+            self.verify_lookup(newName)
+            tag = self.get_tag(ctx.guild, oldName, redirect=False)
+        except RuntimeError as e:
+            return await ctx.send(e)
+
+        location = self.get_database_location(ctx.message)
+        db = self.config.get(location, {})
+        if newName in db:
+            await ctx.send('A tag with the name of "{}" already exists.'.format(newName))
+            return
+
+        mod_roles = await self.bot.get_mod_roles(ctx.guild)
+        admin_roles = await self.bot.get_admin_roles(ctx.guild)
+        roles = ctx.author.roles
+
+        # Check and see if the user is not the tag owner, or is not a mod, or is not an admin.
+        if (
+            tag.owner_id != str(ctx.message.author.id)
+            and not list(set(admin_roles) & set(roles))
+            and not list(set(mod_roles) & set(roles))
+            and not await self.bot.is_owner(ctx.author)
+        ):
+            await ctx.send("Only the tag owner can rename this tag.")
+            return
+
+        db[newName] = deepcopy(db[oldName])
+        del db[oldName]
+
+        await self.config.put(location, db)
+        if self.settings.get(KEY_USE_ALIAS, False):
+            # Alias is already loaded.
+            await aliasCog.add_alias(ctx, newName, "tag {}".format(newName))
+            await aliasCog.del_alias(ctx, oldName)
+        await ctx.send('Tag "{}" successfully renamed to "{}".'.format(oldName, newName))
 
     @tag.command(name="delete", aliases=["del", "remove", "rm"])
     @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
@@ -1165,3 +1251,47 @@ class Tags(commands.Cog):
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will " "be sent **in a DM**."
             )
+
+    @tag.command(name="runtests")
+    @checks.is_owner()
+    async def runTests(self, ctx: Context):
+        """Run tests."""
+        # Test checkValidCommandName
+        name = "validtagname"
+        self.checkValidCommandName(name)
+        name = "add"
+        try:
+            self.checkValidCommandName(name)
+        except ReservedTagNameError:
+            pass
+
+        name = "name with space"
+        try:
+            self.checkValidCommandName(name)
+        except SpaceInTagNameError:
+            pass
+
+        # Test rename command after creating
+        await ctx.invoke(self.create, name="runTestCommandTest1", content="This is a test tag")
+        location = self.get_database_location(ctx.message)
+        db = self.config.get(location, {})
+        assert "runTestCommandTest1".lower() in db
+        await ctx.invoke(self.rename, oldName="runTestCommandTest1", newName="runTestCommandTest2")
+        db = self.config.get(location, {})
+        assert "runTestCommandTest1".lower() not in db
+        assert "runTestCommandTest2".lower() in db
+
+        # Test renaming to a command, this should not work.
+        await ctx.invoke(self.rename, oldName="runTestCommandTest2", newName="add")
+        db = self.config.get(location, {})
+        assert "runTestCommandTest2".lower() in db
+        assert "add".lower() not in db
+        await ctx.invoke(self.remove, name="runTestCommandTest2")
+
+        # Test renaming a non-existent command
+        await ctx.invoke(self.rename, oldName="runTestCommandTest1", newName="runTestCommandTest2")
+        db = self.config.get(location, {})
+        assert "runTestCommandTest1".lower() not in db
+        assert "runTestCommandTest2".lower() not in db
+
+        await ctx.send("Tests passed!")

@@ -311,14 +311,17 @@ class Highlight(commands.Cog):
         def check(msg):
             return msg.author == ctx.message.author and msg.channel == ctx.message.channel
 
-        response = await self.bot.wait_for("message", timeout=10, check=check)
-
-        if response.content.lower() == "yes":
-            async with self.config.member(ctx.author).blacklist() as userBl:
-                userBl.clear()
-            await ctx.send("Your highlight blacklist was cleared.")
+        try:
+            response = await self.bot.wait_for("message", timeout=10, check=check)
+        except asyncio.TimeoutError:
+            pass
         else:
-            await ctx.send("Not clearing your blacklist.")
+            if response.content.lower() == "yes":
+                async with self.config.member(ctx.author).blacklist() as userBl:
+                    userBl.clear()
+                await ctx.send("Your highlight blacklist was cleared.")
+                return
+        await ctx.send("Not clearing your blacklist.")
 
     @userBlacklist.command(name="list", aliases=["ls"])
     @commands.guild_only()

@@ -1,0 +1,2 @@
+class YOURLSNotConfigured(RuntimeError):
+    pass

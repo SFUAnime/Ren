@@ -26,7 +26,7 @@ class Config:
 
     def load_from_file(self):
         try:
-            with open(self.directory + self.name, "r") as f:
+            with open(os.path.join(self.directory, self.name), "r") as f:
                 self._db = json.load(f, object_hook=self.object_hook)
         except FileNotFoundError:
             self._db = {}
@@ -43,7 +43,7 @@ class Config:
             )
 
         # atomically move the file
-        os.replace(temp, self.directory + self.name)
+        os.replace(temp, os.path.join(self.directory, self.name))
 
     async def save(self):
         async with self.lock:
