@@ -12,7 +12,7 @@ from redbot.core.commands.context import Context
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
 
-BASE_GUILD = {"icons": {}, "dates": {}}
+BASE_GUILD = {"icons": {}, "iconDates": {}}
 
 
 class Exceptions(Exception):
@@ -69,7 +69,7 @@ class ServerManage(commands.Cog):
     async def checkGuildIcons(self, guild: discord.Guild):
         self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
         today = datetime.now().strftime("%m-%d")
-        iconDates = await self.config.guild(guild).dates()
+        iconDates = await self.config.guild(guild).iconDates()
         if today in iconDates:
             iconName = iconDates[today]
             icons = await self.config.guild(guild).icons()
@@ -260,7 +260,7 @@ class ServerManage(commands.Cog):
     @serverIcons.command(name="list", aliases=["ls"])
     async def iconList(self, ctx: Context):
         """List the dates associated with server icons."""
-        async with self.config.guild(ctx.guild).dates() as iconDates:
+        async with self.config.guild(ctx.guild).iconDates() as iconDates:
             msg = ""
             for changeDate, iconName in iconDates.items():
                 # YYYY-MM-DD
@@ -289,7 +289,7 @@ class ServerManage(commands.Cog):
             await ctx.send("This icon doesn't exist!")
             return
 
-        async with self.config.guild(ctx.guild).dates() as iconDates:
+        async with self.config.guild(ctx.guild).iconDates() as iconDates:
             theDate = datetime(2020, month, day)
             storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
@@ -310,7 +310,7 @@ class ServerManage(commands.Cog):
         if not self.validDate(month, day):
             await ctx.send("Please enter a valid date!")
             return
-        async with self.config.guild(ctx.guild).dates() as iconDates:
+        async with self.config.guild(ctx.guild).iconDates() as iconDates:
             theDate = datetime(2020, month, day)
             storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
