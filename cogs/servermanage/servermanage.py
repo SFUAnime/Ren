@@ -9,7 +9,9 @@ from pathlib import Path
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
-from redbot.core.utils import paginator
+from redbot.core.utils import AsyncIter
+from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
 
 BASE_GUILD = {"icons": {}, "iconDates": {}}
@@ -272,6 +274,7 @@ class ServerManage(commands.Cog):
     async def iconList(self, ctx: Context):
         """List the dates associated with server icons."""
         async with self.config.guild(ctx.guild).iconDates() as iconDates:
+            iconDates = dict(sorted(iconDates.items()))
             msg = ""
             for changeDate, iconName in iconDates.items():
                 # YYYY-MM-DD
@@ -280,9 +283,18 @@ class ServerManage(commands.Cog):
             allIcons = await self.config.guild(ctx.guild).icons()
             notAssigned = set(allIcons) - set(iconDates.values())
             if notAssigned:
-                msg += f"Unsorted: "
+                msg += f"Unassigned: "
                 msg += ", ".join(notAssigned)
-        await ctx.send(msg)
+        pageList = []
+        pages = list(pagify(msg, page_length=2000))
+        totalPages = len(pages)
+        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+            embed = discord.Embed(
+                title=f"Server icon changes for {ctx.guild.name}", description=page
+            )
+            embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
+            pageList.append(embed)
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
 
     @serverIcons.command(name="set")
     async def iconSet(self, ctx: Context, month: int, day: int, iconName: str):
