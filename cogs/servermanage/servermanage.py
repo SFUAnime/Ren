@@ -86,10 +86,7 @@ class ServerManage(commands.Cog):
             icons = await self.config.guild(guild).icons()
             icon = icons[iconName]
 
-            # TODO make this into a helper.
-            directory = "{}/{}/icons/".format(str(self.dataFolder), guild.id)
-            filename = icon["filename"]
-            filepath = f"{directory}{filename}"
+            filepath = self.getFullFilepath(guild, icon)
 
             with open(filepath, "br") as icon:
                 try:
@@ -145,6 +142,19 @@ class ServerManage(commands.Cog):
         else:
             return True
 
+    def getFullFilepath(
+        self, guild: discord.Guild, imageDetails: dict, imageType="icons", mkdir=False
+    ):
+        if imageType not in ["icons"]:
+            raise ValueError
+        # TODO Make this OS-independent
+        directory = "{}/{}/{}/".format(str(self.dataFolder), guild.id, imageType)
+        if mkdir:
+            Path(directory).mkdir(parents=True, exist_ok=True)
+        filename = imageDetails["filename"]
+        filepath = f"{directory}{filename}"
+        return filepath
+
     @commands.group(name="servermanage", aliases=["sm"])
     @commands.guild_only()
     @checks.mod_or_permissions()
@@ -187,13 +197,12 @@ class ServerManage(commands.Cog):
         # Save the image
         image = ctx.message.attachments[0]
         extension = splitext(image.filename)[1].lower()
-        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
-        Path(directory).mkdir(parents=True, exist_ok=True)
-        filepath = f"{directory}{iconName}{extension}"
+        icon = {}
+        icon["filename"] = f"{iconName}{extension}"
+        filepath = self.getFullFilepath(ctx.guild, icon, mkdir=True)
         await ctx.message.attachments[0].save(filepath, use_cached=True)
         async with self.config.guild(ctx.guild).icons() as icons:
-            icons[iconName] = {}
-            icons[iconName]["filename"] = f"{iconName}{extension}"
+            icons[iconName] = icon
         await ctx.send("Icon saved!")
         self.logger.info(
             "User %s#%s (%s) added a icon '%s%s'",
@@ -221,11 +230,10 @@ class ServerManage(commands.Cog):
             return
 
         # Delete image
-        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
-        fileName = icons[iconName]["filename"]
+        filepath = self.getFullFilepath(ctx.guild, icons[iconName])
+        filename = icons[iconName]["filename"]
         try:
-            remove(f"{directory}{fileName}")
-
+            remove(filepath)
         except FileNotFoundError:
             self.logger.error("File does not exist %s", fileName)
 
@@ -239,7 +247,7 @@ class ServerManage(commands.Cog):
             ctx.message.author.name,
             ctx.message.author.discriminator,
             ctx.message.author.id,
-            fileName,
+            filename,
         )
 
     @serverIcons.command(name="show")
@@ -258,14 +266,12 @@ class ServerManage(commands.Cog):
             await ctx.send("This icon dosent exist!")
             return
 
-        directory = "{}/{}/icons/".format(str(self.dataFolder), ctx.guild.id)
-        fileName = icons[iconName]["filename"]
+        filepath = self.getFullFilepath(ctx.guild, icons[iconName])
 
         # Send file to discord
         try:
-            iconImage = discord.File(f"{directory}{fileName}", filename=fileName)
+            iconImage = discord.File(filepath, filename=icons[iconName]["filename"])
             await ctx.send(file=iconImage)
-
         except FileNotFoundError:
             await ctx.send(":warning: Error: The file does not exist")
             self.logger.error("File does not exist %s", fileName)
