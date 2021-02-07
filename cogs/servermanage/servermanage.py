@@ -57,14 +57,23 @@ class ServerManage(commands.Cog):
 
         # On cog load, we want the loop to run once.
         self.lastChecked = datetime.now() - timedelta(days=1)
-        # self.bgTask = self.bot.loop.create_task(self.birthdayLoop())
+        self.bgTask = self.bot.loop.create_task(self.imageLoop())
 
     # Cancel the background task on cog unload.
+    def __unload(self):
+        self.bgTask.cancel()
 
-    def __unload(self):  # pylint: disable=invalid-name
-        # TODO add task later
-        # self.bgTask.cancel()
-        pass
+    def cog_unload(self):
+        self.__unload()
+
+    async def imageLoop(self):
+        while True:
+            if self.lastChecked.day != datetime.now().day:
+                self.logger.info("Checking to see if we need to change server icons")
+                self.lastChecked = datetime.now()
+                for guild in self.bot.guilds:
+                    await self.checkGuildIcons(guild)
+            await asyncio.sleep(60)
 
     async def checkGuildIcons(self, guild: discord.Guild):
         self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
