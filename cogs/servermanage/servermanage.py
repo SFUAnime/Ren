@@ -165,17 +165,22 @@ class ServerManage(commands.Cog):
     async def serverIcons(self, ctx: Context):
         """Manage server icons."""
 
-    @serverIcons.command(name="add", aliases=["create"])
-    async def iconAdd(self, ctx: Context, iconName: str):
-        """Add a server icon to the database.
+    async def imageAdd(self, ctx: Context, name: str, imageType="icons"):
+        """Add an image to the database
 
         Parameters
         ----------
-        iconName: str
-            The name of the icon you wish to add.
-        image: attachment
-            The server icon, included as an attachment.
+        ctx: Context
+        name: str
+            The name of the image to add.
+        type: str
+            One of either icons or banners
         """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+
         try:
             self.validateImageAttachment(ctx.message)
         except InvalidAttachmentsError:
@@ -187,31 +192,43 @@ class ServerManage(commands.Cog):
         except InvalidImageError:
             await ctx.send("Please upload a PNG or GIF image!")
             return
-
-        # Check to see if this exists already
-        icons = await self.config.guild(ctx.guild).icons()
-        if iconName in icons.keys():
-            await ctx.send("This icon already exists!")
+        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        if name in images.keys():
+            await ctx.send(f"This {imageSingular} already exists!")
             return
 
         # Save the image
         image = ctx.message.attachments[0]
         extension = splitext(image.filename)[1].lower()
-        icon = {}
-        icon["filename"] = f"{iconName}{extension}"
-        filepath = self.getFullFilepath(ctx.guild, icon, mkdir=True)
+        imageDict = {}
+        imageDict["filename"] = f"{name}{extension}"
+        filepath = self.getFullFilepath(ctx.guild, imageDict, mkdir=True)
         await ctx.message.attachments[0].save(filepath, use_cached=True)
-        async with self.config.guild(ctx.guild).icons() as icons:
-            icons[iconName] = icon
-        await ctx.send("Icon saved!")
+        async with getattr(self.config.guild(ctx.guild), imageType)() as images:
+            images[name] = imageDict
+        await ctx.send(f"Saved the {imageSingular} as {name}!")
         self.logger.info(
-            "User %s#%s (%s) added a icon '%s%s'",
+            "User %s#%s (%s) added a(n) %s '%s%s'",
             ctx.message.author.name,
             ctx.message.author.discriminator,
             ctx.message.author.id,
-            iconName,
+            imageSingular,
+            name,
             extension,
         )
+
+    @serverIcons.command(name="add", aliases=["create"])
+    async def iconAdd(self, ctx: Context, iconName: str):
+        """Add a server icon to the database.
+
+        Parameters
+        ----------
+        iconName: str
+            The name of the icon you wish to add.
+        image: attachment
+            The server icon, included as an attachment.
+        """
+        return await self.imageAdd(ctx, iconName, imageType="icons")
 
     @serverIcons.command(name="remove", aliases=["del", "delete", "rm"])
     async def iconRemove(self, ctx: Context, iconName: str):
