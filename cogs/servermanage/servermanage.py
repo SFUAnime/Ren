@@ -66,6 +66,32 @@ class ServerManage(commands.Cog):
         # self.bgTask.cancel()
         pass
 
+    async def checkGuildIcons(self, guild: discord.Guild):
+        self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
+        today = datetime.now().strftime("%m-%d")
+        iconDates = await self.config.guild(guild).dates()
+        if today in iconDates:
+            iconName = iconDates[today]
+            icons = await self.config.guild(guild).icons()
+            icon = icons[iconName]
+
+            # TODO make this into a helper.
+            directory = "{}/{}/icons/".format(str(self.dataFolder), guild.id)
+            filename = icon["filename"]
+            filepath = f"{directory}{filename}"
+
+            with open(filepath, "br") as icon:
+                try:
+                    await guild.edit(icon=icon.read(), reason="ServerManage automated task")
+                    self.logger.info(
+                        "Chagned the server icon for %s (%s) to %s", guild.name, guild.id, iconName
+                    )
+                except discord.errors.Forbidden as error:
+                    self.logger.error(
+                        "Could not change icon, ensure the bot has Manage Server permissions",
+                        exc_info=True,
+                    )
+
     @staticmethod
     def validateImageAttachment(message):
         """Check to see if the message contains a valid image attachment.
