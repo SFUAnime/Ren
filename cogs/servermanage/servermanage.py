@@ -257,15 +257,15 @@ class ServerManage(commands.Cog):
             The name of the server icon to change to. The icon should already be added.
         """
         if not self.validDate(month, day):
-            await ctx.send( "Please enter a valid date!")
+            await ctx.send("Please enter a valid date!")
             return
         if iconName not in await self.config.guild(ctx.guild).icons():
-            await ctx.send( "This icon doesn't exist!")
+            await ctx.send("This icon doesn't exist!")
             return
 
         async with self.config.guild(ctx.guild).dates() as iconDates:
             theDate = datetime(2020, month, day)
-            storageDate = theDate.strftime("%Y-%m-%d")
+            storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
             iconDates[storageDate] = iconName
             await ctx.send(f"On {humanDate}, the server icon will change to {iconName}")
@@ -282,11 +282,11 @@ class ServerManage(commands.Cog):
             The day of the month to remove any server icon changes, expressed as a number.
         """
         if not self.validDate(month, day):
-            await ctx.send( "Please enter a valid date!")
+            await ctx.send("Please enter a valid date!")
             return
         async with self.config.guild(ctx.guild).dates() as iconDates:
             theDate = datetime(2020, month, day)
-            storageDate = theDate.strftime("%Y-%m-%d")
+            storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
             if storageDate in iconDates:
                 del iconDates[storageDate]
