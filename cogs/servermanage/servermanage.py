@@ -91,9 +91,11 @@ class ServerManage(commands.Cog):
 
             with open(filepath, "br") as icon:
                 try:
-                    await guild.edit(icon=icon.read(), reason="ServerManage automated task")
+                    await guild.edit(
+                        icon=icon.read(), reason=f"ServerManage changing icon to {iconName}"
+                    )
                     self.logger.info(
-                        "Chagned the server icon for %s (%s) to %s", guild.name, guild.id, iconName
+                        "Changed the server icon for %s (%s) to %s", guild.name, guild.id, iconName
                     )
                 except discord.errors.Forbidden as error:
                     self.logger.error(
