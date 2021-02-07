@@ -258,7 +258,7 @@ class ServerManage(commands.Cog):
         try:
             remove(filepath)
         except FileNotFoundError:
-            self.logger.error("File does not exist %s", fileName)
+            self.logger.error("File does not exist %s", filepath)
 
         # Delete key from dictonary
         async with getattr(self.config.guild(ctx.guild), imageType)() as images:
@@ -309,7 +309,7 @@ class ServerManage(commands.Cog):
             await ctx.send(file=iconImage)
         except FileNotFoundError:
             await ctx.send(":warning: Error: The file does not exist")
-            self.logger.error("File does not exist %s", fileName)
+            self.logger.error("File does not exist %s", filepath)
 
     @serverIcons.command(name="list", aliases=["ls"])
     async def iconList(self, ctx: Context):
