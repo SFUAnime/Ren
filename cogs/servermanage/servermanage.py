@@ -264,9 +264,13 @@ class ServerManage(commands.Cog):
             msg = ""
             for changeDate, iconName in iconDates.items():
                 # YYYY-MM-DD
-                theDate = date.fromisoformat(changeDate).strftime("%B %d")
+                theDate = date.fromisoformat(f"2020-{changeDate}").strftime("%B %d")
                 msg += f"{theDate}: {iconName}\n"
-                # TODO List non-dated icons.
+            allIcons = await self.config.guild(ctx.guild).icons()
+            notAssigned = set(allIcons) - set(iconDates.values())
+            if notAssigned:
+                msg += f"Unsorted: "
+                msg += ", ".join(notAssigned)
         await ctx.send(msg)
 
     @serverIcons.command(name="set")
