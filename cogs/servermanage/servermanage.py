@@ -230,6 +230,50 @@ class ServerManage(commands.Cog):
         """
         return await self.imageAdd(ctx, iconName, imageType="icons")
 
+    async def imageRemove(self, ctx: Context, name: str, imageType="icons"):
+        """Remove an image from the database
+
+        Parameters
+        ----------
+        ctx: Context
+        name: str
+            The name of the image to remove.
+        type: str
+            One of either icons or banners
+        """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+
+        # Check to see if this image exists in dictionary
+        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        if name not in images.keys():
+            await ctx.send(f"This {imageSingular} doesn't exist!")
+            return
+
+        # Delete image
+        filepath = self.getFullFilepath(ctx.guild, images[name])
+        filename = images[name]["filename"]
+        try:
+            remove(filepath)
+        except FileNotFoundError:
+            self.logger.error("File does not exist %s", fileName)
+
+        # Delete key from dictonary
+        async with getattr(self.config.guild(ctx.guild), imageType)() as images:
+            del images[name]
+
+        await ctx.send(f"Deleted the {imageSingular} named {name}!")
+        self.logger.info(
+            "User %s#%s (%s) deleted a(n) %s '%s'",
+            ctx.message.author.name,
+            ctx.message.author.discriminator,
+            ctx.message.author.id,
+            imageSingular,
+            filename,
+        )
+
     @serverIcons.command(name="remove", aliases=["del", "delete", "rm"])
     async def iconRemove(self, ctx: Context, iconName: str):
         """Remove a server icon from the database.
@@ -239,33 +283,7 @@ class ServerManage(commands.Cog):
         iconName: str
             The icon name you wish to remove.
         """
-
-        # Check to see if this icon exists in dictionary
-        icons = await self.config.guild(ctx.guild).icons()
-        if iconName not in icons.keys():
-            await ctx.send("This icon dosent exist!")
-            return
-
-        # Delete image
-        filepath = self.getFullFilepath(ctx.guild, icons[iconName])
-        filename = icons[iconName]["filename"]
-        try:
-            remove(filepath)
-        except FileNotFoundError:
-            self.logger.error("File does not exist %s", fileName)
-
-        # Delete key from dictonary
-        async with self.config.guild(ctx.guild).icons() as icons:
-            del icons[iconName]
-
-        await ctx.send("Icon deleted!")
-        self.logger.info(
-            "User %s#%s (%s) deleted a icon '%s'",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
-            filename,
-        )
+        return await self.imageRemove(ctx, iconName)
 
     @serverIcons.command(name="show")
     async def iconShow(self, ctx: Context, iconName: str):
