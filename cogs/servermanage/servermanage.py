@@ -220,8 +220,23 @@ class ServerManage(commands.Cog):
             return
         images = await getattr(self.config.guild(ctx.guild), imageType)()
         if name in images.keys():
-            await ctx.send(f"This {imageSingular} already exists!")
-            return
+
+            def check(msg: discord.Message):
+                return msg.author == ctx.message.author and msg.channel == ctx.message.channel
+
+            await ctx.send(
+                f":warning: This {imageSingular} already exists. Would you like to overwrite "
+                "it? Please type `yes` to overwrite."
+            )
+            try:
+                response = await self.bot.wait_for("message", timeout=30.0, check=check)
+            except asyncio.TimeoutError:
+                await ctx.send(f"You took too long, not overwriting the existing {imageSingular}.")
+                return
+
+            if response.content.lower() != "yes":
+                await ctx.send(f"Not overwriting the {imageSingular}.")
+                return
 
         # Save the image
         image = ctx.message.attachments[0]
