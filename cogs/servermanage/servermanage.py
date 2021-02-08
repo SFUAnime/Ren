@@ -10,7 +10,7 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
-from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils.chat_formatting import error, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
 
@@ -225,8 +225,10 @@ class ServerManage(commands.Cog):
                 return msg.author == ctx.message.author and msg.channel == ctx.message.channel
 
             await ctx.send(
-                f":warning: This {imageSingular} already exists. Would you like to overwrite "
-                "it? Please type `yes` to overwrite."
+                warning(
+                    f"This {imageSingular} already exists. Would you like to overwrite "
+                    "it? Please type `yes` to overwrite."
+                )
             )
             try:
                 response = await self.bot.wait_for("message", timeout=30.0, check=check)
@@ -280,7 +282,7 @@ class ServerManage(commands.Cog):
         def check(msg: discord.Message):
             return msg.author == ctx.message.author and msg.channel == ctx.message.channel
 
-        await ctx.send(f"Are you sure you want to delete? Please type `yes` to confirm.")
+        await ctx.send(warning(f"Are you sure you want to delete? Please type `yes` to confirm."))
         try:
             response = await self.bot.wait_for("message", timeout=30.0, check=check)
         except asyncio.TimeoutError:
@@ -349,7 +351,7 @@ class ServerManage(commands.Cog):
             image = discord.File(filepath, filename=images[name]["filename"])
             await ctx.send(file=image)
         except FileNotFoundError:
-            await ctx.send(":warning: Error: The file does not exist")
+            await ctx.send(error("The file does not exist"))
             self.logger.error("File does not exist %s", filepath)
 
     async def imageList(self, ctx: Context, imageType="icons"):
@@ -379,7 +381,7 @@ class ServerManage(commands.Cog):
                 msg += f"Unassigned: "
                 msg += ", ".join(notAssigned)
         pageList = []
-        pages = list(pagify(msg, page_length=2000))
+        pages = list(pagify(msg, page_length=500))
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
             embed = discord.Embed(
