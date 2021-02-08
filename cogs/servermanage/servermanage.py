@@ -154,8 +154,8 @@ class ServerManage(commands.Cog):
     def getFullFilepath(
         self, guild: discord.Guild, imageDetails: dict, imageType="icons", mkdir=False
     ):
-        if imageType not in ["icons"]:
-            raise ValueError
+        if imageType not in ["icons", "banners"]:
+            raise ValueError("Image type not defined!")
         # TODO Make this OS-independent
         directory = "{}/{}/{}/".format(str(self.dataFolder), guild.id, imageType)
         if mkdir:
@@ -198,7 +198,7 @@ class ServerManage(commands.Cog):
         extension = splitext(image.filename)[1].lower()
         imageDict = {}
         imageDict["filename"] = f"{name}{extension}"
-        filepath = self.getFullFilepath(ctx.guild, imageDict, mkdir=True)
+        filepath = self.getFullFilepath(ctx.guild, imageDict, imageType=imageType, mkdir=True)
         await ctx.message.attachments[0].save(filepath, use_cached=True)
         async with getattr(self.config.guild(ctx.guild), imageType)() as images:
             images[name] = imageDict
@@ -233,7 +233,7 @@ class ServerManage(commands.Cog):
             return
 
         # Delete image
-        filepath = self.getFullFilepath(ctx.guild, images[name])
+        filepath = self.getFullFilepath(ctx.guild, images[name], imageType=imageType)
         filename = images[name]["filename"]
         try:
             remove(filepath)
@@ -273,7 +273,7 @@ class ServerManage(commands.Cog):
             await ctx.send(f"This {imageSingular} dosent exist!")
             return
 
-        filepath = self.getFullFilepath(ctx.guild, images[name])
+        filepath = self.getFullFilepath(ctx.guild, images[name], imageType=imageType)
 
         # Send file to discord
         try:
