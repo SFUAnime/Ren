@@ -369,6 +369,40 @@ class ServerManage(commands.Cog):
         """List the server icons associated with each date."""
         return await self.imageList(ctx)
 
+    async def imageDateSet(self, ctx: Context, month: int, day: int, name: str, imageType="icons"):
+        """Set when to change the image.
+
+        Parameters
+        ----------
+        ctx: Context
+        month: int
+            The month to change the image, expressed as a number.
+        day: int
+            The day of the month to change the image, expressed as a number.
+        name: str
+            The name of the image to change to. The image should already be added.
+        imageType: str
+            One of either icons or banners.
+        """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+
+        if not self.validDate(month, day):
+            await ctx.send("Please enter a valid date!")
+            return
+        if name not in await getattr(self.config.guild(ctx.guild), imageType)():
+            await ctx.send(f"This {imageSingular} doesn't exist!")
+            return
+
+        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+            theDate = datetime(2020, month, day)
+            storageDate = theDate.strftime("%m-%d")
+            humanDate = theDate.strftime("%B %d")
+            imageDates[storageDate] = name
+            await ctx.send(f"On {humanDate}, the server {imageSingular} will change to {name}")
+
     @serverIcons.command(name="set")
     async def iconSet(self, ctx: Context, month: int, day: int, iconName: str):
         """Set when to change the server icon.
@@ -382,19 +416,7 @@ class ServerManage(commands.Cog):
         iconName: str
             The name of the server icon to change to. The icon should already be added.
         """
-        if not self.validDate(month, day):
-            await ctx.send("Please enter a valid date!")
-            return
-        if iconName not in await self.config.guild(ctx.guild).icons():
-            await ctx.send("This icon doesn't exist!")
-            return
-
-        async with self.config.guild(ctx.guild).iconDates() as iconDates:
-            theDate = datetime(2020, month, day)
-            storageDate = theDate.strftime("%m-%d")
-            humanDate = theDate.strftime("%B %d")
-            iconDates[storageDate] = iconName
-            await ctx.send(f"On {humanDate}, the server icon will change to {iconName}")
+        await self.imageDateSet(ctx, month, day, iconName)
 
     @serverIcons.command(name="reset")
     async def iconReset(self, ctx: Context, month: int, day: int):
