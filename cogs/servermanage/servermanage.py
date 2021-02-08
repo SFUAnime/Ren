@@ -273,6 +273,16 @@ class ServerManage(commands.Cog):
         # Delete key from dictonary
         async with getattr(self.config.guild(ctx.guild), imageType)() as images:
             del images[name]
+        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as dates:
+            datesToRemove = []
+            for date, imageName in dates.items():
+                if name == imageName:
+                    self.logger.debug(
+                        "The date %s has this %s, deleting from dates dict", date, imageName
+                    )
+                    datesToRemove.append(date)
+            for date in datesToRemove:
+                del dates[date]
 
         await ctx.send(f"Deleted the {imageSingular} named {name}!")
         self.logger.info(
