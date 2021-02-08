@@ -327,18 +327,29 @@ class ServerManage(commands.Cog):
         """
         await self.imageShow(ctx, iconName)
 
-    @serverIcons.command(name="list", aliases=["ls"])
-    async def iconList(self, ctx: Context):
-        """List the dates associated with server icons."""
-        async with self.config.guild(ctx.guild).iconsDates() as iconsDates:
-            iconsDates = dict(sorted(iconsDates.items()))
+    async def imageList(self, ctx: Context, imageType="icons"):
+        """For a given imageType, list the images associated with each date.
+
+        Parameters
+        ----------
+        ctx: Context
+        imageType: str
+            One of either icons or banners
+        """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+
+        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+            imageDates = dict(sorted(imageDates.items()))
             msg = ""
-            for changeDate, iconName in iconsDates.items():
+            for changeDate, name in imageDates.items():
                 # YYYY-MM-DD
                 theDate = date.fromisoformat(f"2020-{changeDate}").strftime("%B %d")
-                msg += f"{theDate}: {iconName}\n"
-            allIcons = await self.config.guild(ctx.guild).icons()
-            notAssigned = set(allIcons) - set(iconsDates.values())
+                msg += f"{theDate}: {name}\n"
+            allImages = await getattr(self.config.guild(ctx.guild), imageType)()
+            notAssigned = set(allImages) - set(imageDates.values())
             if notAssigned:
                 msg += f"Unassigned: "
                 msg += ", ".join(notAssigned)
@@ -347,11 +358,16 @@ class ServerManage(commands.Cog):
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
             embed = discord.Embed(
-                title=f"Server icon changes for {ctx.guild.name}", description=page
+                title=f"Server {imageSingular} changes for {ctx.guild.name}", description=page
             )
             embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
+
+    @serverIcons.command(name="list", aliases=["ls"])
+    async def iconList(self, ctx: Context):
+        """List the server icons associated with each date."""
+        return await self.imageList(ctx)
 
     @serverIcons.command(name="set")
     async def iconSet(self, ctx: Context, month: int, day: int, iconName: str):
