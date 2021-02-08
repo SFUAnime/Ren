@@ -80,7 +80,7 @@ class ServerManage(commands.Cog):
     async def checkGuildIcons(self, guild: discord.Guild):
         self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
         today = datetime.now().strftime("%m-%d")
-        iconDates = await self.config.guild(guild).iconDates()
+        iconDates = await self.config.guild(guild).iconsDates()
         if today in iconDates:
             iconName = iconDates[today]
             icons = await self.config.guild(guild).icons()
