@@ -293,6 +293,10 @@ class ServerManage(commands.Cog):
             One of either icons or banners
         """
         imageSingular = self.getSingularImageType(imageType)
+        allImages = await getattr(self.config.guild(ctx.guild), imageType)()
+        if not allImages:
+            await ctx.send(f"There are no {imageType}, please add some first!")
+            return
 
         async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
             imageDates = dict(sorted(imageDates.items()))
@@ -301,7 +305,6 @@ class ServerManage(commands.Cog):
                 # YYYY-MM-DD
                 theDate = date.fromisoformat(f"2020-{changeDate}").strftime("%B %d")
                 msg += f"{theDate}: {name}\n"
-            allImages = await getattr(self.config.guild(ctx.guild), imageType)()
             notAssigned = set(allImages) - set(imageDates.values())
             if notAssigned:
                 msg += f"Unassigned: "
