@@ -285,6 +285,37 @@ class ServerManage(commands.Cog):
         """
         return await self.imageRemove(ctx, iconName)
 
+    async def imageShow(self, ctx: Context, name: str, imageType="icons"):
+        """Show an image from the database.
+
+        Parameters
+        ----------
+        ctx: Context
+        name: str
+            The image name you wish to show.
+        type: str
+            One of either icons or banners.
+        """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+        # Check to see if this icon exists in dictionary
+        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        if name not in images.keys():
+            await ctx.send(f"This {imageSingular} dosent exist!")
+            return
+
+        filepath = self.getFullFilepath(ctx.guild, images[name])
+
+        # Send file to discord
+        try:
+            image = discord.File(filepath, filename=images[name]["filename"])
+            await ctx.send(file=image)
+        except FileNotFoundError:
+            await ctx.send(":warning: Error: The file does not exist")
+            self.logger.error("File does not exist %s", filepath)
+
     @serverIcons.command(name="show")
     async def iconShow(self, ctx: Context, iconName: str):
         """Show a server icon from the database.
@@ -294,22 +325,7 @@ class ServerManage(commands.Cog):
         iconName: str
             The icon name you wish to show.
         """
-
-        # Check to see if this icon exists in dictionary
-        icons = await self.config.guild(ctx.guild).icons()
-        if iconName not in icons.keys():
-            await ctx.send("This icon dosent exist!")
-            return
-
-        filepath = self.getFullFilepath(ctx.guild, icons[iconName])
-
-        # Send file to discord
-        try:
-            iconImage = discord.File(filepath, filename=icons[iconName]["filename"])
-            await ctx.send(file=iconImage)
-        except FileNotFoundError:
-            await ctx.send(":warning: Error: The file does not exist")
-            self.logger.error("File does not exist %s", filepath)
+        await self.imageShow(ctx, iconName)
 
     @serverIcons.command(name="list", aliases=["ls"])
     async def iconList(self, ctx: Context):
