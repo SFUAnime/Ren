@@ -71,7 +71,7 @@ class ServerManage(commands.Cog):
     async def imageLoop(self):
         while True:
             if self.lastChecked.day != datetime.now().day:
-                self.logger.info("Checking to see if we need to change server icons")
+                self.logger.info("Checking to see if we need to change server images")
                 self.lastChecked = datetime.now()
                 for guild in self.bot.guilds:
                     await self.checkGuildIcons(guild)
