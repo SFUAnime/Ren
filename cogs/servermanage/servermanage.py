@@ -155,16 +155,6 @@ class ServerManage(commands.Cog):
         filepath = f"{directory}{filename}"
         return filepath
 
-    @commands.group(name="servermanage", aliases=["sm"])
-    @commands.guild_only()
-    @checks.mod_or_permissions()
-    async def serverManage(self, ctx: Context):
-        """Manage server icons and banners."""
-
-    @serverManage.group(name="icons")
-    async def serverIcons(self, ctx: Context):
-        """Manage server icons."""
-
     async def imageAdd(self, ctx: Context, name: str, imageType="icons"):
         """Add an image to the database
 
@@ -217,19 +207,6 @@ class ServerManage(commands.Cog):
             extension,
         )
 
-    @serverIcons.command(name="add", aliases=["create"])
-    async def iconAdd(self, ctx: Context, iconName: str):
-        """Add a server icon to the database.
-
-        Parameters
-        ----------
-        iconName: str
-            The name of the icon you wish to add.
-        image: attachment
-            The server icon, included as an attachment.
-        """
-        return await self.imageAdd(ctx, iconName, imageType="icons")
-
     async def imageRemove(self, ctx: Context, name: str, imageType="icons"):
         """Remove an image from the database
 
@@ -274,17 +251,6 @@ class ServerManage(commands.Cog):
             filename,
         )
 
-    @serverIcons.command(name="remove", aliases=["del", "delete", "rm"])
-    async def iconRemove(self, ctx: Context, iconName: str):
-        """Remove a server icon from the database.
-
-        Parameters
-        ----------
-        iconName: str
-            The icon name you wish to remove.
-        """
-        return await self.imageRemove(ctx, iconName)
-
     async def imageShow(self, ctx: Context, name: str, imageType="icons"):
         """Show an image from the database.
 
@@ -315,17 +281,6 @@ class ServerManage(commands.Cog):
         except FileNotFoundError:
             await ctx.send(":warning: Error: The file does not exist")
             self.logger.error("File does not exist %s", filepath)
-
-    @serverIcons.command(name="show")
-    async def iconShow(self, ctx: Context, iconName: str):
-        """Show a server icon from the database.
-
-        Parameters
-        ----------
-        iconName: str
-            The icon name you wish to show.
-        """
-        await self.imageShow(ctx, iconName)
 
     async def imageList(self, ctx: Context, imageType="icons"):
         """For a given imageType, list the images associated with each date.
@@ -364,11 +319,6 @@ class ServerManage(commands.Cog):
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
-    @serverIcons.command(name="list", aliases=["ls"])
-    async def iconList(self, ctx: Context):
-        """List the server icons associated with each date."""
-        return await self.imageList(ctx)
-
     async def imageDateSet(self, ctx: Context, month: int, day: int, name: str, imageType="icons"):
         """Set when to change the image.
 
@@ -403,21 +353,6 @@ class ServerManage(commands.Cog):
             imageDates[storageDate] = name
             await ctx.send(f"On {humanDate}, the server {imageSingular} will change to {name}")
 
-    @serverIcons.command(name="set")
-    async def iconSet(self, ctx: Context, month: int, day: int, iconName: str):
-        """Set when to change the server icon.
-
-        Parameters
-        ----------
-        month: int
-            The month to change the server icon, expressed as a number.
-        day: int
-            The day of the month to change the server icon, expressed as a number.
-        iconName: str
-            The name of the server icon to change to. The icon should already be added.
-        """
-        await self.imageDateSet(ctx, month, day, iconName)
-
     async def imageDateReset(self, ctx: Context, month: int, day: int, imageType="icons"):
         """Remove a date when to change the image.
 
@@ -448,6 +383,71 @@ class ServerManage(commands.Cog):
                 await ctx.send(f"Removed {humanDate} from {imageSingular} changes.")
             else:
                 await ctx.send(f"There are no {imageSingular} changes on this date!")
+
+    @commands.group(name="servermanage", aliases=["sm"])
+    @commands.guild_only()
+    @checks.mod_or_permissions()
+    async def serverManage(self, ctx: Context):
+        """Manage server icons and banners."""
+
+    @serverManage.group(name="icons")
+    async def serverIcons(self, ctx: Context):
+        """Manage server icons."""
+
+    @serverIcons.command(name="add", aliases=["create"])
+    async def iconAdd(self, ctx: Context, iconName: str):
+        """Add a server icon to the database.
+
+        Parameters
+        ----------
+        iconName: str
+            The name of the icon you wish to add.
+        image: attachment
+            The server icon, included as an attachment.
+        """
+        return await self.imageAdd(ctx, iconName, imageType="icons")
+
+    @serverIcons.command(name="remove", aliases=["del", "delete", "rm"])
+    async def iconRemove(self, ctx: Context, iconName: str):
+        """Remove a server icon from the database.
+
+        Parameters
+        ----------
+        iconName: str
+            The icon name you wish to remove.
+        """
+        return await self.imageRemove(ctx, iconName)
+
+    @serverIcons.command(name="show")
+    async def iconShow(self, ctx: Context, iconName: str):
+        """Show a server icon from the database.
+
+        Parameters
+        ----------
+        iconName: str
+            The icon name you wish to show.
+        """
+        await self.imageShow(ctx, iconName)
+
+    @serverIcons.command(name="list", aliases=["ls"])
+    async def iconList(self, ctx: Context):
+        """List the server icons associated with each date."""
+        return await self.imageList(ctx)
+
+    @serverIcons.command(name="set")
+    async def iconSet(self, ctx: Context, month: int, day: int, iconName: str):
+        """Set when to change the server icon.
+
+        Parameters
+        ----------
+        month: int
+            The month to change the server icon, expressed as a number.
+        day: int
+            The day of the month to change the server icon, expressed as a number.
+        iconName: str
+            The name of the server icon to change to. The icon should already be added.
+        """
+        await self.imageDateSet(ctx, month, day, iconName)
 
     @serverIcons.command(name="reset")
     async def iconReset(self, ctx: Context, month: int, day: int):
