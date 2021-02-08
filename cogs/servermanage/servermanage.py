@@ -456,3 +456,75 @@ class ServerManage(commands.Cog):
             The day of the month to remove any server icon changes, expressed as a number.
         """
         await self.imageDateReset(ctx, month, day)
+
+    @serverManage.group(name="banners")
+    async def serverBanners(self, ctx: Context):
+        """Manage server banners."""
+
+    @serverBanners.command(name="add", aliases=["create"])
+    async def bannerAdd(self, ctx: Context, bannerName: str):
+        """Add a server banner to the database.
+
+        Parameters
+        ----------
+        bannerName: str
+            The name of the banner you wish to add.
+        image: attachment
+            The server banner, included as an attachment.
+        """
+        return await self.imageAdd(ctx, bannerName, imageType="banners")
+
+    @serverBanners.command(name="remove", aliases=["del", "delete", "rm"])
+    async def bannerRemove(self, ctx: Context, bannerName: str):
+        """Remove a server banner from the database.
+
+        Parameters
+        ----------
+        bannerName: str
+            The banner name you wish to remove.
+        """
+        return await self.imageRemove(ctx, bannerName, imageType="banners")
+
+    @serverBanners.command(name="show")
+    async def bannerShow(self, ctx: Context, bannerName: str):
+        """Show a server banner from the database.
+
+        Parameters
+        ----------
+        bannerName: str
+            The icon name you wish to show.
+        """
+        await self.imageShow(ctx, bannerName, imageType="banners")
+
+    @serverBanners.command(name="list", aliases=["ls"])
+    async def bannerList(self, ctx: Context):
+        """List the server banners associated with each date."""
+        return await self.imageList(ctx, imageType="banners")
+
+    @serverBanners.command(name="set")
+    async def bannerSet(self, ctx: Context, month: int, day: int, bannerName: str):
+        """Set when to change the server icon.
+
+        Parameters
+        ----------
+        month: int
+            The month to change the server banner, expressed as a number.
+        day: int
+            The day of the month to change the server banner, expressed as a number.
+        bannerName: str
+            The name of the server banner to change to. The banner should already be added.
+        """
+        await self.imageDateSet(ctx, month, day, bannerName, imageType="banners")
+
+    @serverBanners.command(name="reset")
+    async def bannerReset(self, ctx: Context, month: int, day: int):
+        """Remove a date when to change the server icon.
+
+        Parameters
+        ----------
+        month: int
+            The month to remove any server banner changes, expressed as a number.
+        day: int
+            The day of the month to remove any server banner changes, expressed as a number.
+        """
+        await self.imageDateReset(ctx, month, day, imageType="banners")
