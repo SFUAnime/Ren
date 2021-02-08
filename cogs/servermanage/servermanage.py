@@ -262,6 +262,20 @@ class ServerManage(commands.Cog):
             await ctx.send(f"This {imageSingular} doesn't exist!")
             return
 
+        def check(msg: discord.Message):
+            return msg.author == ctx.message.author and msg.channel == ctx.message.channel
+
+        await ctx.send(f"Are you sure you want to delete? Please type `yes` to confirm.")
+        try:
+            response = await self.bot.wait_for("message", timeout=30.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send(f"You took too long, not deleting the {imageSingular}.")
+            return
+
+        if response.content.lower() != "yes":
+            await ctx.send(f"Not deleting the {imageSingular}.")
+            return
+
         # Delete image
         filepath = self.getFullFilepath(ctx.guild, images[name], imageType=imageType)
         filename = images[name]["filename"]
