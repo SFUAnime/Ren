@@ -425,7 +425,7 @@ class ServerManage(commands.Cog):
     async def serverManage(self, ctx: Context):
         """Manage server icons and banners."""
 
-    @serverManage.group(name="icons")
+    @serverManage.group(name="icons", aliases=["icon"])
     async def serverIcons(self, ctx: Context):
         """Manage server icons."""
 
@@ -497,7 +497,7 @@ class ServerManage(commands.Cog):
         """
         await self.imageDateReset(ctx, month, day)
 
-    @serverManage.group(name="banners")
+    @serverManage.group(name="banners", aliases=["banner"])
     async def serverBanners(self, ctx: Context):
         """Manage server banners."""
 
