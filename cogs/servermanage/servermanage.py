@@ -14,7 +14,7 @@ from redbot.core.utils.chat_formatting import pagify
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
 
-BASE_GUILD = {"icons": {}, "iconDates": {}}
+BASE_GUILD = {"icons": {}, "iconsDates": {}, "banners": {}, "bannersDates": {}}
 
 
 class Exceptions(Exception):
@@ -330,15 +330,15 @@ class ServerManage(commands.Cog):
     @serverIcons.command(name="list", aliases=["ls"])
     async def iconList(self, ctx: Context):
         """List the dates associated with server icons."""
-        async with self.config.guild(ctx.guild).iconDates() as iconDates:
-            iconDates = dict(sorted(iconDates.items()))
+        async with self.config.guild(ctx.guild).iconsDates() as iconsDates:
+            iconsDates = dict(sorted(iconsDates.items()))
             msg = ""
-            for changeDate, iconName in iconDates.items():
+            for changeDate, iconName in iconsDates.items():
                 # YYYY-MM-DD
                 theDate = date.fromisoformat(f"2020-{changeDate}").strftime("%B %d")
                 msg += f"{theDate}: {iconName}\n"
             allIcons = await self.config.guild(ctx.guild).icons()
-            notAssigned = set(allIcons) - set(iconDates.values())
+            notAssigned = set(allIcons) - set(iconsDates.values())
             if notAssigned:
                 msg += f"Unassigned: "
                 msg += ", ".join(notAssigned)
