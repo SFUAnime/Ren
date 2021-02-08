@@ -75,6 +75,7 @@ class ServerManage(commands.Cog):
                 self.lastChecked = datetime.now()
                 for guild in self.bot.guilds:
                     await self.checkGuildIcons(guild)
+                    await self.checkGuildBanners(guild)
             await asyncio.sleep(60)
 
     async def checkGuildIcons(self, guild: discord.Guild):
@@ -99,6 +100,35 @@ class ServerManage(commands.Cog):
                 except discord.errors.Forbidden as error:
                     self.logger.error(
                         "Could not change icon, ensure the bot has Manage Server permissions",
+                        exc_info=True,
+                    )
+
+    async def checkGuildBanners(self, guild: discord.Guild):
+        self.logger.debug("Checking guild banner for %s (%s)", guild.name, guild.id)
+        today = datetime.now().strftime("%m-%d")
+        bannerDates = await self.config.guild(guild).bannersDates()
+        if today in bannerDates:
+            bannerName = bannerDates[today]
+            banners = await self.config.guild(guild).banners()
+            banner = banners[bannerName]
+
+            filepath = self.getFullFilepath(guild, banner, imageType="banners")
+
+            with open(filepath, "br") as banner:
+                try:
+                    await guild.edit(
+                        banner=banner.read(),
+                        reason=f"ServerManage changing banner to {bannerName}",
+                    )
+                    self.logger.info(
+                        "Changed the server banner for %s (%s) to %s",
+                        guild.name,
+                        guild.id,
+                        bannerName,
+                    )
+                except discord.errors.Forbidden as error:
+                    self.logger.error(
+                        "Could not change banner, ensure the bot has Manage Server permissions",
                         exc_info=True,
                     )
 
