@@ -418,6 +418,37 @@ class ServerManage(commands.Cog):
         """
         await self.imageDateSet(ctx, month, day, iconName)
 
+    async def imageDateReset(self, ctx: Context, month: int, day: int, imageType="icons"):
+        """Remove a date when to change the image.
+
+        Parameters
+        ----------
+        ctx: Context
+        month: int
+            The month to remove any server icon changes, expressed as a number.
+        day: int
+            The day of the month to remove any server icon changes, expressed as a number.
+        imageType: str
+            One of either icons or banners.
+        """
+        if imageType == "icons":
+            imageSingular = "icon"
+        else:
+            raise ValueError
+
+        if not self.validDate(month, day):
+            await ctx.send("Please enter a valid date!")
+            return
+        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+            theDate = datetime(2020, month, day)
+            storageDate = theDate.strftime("%m-%d")
+            humanDate = theDate.strftime("%B %d")
+            if storageDate in imageDates:
+                del imageDates[storageDate]
+                await ctx.send(f"Removed {humanDate} from {imageSingular} changes.")
+            else:
+                await ctx.send(f"There are no {imageSingular} changes on this date!")
+
     @serverIcons.command(name="reset")
     async def iconReset(self, ctx: Context, month: int, day: int):
         """Remove a date when to change the server icon.
@@ -429,15 +460,4 @@ class ServerManage(commands.Cog):
         day: int
             The day of the month to remove any server icon changes, expressed as a number.
         """
-        if not self.validDate(month, day):
-            await ctx.send("Please enter a valid date!")
-            return
-        async with self.config.guild(ctx.guild).iconDates() as iconDates:
-            theDate = datetime(2020, month, day)
-            storageDate = theDate.strftime("%m-%d")
-            humanDate = theDate.strftime("%B %d")
-            if storageDate in iconDates:
-                del iconDates[storageDate]
-                await ctx.send(f"Removed {humanDate} from icon changes.")
-            else:
-                await ctx.send("There are no icon changes on this date!")
+        await self.imageDateReset(ctx, month, day)
