@@ -142,6 +142,15 @@ class ServerManage(commands.Cog):
         else:
             return True
 
+    @staticmethod
+    def getSingularImageType(imageType: str):
+        if imageType == "icons":
+            return "icon"
+        elif imageType == "banners":
+            return "banner"
+        else:
+            raise ValueError("Image type not defined!")
+
     def getFullFilepath(
         self, guild: discord.Guild, imageDetails: dict, imageType="icons", mkdir=False
     ):
@@ -166,10 +175,7 @@ class ServerManage(commands.Cog):
         type: str
             One of either icons or banners
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
 
         try:
             self.validateImageAttachment(ctx.message)
@@ -218,10 +224,7 @@ class ServerManage(commands.Cog):
         type: str
             One of either icons or banners
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
 
         # Check to see if this image exists in dictionary
         images = await getattr(self.config.guild(ctx.guild), imageType)()
@@ -262,10 +265,8 @@ class ServerManage(commands.Cog):
         type: str
             One of either icons or banners.
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
+
         # Check to see if this icon exists in dictionary
         images = await getattr(self.config.guild(ctx.guild), imageType)()
         if name not in images.keys():
@@ -291,10 +292,7 @@ class ServerManage(commands.Cog):
         imageType: str
             One of either icons or banners
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
 
         async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
             imageDates = dict(sorted(imageDates.items()))
@@ -334,10 +332,7 @@ class ServerManage(commands.Cog):
         imageType: str
             One of either icons or banners.
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
 
         if not self.validDate(month, day):
             await ctx.send("Please enter a valid date!")
@@ -366,10 +361,7 @@ class ServerManage(commands.Cog):
         imageType: str
             One of either icons or banners.
         """
-        if imageType == "icons":
-            imageSingular = "icon"
-        else:
-            raise ValueError
+        imageSingular = self.getSingularImageType(imageType)
 
         if not self.validDate(month, day):
             await ctx.send("Please enter a valid date!")
