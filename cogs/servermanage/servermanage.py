@@ -51,13 +51,14 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
 
     # Cancel the background task on cog unload.
     def __unload(self):
+        self.logger.info("Cancelling background task")
         self.bgTask.cancel()
 
     def cog_unload(self):
         self.__unload()
 
     async def imageLoop(self):
-        while True:
+        while self == self.bot.get_cog("ServerManage"):
             if self.lastChecked.day != datetime.now().day:
                 self.logger.info("Checking to see if we need to change server images")
                 self.lastChecked = datetime.now()
@@ -65,6 +66,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
                     await self.checkGuildIcons(guild)
                     await self.checkGuildBanners(guild)
             await asyncio.sleep(60)
+        self.logger.error("We should never reach this!")
 
     async def checkGuildIcons(self, guild: discord.Guild):
         self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
