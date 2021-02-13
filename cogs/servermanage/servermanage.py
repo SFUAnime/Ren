@@ -331,7 +331,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         # Check to see if this icon exists in dictionary
         images = await getattr(self.config.guild(ctx.guild), imageType)()
         if name not in images.keys():
-            await ctx.send(f"This {imageSingular} dosent exist!")
+            await ctx.send(f"This {imageSingular} doesn't exist!")
             return
 
         filepath = self.getFullFilepath(ctx.guild, images[name], imageType=imageType)
