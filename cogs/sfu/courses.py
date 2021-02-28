@@ -3,10 +3,10 @@ import discord
 from redbot.core import commands
 from redbot.core.commands.context import Context
 from .api import dictOutline
-from .meta import SFUMeta, SFUBase
+from .base import SFUBase
 
 
-class SFUCourses(SFUBase, metaclass=SFUMeta):
+class SFUCourses(SFUBase):
     """A cog to search for SFU courses, from the kind souls at SFU CSSS."""
 
     # Class constructor

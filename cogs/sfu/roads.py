@@ -13,7 +13,7 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
-from .meta import SFUMeta, SFUBase
+from .base import SFUBase
 
 WEBCAM_BRH = "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
 WEBCAM_GAGLARDI = (
@@ -57,7 +57,7 @@ STATUS = "status"
 ANNOUNCE = "announcements"
 
 
-class SFURoads(SFUBase, commands.Cog, metaclass=SFUMeta):
+class SFURoads(SFUBase):
     """Various SFU Utilities."""
 
     def __init__(self, bot: Red):
