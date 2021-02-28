@@ -26,11 +26,21 @@ class SFUCourses(SFUBase, metaclass=SFUMeta):
         year: str = None,
         section: str = None,
     ):
-        """Displays a course outline.  Defaults to current semester and year.
+        """Display a course outline. Defaults to current semester and year.
 
-        Semester: spring, summer, fall
+        Parameters
+        ----------
+        department: str
+            The course department. For example: engineering science = ensc
+        number: str
+            The course number. For example: 452
+        semester: str (Optional)
+            The semester for the course. Should be one of the following: spring, summer, fall
+        year: str (Optional)
+            The year of the course. For example: 2018
 
-        Original command from the SFU Computing Science Student Society.
+        For example, to find out about ENSC 452 in Spring 2018, use the following parameters:
+        ensc 452 spring 2018
         """
         if not section:
             section = "placeholder"
