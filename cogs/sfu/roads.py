@@ -78,7 +78,8 @@ class SFURoads(SFUBase):
         self.headers = {"User-agent": "Mozilla/5.0"}
 
         # Add commands to the sfu group defined in the base class
-        self.sfuGroup.add_command(commands.Command(self.cam, name="cam"))
+        self.camCommand = commands.Command(self.cam, name="cam")
+        self.sfuGroup.add_command(self.camCommand)
         self.sfuGroup.add_command(commands.Command(self.report, name="report"))
 
     @commands.guild_only()
@@ -104,7 +105,7 @@ class SFURoads(SFUBase):
 
         camera = self.cameras.get(cam.lower(), "help")
         if camera == "help":
-            await self.bot.send_help_for(ctx, self.cam)
+            await self.bot.send_help_for(ctx, self.camCommand)
             return
 
         try:
