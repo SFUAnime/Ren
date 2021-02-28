@@ -195,9 +195,9 @@ class RSSFeed(commands.Cog):
                 news.append(item)
 
         if not news:
-            self.logger.info("No new items from %s", rssUrl)
+            self.logger.debug("No new items from %s", rssUrl)
         else:
-            self.logger.info("%s new items from %s", len(news), rssUrl)
+            self.logger.debug("%s new items from %s", len(news), rssUrl)
 
         latestPostTime = _getLatestPostTime(feed.entries)
         if latestPostTime:
@@ -214,7 +214,7 @@ class RSSFeed(commands.Cog):
         """
 
         while self == self.bot.get_cog("RSSFeed"):
-            self.logger.info("Scanning feed(s) for updates...")
+            self.logger.debug("Scanning feed(s) for updates...")
             for guild in self.bot.guilds:
                 chID = await self.config.guild(guild).channelId()
                 postChannel = self.bot.get_channel(chID)
@@ -254,7 +254,7 @@ class RSSFeed(commands.Cog):
                     if value:
                         embed.add_field(name="Summary", value=value, inline=False)
                     else:
-                        self.logger.info("No summary found. Posting without the summary.")
+                        self.logger.debug("No summary found. Posting without the summary.")
 
                     try:
                         embed.set_image(url=soup.find("meta", property="og:image")["content"])

@@ -13,6 +13,8 @@ from redbot.core import commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
+from .base import SFUBase
+
 WEBCAM_BRH = "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
 WEBCAM_GAGLARDI = (
     "http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
@@ -55,11 +57,11 @@ STATUS = "status"
 ANNOUNCE = "announcements"
 
 
-class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
+class SFURoads(SFUBase):
     """Various SFU Utilities."""
 
     def __init__(self, bot: Red):
-        self.bot = bot
+        super().__init__(bot)
         self.cameras = {
             "aqpond": WEBCAM_AQPOND,
             "brh": WEBCAM_BRH,
@@ -75,7 +77,11 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         # We need a custom header or else we get a HTTP 403 Unauthorized
         self.headers = {"User-agent": "Mozilla/5.0"}
 
-    @commands.command(name="cam")
+        # Add commands to the sfu group defined in the base class
+        self.camCommand = commands.Command(self.cam, name="cam")
+        self.sfuGroup.add_command(self.camCommand)
+        self.sfuGroup.add_command(commands.Command(self.report, name="report"))
+
     @commands.guild_only()
     async def cam(self, ctx: Context, cam: str = ""):
         """Show a SFU webcam image.
@@ -99,7 +105,7 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
 
         camera = self.cameras.get(cam.lower(), "help")
         if camera == "help":
-            await self.bot.send_help_for(ctx, self.cam)
+            await self.bot.send_help_for(ctx, self.camCommand)
             return
 
         try:
@@ -118,7 +124,6 @@ class SFURoads(commands.Cog):  # pylint: disable=too-few-public-methods
         camPhoto = discord.File(BytesIO(fetchedData.content), filename="cam.jpg")
         await ctx.send(file=camPhoto)
 
-    @commands.command(name="report")
     @commands.guild_only()
     async def report(self, ctx: Context):
         """Show the SFU Campus Report."""
