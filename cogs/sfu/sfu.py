@@ -8,5 +8,5 @@ from .roads import SFURoads
 from .courses import SFUCourses
 
 
-class SFU(SFUCourses, SFURoads, SFUBase):
+class SFU(SFUCourses, SFURoads):
     """SFU resources on Discord."""
