@@ -3,16 +3,19 @@ import discord
 from redbot.core import commands
 from redbot.core.commands.context import Context
 from .api import dictOutline
+from .meta import SFUMeta, SFUBase
 
 
-class SFUCourses(commands.Cog):
+class SFUCourses(SFUBase, metaclass=SFUMeta):
     """A cog to search for SFU courses, from the kind souls at SFU CSSS."""
 
     # Class constructor
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
 
-    @commands.command(name="course")
+        # Add commands to the sfu group defined in the base class
+        self.sfuGroup.add_command(commands.Command(self.lookup, name="course"))
+
     @commands.guild_only()
     async def lookup(
         self,
