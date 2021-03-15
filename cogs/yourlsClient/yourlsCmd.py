@@ -236,8 +236,11 @@ class YOURLS(commands.Cog):
         except RuntimeError as error:
             await ctx.send(error)
         except HTTPError as error:
-            self.logger.error(error, exc_info=True)
-            await ctx.send(DEFAULT_ERROR)
+            if error.response.status_code == 404:
+                await ctx.send("Could not find the keyword, please make sure it is correct and try again!")
+            else:
+                self.logger.error(error, exc_info=True)
+                await ctx.send(DEFAULT_ERROR)
         except RequestException as error:
             self.logger.error(error)
             await ctx.send(DEFAULT_ERROR)
