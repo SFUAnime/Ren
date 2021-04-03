@@ -6,6 +6,7 @@ from typing import List, Dict, Optional, Union
 @dataclass
 class FakePayload:
     """A fake payload object to utilize `_update_stars` method"""
+
     guild_id: int
     channel_id: int
     message_id: int
@@ -20,6 +21,7 @@ class StarboardMessage:
     message ID, and the starboard message ID
     as well as a list of users who have added their "vote"
     """
+
     def __init__(self, **kwargs):
         self.original_message: int = kwargs.get("original_message")
         self.original_channel: int = kwargs.get("original_channel")
@@ -66,9 +68,7 @@ class StarboardEntry:
         self.selfstar: bool = kwargs.get("selfstar", False)
         self.blacklist_role: List[int] = kwargs.get("blacklist_role", [])
         self.whitelist_role: List[int] = kwargs.get("whitelist_role", [])
-        self.messages: List[StarboardMessage] = kwargs.get(
-            "messages", []
-        )
+        self.messages: List[StarboardMessage] = kwargs.get("messages", [])
         self.blacklist_channel: List[int] = kwargs.get("blacklist_channel", [])
         self.whitelist_channel: List[int] = kwargs.get("whitelist_channel", [])
         self.threshold: int = kwargs.get("threshold", 1)
