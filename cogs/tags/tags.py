@@ -161,7 +161,6 @@ class Tags(commands.Cog):
             loop=bot.loop,
             load_later=True,
         )
-        self.settings = Config(saveFolder, "settings-v2.json")
         self.configV3 = ConfigV3.get_conf(self, identifier=5842647, force_registration=True)
         self.configV3.register_guild(**BASE)  # Register default (empty) settings.
         self.lock = Lock()
@@ -229,7 +228,7 @@ class Tags(commands.Cog):
                 raise RuntimeError("Tag not found.")
             raise RuntimeError("Tag not found. Did you mean...\n" + "\n".join(possible_matches))
 
-    async def user_exceeds_tag_limit(self, server: discord.Guild, user: discord.Member):
+    async def userExceedsTagLimit(self, server: discord.Guild, user: discord.Member):
         """Check to see if user has too many tags.
 
         This check compares against all relevant roles that the member has, and will
@@ -284,9 +283,9 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
-    def checkAliasCog(self, name: str = None):
+    async def checkAliasCog(self, ctx: Context, name: str = None):
         aliasCog = None
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             aliasCog = self.bot.get_cog("Alias")
             if not aliasCog:
                 raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
@@ -489,12 +488,12 @@ class Tags(commands.Cog):
         create can only be accessed in the server that it was created in.
         """
         try:
-            aliasCog = self.checkAliasCog(name)
+            aliasCog = await self.checkAliasCog(ctx, name)
             self.checkValidCommandName(name)
         except RuntimeError as error:
             return await ctx.send(error)
 
-        exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
+        exceedsLimit, limit = await self.userExceedsTagLimit(ctx.guild, ctx.author)
         if exceedsLimit:
             await ctx.send(
                 "You have too many commands. The maximum number of commands "
@@ -526,7 +525,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send('Tag "{}" successfully created.'.format(name))
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -536,8 +535,13 @@ class Tags(commands.Cog):
             await ctx.send("Tag " + str(error))
         elif isinstance(error, commands.CheckFailure):
             pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
-            await ctx.send("Something went wrong, please check the logs for details.")
+            await ctx.send(
+                "Something went wrong, please try again or contact the bot owner(s) "
+                "if this continues."
+            )
             raise error
 
     @tag.command(name="generic")
@@ -577,7 +581,15 @@ class Tags(commands.Cog):
     async def generic_error(self, ctx: Context, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Tag " + str(error))
+        elif isinstance(error, commands.CheckFailure):
+            pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
+            await ctx.send(
+                "Something went wrong, please try again or contact the bot owner(s) "
+                "if this continues."
+            )
             raise error
 
     @tag.command(name="alias")
@@ -641,11 +653,11 @@ class Tags(commands.Cog):
         create command.
         """
         try:
-            aliasCog = self.checkAliasCog()
+            aliasCog = await self.checkAliasCog(ctx)
         except RuntimeError as error:
             return await ctx.send(error)
 
-        exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
+        exceedsLimit, limit = await self.userExceedsTagLimit(ctx.guild, ctx.author)
         if exceedsLimit:
             await ctx.send(
                 "You have too many commands. The maximum number of commands "
@@ -694,7 +706,7 @@ class Tags(commands.Cog):
             return
 
         # Alias is already loaded
-        if self.settings.get(KEY_USE_ALIAS, False) and aliasCog.is_command(lookup):
+        if await self.configV3.guild(ctx.guild).useAlias() and aliasCog.is_command(lookup):
             await ctx.send(
                 "This name cannot be used because there is already "
                 "an internal command with this name."
@@ -726,7 +738,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send("Cool. I've made your {0.content} tag.".format(name))
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -736,7 +748,10 @@ class Tags(commands.Cog):
             await ctx.send("Please call just {0.prefix}tag make".format(ctx))
         elif isinstance(error, commands.CheckFailure):
             pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
+            await ctx.send("Something went wrong, please check the logs for details.")
             raise error
 
     def top_three_tags(self, db):
@@ -857,7 +872,7 @@ class Tags(commands.Cog):
             return
 
         # Check if the user to transfer to has exceeded the tag limit
-        exceedsLimit, _ = await self.user_exceeds_tag_limit(ctx.guild, user)
+        exceedsLimit, _ = await self.userExceedsTagLimit(ctx.guild, user)
         if exceedsLimit:
             await ctx.send(
                 "The person you are trying to transfer a tag to is not allowed to have "
@@ -947,7 +962,7 @@ class Tags(commands.Cog):
         del db[oldName]
 
         await self.config.put(location, db)
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, newName, "tag {}".format(newName))
             await aliasCog.del_alias(ctx, oldName)
@@ -964,7 +979,7 @@ class Tags(commands.Cog):
         Deleting a tag will delete all of its aliases as well.
         """
         try:
-            aliasCog = self.checkAliasCog()
+            aliasCog = await self.checkAliasCog(ctx)
         except RuntimeError as error:
             return await ctx.send(error)
 
@@ -1015,7 +1030,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send(msg)
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             # Alias is already loaded.
             await aliasCog.del_alias(ctx, lookup)
 
@@ -1040,6 +1055,7 @@ class Tags(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Missing tag name to get info of.")
         else:
+            await ctx.send("Something went wrong, please check the logs for details.")
             raise error
 
     @tag.command(name="raw")
@@ -1089,8 +1105,7 @@ class Tags(commands.Cog):
 
         if tags:
             try:
-                self.dm = self.settings.get("dm", False)
-                if self.dm:
+                if await self.configV3.guild(ctx.guild).dm():
                     await ctx.send("Check your DMs.")
                     msg = "Here are a list of tags for {}:\n```".format(ctx.message.author.mention)
                     for item in tags:
@@ -1124,8 +1139,7 @@ class Tags(commands.Cog):
 
         if tags:
             try:
-                self.dm = self.settings.get("dm", False)
-                if self.dm:
+                if await self.configV3.guild(ctx.guild).dm():
                     await ctx.send("Check your DMs.")
                     msg = "Here are a list of tags for {}:\n```".format(ctx.message.guild.name)
                     for item in tags:
@@ -1251,7 +1265,7 @@ class Tags(commands.Cog):
     @settings.command(name="togglealias")
     async def togglealias(self, ctx: Context):
         """Toggle creating aliases for tags."""
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).useAlias():
             toAlias = False
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
@@ -1263,25 +1277,23 @@ class Tags(commands.Cog):
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
                 "be created **with an alias**."
             )
-        await self.settings.put(KEY_USE_ALIAS, toAlias)
+        await self.configV3.guild(ctx.guild).useAlias.set(toAlias)
 
     @settings.command(name="toggledm")
     async def toggledm(self, ctx: Context):
         """Toggle sending DM for list of tags."""
-        self.dm = self.settings.get("dm", False)
-        if self.dm:
-            self.dm = False
-            await self.settings.put("dm", False)
+        if await self.configV3.guild(ctx.guild).dm():
+            dm = False
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will "
                 "be sent **in the channel they were requested**."
             )
         else:
-            self.dm = True
-            await self.settings.put("dm", True)
+            dm = True
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will " "be sent **in a DM**."
             )
+        await self.configV3.guild(ctx.guild).dm.set(dm)
 
     @tag.command(name="runtests")
     @checks.is_owner()
