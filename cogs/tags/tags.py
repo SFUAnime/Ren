@@ -167,12 +167,14 @@ class Tags(commands.Cog):
         tagGroup = self.get_commands()[0]
         self.tagCommands = tagGroup.all_commands.keys()
         self.syncLoopCreated = False
+        if self.bot.guilds:
+            self.bot.loop.create_task(self.syncAllowedRoles())
 
     @commands.Cog.listener("on_ready")
     async def initialSyncLoop(self):
         if not self.syncLoopCreated:
             # TODO Add logger here.
-            self.bot.loop.create_task(self.syncAllowedRoles())
+            await self.syncAllowedRoles()
             self.syncLoopCreated = True
 
     async def syncAllowedRoles(self):
