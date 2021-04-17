@@ -2,8 +2,8 @@
 A replica of +f seen in another bot, except smarter..
 """
 import logging
+from asyncio import Lock
 from datetime import datetime, timedelta
-from threading import Lock
 from random import choice
 import discord
 from redbot.core import Config, checks, commands, data_manager
@@ -38,8 +38,6 @@ class Respects(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.plusFLock = Lock()
-        self.settingsLock = Lock()
-        self.settings = {}
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**BASE_GUILD)
         self.config.register_channel(**BASE_CHANNEL)
@@ -62,7 +60,7 @@ class Respects(commands.Cog):
     @commands.guild_only()
     async def plusF(self, ctx: Context):
         """Pay your respects."""
-        with self.plusFLock:
+        async with self.plusFLock:
             if not await self.checkLastRespect(ctx):
                 # New respects to be paid
                 await self.payRespects(ctx)
