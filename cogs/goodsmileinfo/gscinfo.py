@@ -16,7 +16,7 @@ DEFAULT_GUILD = {"postChannel": None, "urls": {}}
 
 URL = "https://www.goodsmile.info/en/posts/category/information/date/"
 # XXX Use another library to strip URL to root
-BASE_URL = "https://www.goodsmile.info/"
+BASE_URL = "https://www.goodsmile.info"
 SLEEP_TIME = 3600  # In seconds
 
 
