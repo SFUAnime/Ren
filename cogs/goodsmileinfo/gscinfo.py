@@ -157,6 +157,13 @@ class GoodSmileInfo(commands.Cog):
                 self.logger.debug("No post channel configured, skipping")
                 continue
 
+            channel = self.bot.get_channel(postChannel)
+            if not channel:
+                self.logger.debug(
+                    "Cannot find channel ID %s, does the channel still exist?", postChannel
+                )
+                continue
+
             for embed in listOfEmbeds:
                 if embed.url in await self.config.guild(guild).urls():
                     self.logger.debug("Sent before, skipping")
@@ -165,13 +172,6 @@ class GoodSmileInfo(commands.Cog):
                     async with self.config.guild(guild).urls() as urls:
                         urls[embed.url] = True
                     self.logger.debug("Not sent before, will send")
-
-                channel = self.bot.get_channel(postChannel)
-                if not channel:
-                    self.logger.debug(
-                        "Cannot find channel ID %s, does the channel still exist?", postChannel
-                    )
-                    continue
 
                 try:
                     await channel.send(embed=embed)
