@@ -659,6 +659,10 @@ class Highlight(commands.Cog):
                 msgStillThere = True
         if not msgStillThere:
             return
+        # Embed Description has a max length of 2048
+        # If description is longer truncate to 2045 and append ... to it
+        if len(embedMsg) > 2048:
+            embedMsg = embedMsg[:2045] + "..."
         embed = discord.Embed(title=user.name, description=embedMsg, colour=discord.Colour.red())
         embed.add_field(name="Context", value="[Click to Jump]({})".format(msgUrl))
         time = message.created_at.replace(tzinfo=timezone.utc).astimezone(tz=None)
