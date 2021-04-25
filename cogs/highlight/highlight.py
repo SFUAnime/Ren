@@ -660,7 +660,7 @@ class Highlight(commands.Cog):
         if not msgStillThere:
             return
         # Embed Description has a max length of 2048
-        # If description is longer truncate to 2045 and append ... to it 
+        # If description is longer truncate to 2045 and append ... to it
         if len(embedMsg) > 2048:
             embedMsg = embedMsg[:2045] + "..."
         embed = discord.Embed(title=user.name, description=embedMsg, colour=discord.Colour.red())
