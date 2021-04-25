@@ -41,7 +41,7 @@ class SmartReact(commands.Cog):
             )
             self.logger.addHandler(handler)
 
-    @commands.group(name="smartreact", aliases=["react"])
+    @commands.group(name="react")
     @commands.guild_only()
     # @checks.mod_or_permissions(manage_messages=True)
     async def reacts(self, ctx):
