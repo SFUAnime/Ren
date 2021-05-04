@@ -37,8 +37,13 @@ class AfterHours(commands.Cog):
             )
             self.logger.addHandler(handler)
 
-    async def getContext(self, channel: discord.abc.GuildChannel):
-        """Get the context
+    async def getContext(self, channel: discord.TextChannel):
+        """Get the Context object from a text channel.
+
+        Parameters
+        ----------
+        channel: discord.TextChannel
+            The text channel to use in order to create the Context object.
 
         Returns
         -------
@@ -58,6 +63,17 @@ class AfterHours(commands.Cog):
     async def makeStarboardChanges(
         self, ctx: Context, channel: discord.abc.GuildChannel, remove=False
     ):
+        """Apply Starboard changes.
+
+        Parameters
+        -----------
+        ctx: Context
+            The Context object in order to invoke commands
+        channel: discord.abc.GuildChannel
+            The channel to apply Starboard changes to.
+        remove: bool
+            Indicate whether we want to remove the changes. Defaults to False.
+        """
         self.logger.info("Applying/removing Starboard exceptions, remove=%s", remove)
         sbCog = self.bot.get_cog("Starboard")
         if not sbCog:
@@ -82,6 +98,7 @@ class AfterHours(commands.Cog):
 
     @commands.Cog.listener("on_guild_channel_create")
     async def handleChannelCreate(self, channel: discord.abc.GuildChannel):
+        """Listener to see if we need to add exceptions to a channel"""
         self.logger.info(
             "Channel creation has been detected. Name: %s, ID: %s", channel.name, channel.id
         )
@@ -98,6 +115,7 @@ class AfterHours(commands.Cog):
 
     @commands.Cog.listener("on_guild_channel_delete")
     async def handleChannelDelete(self, channel: discord.abc.GuildChannel):
+        """Listener to see if we need to remove exceptions from a channel"""
         self.logger.info(
             "Channel deletion has been detected. Name: %s, ID: %s", channel.name, channel.id
         )
