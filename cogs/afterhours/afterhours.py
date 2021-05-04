@@ -11,7 +11,7 @@ from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
 AH_CHANNEL = "after-hours"
-DEFAULT_GUILD = {"channelId": None, "afterHoursChannelId": None}
+DEFAULT_GUILD = {"channelId": None, "afterHoursChannelIds": []}
 STARBOARD = "highlights"
 
 
@@ -93,22 +93,23 @@ class AfterHours(commands.Cog):
                 return
             await self.notifyChannel(ctx)
             await self.makeStarboardChanges(ctx, channel)
-            await self.config.guild(channel.guild).afterHoursChannelId.set(channel.id)
+            async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
+                channelIds.append(channel.id)
 
     @commands.Cog.listener("on_guild_channel_delete")
     async def handleChannelDelete(self, channel: discord.abc.GuildChannel):
         self.logger.info(
             "Channel deletion has been detected. Name: %s, ID: %s", channel.name, channel.id
         )
-        channelId = await self.config.guild(channel.guild).afterHoursChannelId()
-        if channelId and channel.id == channelId:
-            self.logger.info("%s detected, removing exceptions", AH_CHANNEL)
-            ctx = await self.getContext(channel)
-            if not ctx:
-                return
-            await self.notifyChannel(ctx, remove=True)
-            await self.makeStarboardChanges(ctx, channel, remove=True)
-            await self.config.guild(channel.guild).afterHoursChannelId.set(None)
+        async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
+            if channel.id in channelIds:
+                self.logger.info("%s detected, removing exceptions", AH_CHANNEL)
+                ctx = await self.getContext(channel)
+                if not ctx:
+                    return
+                await self.notifyChannel(ctx, remove=True)
+                await self.makeStarboardChanges(ctx, channel, remove=True)
+                channelIds.remove(channel.id)
 
     @commands.group(name="afterhours")
     @commands.guild_only()
