@@ -24,6 +24,7 @@ KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 KEY_WORDS_IGNORE = "ignoreWords"
 KEY_IGNORE = "ignoreChannelID"
+KEY_CHANNEL_IGNORE = "userIgnoreChannelID"
 
 BASE_GUILD_MEMBER = {
     KEY_BLACKLIST: [],
@@ -479,7 +480,7 @@ class Highlight(commands.Cog):
 
 
 
-    @highlight.command(name="channelDeny", aliases=["cd"])
+    @highlight.group(name="channelDeny", aliases=["cd"])
     @commands.guild_only()
     async def channelDeny(self, ctx: Context):
         """Stops certain channels from triggering your highlight words"""
@@ -494,10 +495,25 @@ class Highlight(commands.Cog):
         channel: discord.TextChannel
             The channel you wish to block highlight triggers from.    
         """
+        guildId = ctx.guild.id
+        userId = ctx.author.id
+        channelId = channel.id
+
+        #Check if user ignore list exists
+        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+            if channelId in channelList:
+                await ctx.message.delete()
+                await ctx.send("Channel is already being ignored!", delete_after=DELETE_TIME)
+                return
+            channelList.append(channel.id) 
+
+        await ctx.send("Channel added to ignore list", delete_after=DELETE_TIME)
+        await ctx.message.delete()
+        
     
     @channelDeny.command(name="remove", aliases=["rm"])
     @commands.guild_only()
-    async def channelDenyAdd(self, ctx: Context, channel: discord.TextChannel):
+    async def channelDenyRemove(self, ctx: Context, channel: discord.TextChannel):
         """Remove a channel that was on the denylist and allow
         the channel to trigger highlights again
         
@@ -506,6 +522,7 @@ class Highlight(commands.Cog):
         channel: discord.TextChannel
             The channel you wish to recieved highlights from again.
         """
+
     @channelDeny.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def channelDenyList(self, ctx: Context):
