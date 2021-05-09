@@ -30,6 +30,7 @@ BASE_GUILD_MEMBER = {
     KEY_TIMEOUT: DEFAULT_TIMEOUT,
     KEY_WORDS: [],
     KEY_WORDS_IGNORE: [],
+    KEY_CHANNEL_IGNORE: [],
 }
 
 BASE_GUILD = {
@@ -475,6 +476,42 @@ class Highlight(commands.Cog):
 
         await ctx.send("Timeout set to {} seconds.".format(seconds), delete_after=DELETE_TIME)
         await ctx.message.delete()
+
+
+
+    @highlight.command(name="channelDeny", aliases=["cd"])
+    @commands.guild_only()
+    async def channelDeny(self, ctx: Context):
+        """Stops certain channels from triggering your highlight words"""
+    
+    @channelDeny.command(name="add")
+    @commands.guild_only()
+    async def channelDenyAdd(self, ctx: Context, channel: discord.TextChannel):
+        """Add a channel to be blocked from triggering highlights
+
+        Parameters:
+        -----------
+        channel: discord.TextChannel
+            The channel you wish to block highlight triggers from.    
+        """
+    
+    @channelDeny.command(name="remove", aliases=["rm"])
+    @commands.guild_only()
+    async def channelDenyAdd(self, ctx: Context, channel: discord.TextChannel):
+        """Remove a channel that was on the denylist and allow
+        the channel to trigger highlights again
+        
+        Parameters:
+        -----------
+        channel: discord.TextChannel
+            The channel you wish to recieved highlights from again.
+        """
+    @channelDeny.command(name="list", aliases=["ls"])
+    @commands.guild_only()
+    async def channelDenyList(self, ctx: Context):
+        """Sends a DM with all of the channels you've stopped from triggering
+        your highlights"""
+
 
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
