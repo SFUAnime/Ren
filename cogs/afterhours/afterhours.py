@@ -103,6 +103,9 @@ class AfterHours(commands.Cog):
             "Channel creation has been detected. Name: %s, ID: %s", channel.name, channel.id
         )
 
+        if not isinstance(channel, discord.TextChannel):
+            return
+
         if channel.name == AH_CHANNEL:
             self.logger.info("%s detected, applying exceptions", AH_CHANNEL)
             ctx = await self.getContext(channel)
@@ -119,6 +122,10 @@ class AfterHours(commands.Cog):
         self.logger.info(
             "Channel deletion has been detected. Name: %s, ID: %s", channel.name, channel.id
         )
+
+        if not isinstance(channel, discord.TextChannel):
+            return
+
         async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
             if channel.id in channelIds:
                 self.logger.info("%s detected, removing exceptions", AH_CHANNEL)
