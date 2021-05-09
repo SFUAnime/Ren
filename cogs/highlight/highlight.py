@@ -499,16 +499,14 @@ class Highlight(commands.Cog):
         userId = ctx.author.id
         channelId = channel.id
 
-        #Check if user ignore list exists
         async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
             if channelId in channelList:
-                await ctx.message.delete()
                 await ctx.send("Channel is already being ignored!", delete_after=DELETE_TIME)
-                return
-            channelList.append(channel.id) 
-
-        await ctx.send("Channel added to ignore list", delete_after=DELETE_TIME)
-        await ctx.message.delete()
+                await ctx.message.delete()
+            else:
+                channelList.append(channel.id) 
+                await ctx.send("Channel added to ignore list.", delete_after=DELETE_TIME)
+                await ctx.message.delete()
         
     
     @channelDeny.command(name="remove", aliases=["rm"])
@@ -522,7 +520,19 @@ class Highlight(commands.Cog):
         channel: discord.TextChannel
             The channel you wish to recieved highlights from again.
         """
+        guildId = ctx.guild.id
+        userId = ctx.author.id
+        channelId = channel.id
 
+        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+            if channelId not in channelList:
+                await ctx.message.delete()
+                await ctx.send("This channel wasn't previously blocked!", delete_after=DELETE_TIME)
+            else:
+                channelList.remove(channelId)
+                await ctx.message.delete()
+                await ctx.send("Channel successfully removed from deny list.", delete_after=DELETE_TIME)
+                
     @channelDeny.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def channelDenyList(self, ctx: Context):
