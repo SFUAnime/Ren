@@ -538,8 +538,47 @@ class Highlight(commands.Cog):
     async def channelDenyList(self, ctx: Context):
         """Sends a DM with all of the channels you've stopped from triggering
         your highlights"""
+        userName = ctx.message.author.name
 
-
+        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+            if channelList:
+                msg = ""
+                serverChList = ctx.guild.channels
+                removedChannels = []
+                for channelId in channelList:
+                    #Flag that allows the bot to append channel Id if name not found
+                    #The channel ID can then be used for removal if they filtered a channel that was removed
+                    channelExist = False
+                    for serverChannel in serverChList:
+                        if channelId == serverChannel.id:
+                            msg += "{}\n".format(serverChannel.name)
+                            channelExist = True
+                    if not channelExist:
+                        #save channelId to be removed outside of loop
+                        removedChannels.append(channelId)
+                for channelId in removedChannels: 
+                    channelList.remove(channelId)
+                embed = discord.Embed(description=msg, colour=discord.Colour.red())
+                embed.set_author(
+                    name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url
+                )
+                try:
+                    await ctx.message.author.send(embed=embed)
+                except discord.Forbidden:
+                    await ctx.send(
+                        "{}, you do not have DMs enabled, please enable them!".format(
+                            ctx.message.author.mention
+                        ),
+                        delete_after=DELETE_TIME,
+                    )
+                else:
+                    await ctx.send("Please check your DMs.", delete_after=DELETE_TIME)
+            else:
+                await ctx.send(
+                    "Sorry {}, you have no channels on the deny list currently".format(userName),
+                    delete_after=DELETE_TIME,
+                )
+    
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
 
