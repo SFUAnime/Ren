@@ -509,13 +509,12 @@ class Highlight(commands.Cog):
     @channelDeny.command(name="remove", aliases=["rm"])
     @commands.guild_only()
     async def channelDenyRemove(self, ctx: Context, channel: discord.TextChannel):
-        """Remove a channel that was on the denylist and allow
-        the channel to trigger highlights again
+        """Remove a channel that was on the denylist and allow the channel to trigger highlights again
 
         Parameters:
         -----------
         channel: discord.TextChannel
-            The channel you wish to recieved highlights from again.
+            The channel you wish to recieve highlights from again.
         """
         guildId = ctx.guild.id
         userId = ctx.author.id
@@ -535,8 +534,7 @@ class Highlight(commands.Cog):
     @channelDeny.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def channelDenyList(self, ctx: Context):
-        """Sends a DM with all of the channels you've stopped from triggering
-        your highlights"""
+        """Sends a DM with all of the channels you've stopped from triggering your highlights"""
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
