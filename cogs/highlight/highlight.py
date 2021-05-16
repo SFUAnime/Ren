@@ -523,14 +523,14 @@ class Highlight(commands.Cog):
 
         async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
             if channelId not in channelList:
-                await ctx.message.delete()
                 await ctx.send("This channel wasn't previously blocked!", delete_after=DELETE_TIME)
+                await ctx.message.delete()
             else:
                 channelList.remove(channelId)
-                await ctx.message.delete()
                 await ctx.send(
                     "Channel successfully removed from deny list.", delete_after=DELETE_TIME
                 )
+                await ctx.message.delete()
 
     @channelDeny.command(name="list", aliases=["ls"])
     @commands.guild_only()
