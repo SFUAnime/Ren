@@ -478,13 +478,11 @@ class Highlight(commands.Cog):
         await ctx.send("Timeout set to {} seconds.".format(seconds), delete_after=DELETE_TIME)
         await ctx.message.delete()
 
-
-
     @highlight.group(name="channelDeny", aliases=["cd"])
     @commands.guild_only()
     async def channelDeny(self, ctx: Context):
         """Stops certain channels from triggering your highlight words"""
-    
+
     @channelDeny.command(name="add")
     @commands.guild_only()
     async def channelDenyAdd(self, ctx: Context, channel: discord.TextChannel):
@@ -493,7 +491,7 @@ class Highlight(commands.Cog):
         Parameters:
         -----------
         channel: discord.TextChannel
-            The channel you wish to block highlight triggers from.    
+            The channel you wish to block highlight triggers from.
         """
         guildId = ctx.guild.id
         userId = ctx.author.id
@@ -504,17 +502,16 @@ class Highlight(commands.Cog):
                 await ctx.send("Channel is already being ignored!", delete_after=DELETE_TIME)
                 await ctx.message.delete()
             else:
-                channelList.append(channel.id) 
+                channelList.append(channel.id)
                 await ctx.send("Channel added to ignore list.", delete_after=DELETE_TIME)
                 await ctx.message.delete()
-        
-    
+
     @channelDeny.command(name="remove", aliases=["rm"])
     @commands.guild_only()
     async def channelDenyRemove(self, ctx: Context, channel: discord.TextChannel):
         """Remove a channel that was on the denylist and allow
         the channel to trigger highlights again
-        
+
         Parameters:
         -----------
         channel: discord.TextChannel
@@ -531,8 +528,10 @@ class Highlight(commands.Cog):
             else:
                 channelList.remove(channelId)
                 await ctx.message.delete()
-                await ctx.send("Channel successfully removed from deny list.", delete_after=DELETE_TIME)
-                
+                await ctx.send(
+                    "Channel successfully removed from deny list.", delete_after=DELETE_TIME
+                )
+
     @channelDeny.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def channelDenyList(self, ctx: Context):
@@ -546,17 +545,17 @@ class Highlight(commands.Cog):
                 serverChList = ctx.guild.channels
                 removedChannels = []
                 for channelId in channelList:
-                    #Flag that allows the bot to append channel Id if name not found
-                    #The channel ID can then be used for removal if they filtered a channel that was removed
+                    # Flag that allows the bot to append channel Id if name not found
+                    # The channel ID can then be used for removal if they filtered a channel that was removed
                     channelExist = False
                     for serverChannel in serverChList:
                         if channelId == serverChannel.id:
                             msg += "{}\n".format(serverChannel.name)
                             channelExist = True
                     if not channelExist:
-                        #save channelId to be removed outside of loop
+                        # save channelId to be removed outside of loop
                         removedChannels.append(channelId)
-                for channelId in removedChannels: 
+                for channelId in removedChannels:
                     channelList.remove(channelId)
                 embed = discord.Embed(description=msg, colour=discord.Colour.red())
                 embed.set_author(
@@ -578,7 +577,7 @@ class Highlight(commands.Cog):
                     "Sorry {}, you have no channels on the deny list currently".format(userName),
                     delete_after=DELETE_TIME,
                 )
-    
+
     def _triggeredRecently(self, msg, uid, timeout=DEFAULT_TIMEOUT):
         """See if a user has been recently triggered.
 
@@ -684,7 +683,7 @@ class Highlight(commands.Cog):
         for currentUserId, data in guildData.items():
             self.logger.debug("User ID: %s", currentUserId)
             isWordIgnored = False
-            
+
             # Handle case where message was sent in a user denied channel
             if msg.channel.id in data[KEY_CHANNEL_IGNORE]:
                 continue
