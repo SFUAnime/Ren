@@ -684,6 +684,10 @@ class Highlight(commands.Cog):
         for currentUserId, data in guildData.items():
             self.logger.debug("User ID: %s", currentUserId)
             isWordIgnored = False
+            
+            # Handle case where message was sent in a user denied channel
+            if msg.channel.id in data[KEY_CHANNEL_IGNORE]:
+                continue
 
             # Handle case where user was at-mentioned.
             if currentUserId in [atMention.id for atMention in msg.mentions]:
