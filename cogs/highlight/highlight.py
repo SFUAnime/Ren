@@ -514,7 +514,7 @@ class Highlight(commands.Cog):
         Parameters:
         -----------
         channel: discord.TextChannel
-            The channel you wish to recieve highlights from again.
+            The channel you wish to receive highlights from again.
         """
         guildId = ctx.guild.id
         userId = ctx.author.id
