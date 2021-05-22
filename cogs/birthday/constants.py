@@ -1,3 +1,4 @@
+KEY_ADDED_BEFORE = "addedBefore"
 KEY_BDAY_CHANNEL = "birthdayChannel"
 KEY_BDAY_ROLE = "birthdayRole"
 KEY_BDAY_USERS = "birthdayUsers"
@@ -6,6 +7,7 @@ KEY_BDAY_DAY = "birthdateDay"
 KEY_IS_ASSIGNED = "isAssigned"
 
 BASE_GUILD_MEMBER = {
+    KEY_ADDED_BEFORE: False,
     KEY_BDAY_DAY: None,
     KEY_BDAY_MONTH: None,
     KEY_IS_ASSIGNED: False,

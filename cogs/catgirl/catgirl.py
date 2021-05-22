@@ -2,7 +2,8 @@
 import asyncio
 import random
 import discord
-from redbot.core import Config, commands
+import requests
+from redbot.core import checks, Config, commands
 from redbot.core.bot import Red
 
 # Global variables
@@ -16,6 +17,7 @@ KEY_SEIGA_ID = "id"
 PREFIX_PIXIV = "http://www.pixiv.net/member_illust.php?mode=medium&illust_id={}"
 PREFIX_SEIGA = "http://seiga.nicovideo.jp/seiga/im{}"
 SAVE_FOLDER = "data/lui-cogs/catgirl/"  # Path to save folder.
+URL = "https://api.waifu.pics/sfw/neko"  # For a random sfw neko image from the waifu.pics API
 
 EMPTY = {KEY_CATGIRL: [], KEY_CATBOY: []}
 BASE = {
@@ -29,6 +31,8 @@ BASE = {
     "localx10": EMPTY,
     "pending": EMPTY,
 }
+
+DEFAULT_GUILD = {"waifuneko": False}
 
 
 class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
@@ -86,6 +90,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647)
         self.config.register_global(**BASE)
+        self.config.register_guild(**DEFAULT_GUILD)
         self.catgirls = None
         self.catgirlsLocal = None
         self.catgirlsLocalTrap = None
@@ -102,8 +107,18 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Displays a random, cute catgirl :3"""
         # Send typing indicator, useful when Discord explicit filter is on.
         await ctx.channel.trigger_typing()
+        nekoToggle = await self.config.guild(ctx.guild).waifuneko()
 
-        embed = getImage(self.catgirls, "Catgirl")
+        if nekoToggle:
+            choice = random.randint(0, 1)
+            if choice == 0:
+                embed = getImage(self.catgirls, "Catgirl")
+            else:
+                r = requests.get(url=URL)
+                data = r.json()
+                embed = getImageUrl(data["url"])
+        else:
+            embed = getImage(self.catgirls, "Catgirl")
 
         try:
             await ctx.send(embed=embed)
@@ -286,6 +301,21 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             await ctx.send("Added, notified and pending approval. :ok_hand:")
 
+    # [p]nyaa toggle
+    @_nyaa.command(name="toggle")
+    @checks.mod_or_permissions(manage_guild=True)
+    async def toggle(self, ctx):
+        """Toggle using waifu.pics API"""
+        # Send typing indicator, useful when Discord explicit filter is on.
+        await ctx.channel.trigger_typing()
+
+        waifuneko_val = await self.config.guild(ctx.guild).waifuneko()
+        await self.config.guild(ctx.guild).waifuneko.set(False if waifuneko_val else True)
+
+        await ctx.send(
+            "Using waifupics API for catgirls is now {}".format("off" if waifuneko_val else "on")
+        )  # waifuneko_val wasn't updated after setting the thing
+
     async def randomize(self):
         """Shuffles images in the list."""
         while self:
@@ -329,4 +359,25 @@ def getImage(imageList, title):
     if "character" in image:
         embed.add_field(name="Info", value=image["character"], inline=False)
     embed.set_image(url=image[KEY_IMAGE_URL])
+    return embed
+
+
+def getImageUrl(image):
+    """
+    Take a passed url from Waifu.pics, and construct a discord.Embed object
+
+    Parameters:
+    -----------
+    image : a URL
+
+    Returns:
+    -----------
+    embed : discord.embed
+        a fully constructed discord.Embed object, ready to be sent as a message.
+    """
+    embed = discord.Embed()
+    embed.colour = discord.Colour.red()
+    embed.title = "Catgirl"
+    embed.url = image
+    embed.set_image(url=image)
     return embed

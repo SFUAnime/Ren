@@ -9,6 +9,7 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import paginator
+from redbot.core.utils.chat_formatting import warning
 from redbot.core.bot import Red
 from .constants import *
 
@@ -174,16 +175,36 @@ class Birthday(commands.Cog):
             )
             return
 
-        # Save settings
+        def check(msg: discord.Message):
+            return msg.author == ctx.message.author and msg.channel == ctx.message.channel
+
         async with self.config.member(member).all() as userConfig:
+            addedBefore = userConfig[KEY_ADDED_BEFORE]
+            birthdayExists = userConfig[KEY_BDAY_MONTH] and userConfig[KEY_BDAY_DAY]
+            if not birthdayExists and addedBefore:
+                await ctx.send(
+                    warning(
+                        f"This user had their birthday previously removed. Are you sure you "
+                        "still want to re-add them? Please type `yes` to confirm."
+                    )
+                )
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    await ctx.send(f"You took too long, not re-adding them.")
+                    return
+
+                if response.content.lower() != "yes":
+                    await ctx.send(f"Not re-adding them to the birthday list.")
+                    return
+
             userConfig[KEY_BDAY_MONTH] = month
             userConfig[KEY_BDAY_DAY] = day
 
         confMsg = await ctx.send(
-            ":white_check_mark: **Birthday - Add**: Successfully "
-            "added **{0}**'s birthday as **{1:%B} {1:%d}**. "
-            "The role will be assigned automatically on this "
-            "day.".format(member.name, userBirthday)
+            ":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s birthday "
+            "as **{2:%B} {2:%d}**. The role will be assigned automatically on this "
+            "day.".format("updated" if birthdayExists else "added", member.name, userBirthday)
         )
 
         # Explicitly check to see if user should be added to role, if the month
@@ -193,9 +214,10 @@ class Birthday(commands.Cog):
         await asyncio.sleep(5)  # pylint: disable=no-member
 
         await confMsg.edit(
-            content=":white_check_mark: **Birthday - Add**: Successfully "
-            "added **{0}**'s birthday, and the role will be automatically "
-            "assigned on the day.".format(member.name)
+            content=":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s "
+            "birthday, and the role will be automatically assigned on the day.".format(
+                "updated" if birthdayExists else "added", member.name
+            )
         )
 
         self.logger.info(
@@ -368,6 +390,7 @@ class Birthday(commands.Cog):
             return
 
         async with self.config.member(member).all() as userConfig:
+            userConfig[KEY_ADDED_BEFORE] = True
             userConfig[KEY_IS_ASSIGNED] = False
             userConfig[KEY_BDAY_MONTH] = None
             userConfig[KEY_BDAY_DAY] = None
