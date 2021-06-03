@@ -96,6 +96,31 @@ class AfterHours(commands.Cog):
         else:
             await ctx.send(f":information_source: **{AH_CHANNEL} created, adding exceptions**")
 
+    async def makeWordFilterChanges(
+        self, ctx: Context, channel: discord.abc.GuildChannel, remove=False
+    ):
+        """Apply WordFilter changes.
+
+        Parameters
+        -----------
+        ctx: Context
+            The Context object in order to invoke commands
+        channel: discord.abc.GuildChannel
+            The channel to apply WordFilter changes to.
+        remove: bool
+            Indicate whether we want to remove the changes. Defaults to False.
+        """
+        self.logger.info("Applying/removing WordFilter exceptions, remove=%s", remove)
+        cog = self.bot.get_cog("WordFilter")
+        if not cog:
+            self.logger.error("WordFilter not loaded. skipping")
+            return
+
+        if remove:
+            await ctx.invoke(cog._channelRemove, channel=channel)
+        else:
+            await ctx.invoke(cog._channelAdd, channel=channel)
+
     @commands.Cog.listener("on_guild_channel_create")
     async def handleChannelCreate(self, channel: discord.abc.GuildChannel):
         """Listener to see if we need to add exceptions to a channel"""
@@ -113,6 +138,7 @@ class AfterHours(commands.Cog):
                 return
             await self.notifyChannel(ctx)
             await self.makeStarboardChanges(ctx, channel)
+            await self.makeWordFilterChanges(ctx, channel)
             async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
                 channelIds.append(channel.id)
 
@@ -134,6 +160,7 @@ class AfterHours(commands.Cog):
                     return
                 await self.notifyChannel(ctx, remove=True)
                 await self.makeStarboardChanges(ctx, channel, remove=True)
+                await self.makeWordFilterChanges(ctx, channel, remove=True)
                 channelIds.remove(channel.id)
 
     @commands.group(name="afterhours")
