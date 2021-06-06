@@ -12,7 +12,7 @@ from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
 AH_CHANNEL = "after-hours"
-DEFAULT_GUILD = {"channelId": None, "afterHoursChannelIds": {}}
+DEFAULT_GUILD = {"channelIds": {}, "afterHoursChannelIds": []}
 STARBOARD = "highlights"
 DELETE_TIME = 32 * 60 * 60
 SLEEP_TIME = 60 * 60
@@ -56,7 +56,7 @@ class AfterHours(commands.Cog):
             self.logger.info("Checking to see if we need to garbage collect")
             for guild in self.bot.guilds:
                 self.logger.debug("Checking guild %s", guild.id)
-                async with self.config.guild(guild).afterHoursChannelIds() as channels:
+                async with self.config.guild(guild).channelIds() as channels:
                     staleIds = []
                     for channelId, data in channels.items():
                         self.logger.debug("Checking channel ID %s", channelId)
@@ -179,7 +179,7 @@ class AfterHours(commands.Cog):
             await self.notifyChannel(ctx)
             await self.makeStarboardChanges(ctx, channel)
             await self.makeWordFilterChanges(ctx, channel)
-            async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
+            async with self.config.guild(channel.guild).channelIds() as channelIds:
                 channelIds[channel.id] = {"time": datetime.now().timestamp()}
 
     @commands.Cog.listener("on_guild_channel_delete")
@@ -192,7 +192,7 @@ class AfterHours(commands.Cog):
         if not isinstance(channel, discord.TextChannel):
             return
 
-        async with self.config.guild(channel.guild).afterHoursChannelIds() as channelIds:
+        async with self.config.guild(channel.guild).channelIds() as channelIds:
             if str(channel.id) in channelIds:
                 self.logger.info("%s detected, removing exceptions", AH_CHANNEL)
                 ctx = await self.getContext(channel)
