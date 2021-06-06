@@ -123,7 +123,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         Parameters
         ----------
         bannerName: str
-            The icon name you wish to show.
+            The banner name you wish to show.
         """
         await self.imageShow(ctx, bannerName, imageType="banners")
 
@@ -134,7 +134,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
 
     @serverBanners.command(name="set")
     async def bannerSet(self, ctx: Context, month: int, day: int, bannerName: str):
-        """Set when to change the server icon.
+        """Set when to change the server banner.
 
         Parameters
         ----------
@@ -149,7 +149,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
 
     @serverBanners.command(name="reset")
     async def bannerReset(self, ctx: Context, month: int, day: int):
-        """Remove a date when to change the server icon.
+        """Remove a date when to change the server banner.
 
         Parameters
         ----------

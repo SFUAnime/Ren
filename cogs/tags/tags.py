@@ -146,6 +146,18 @@ class Tags(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.luicogs.Tags")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(
+                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
+            )
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
+            )
+            self.logger.addHandler(handler)
+
         # if tags.json doesnt exist, create it
         universal_path = join(str(saveFolder), "tags.json")
         if not isfile(universal_path):
@@ -173,7 +185,7 @@ class Tags(commands.Cog):
     @commands.Cog.listener("on_ready")
     async def initialSyncLoop(self):
         if not self.syncLoopCreated:
-            # TODO Add logger here.
+            self.logger.info("Synchronizing allowed roles")
             await self.syncAllowedRoles()
             self.syncLoopCreated = True
 
@@ -183,7 +195,9 @@ class Tags(commands.Cog):
             guild = discord.utils.get(self.bot.guilds, id=guildId)
             async with self.configV3.guild(guild).tiers() as tiers:
                 self.allowed_roles[guildId] = set(tiers.keys())
-        # TODO debug logging print(self.allowed_roles.keys())
+        self.logger.debug(
+            "Roles allowed to create commands: %s", ", ".join(self.allowed_roles.keys())
+        )
 
     def get_database_location(self, message: discord.Message):
         """Get the database of tags.
