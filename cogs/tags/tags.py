@@ -1100,9 +1100,11 @@ class Tags(commands.Cog):
     @tag.command(name="list")
     async def _list(self, ctx: Context, *, member: discord.Member = None):
         """Lists all the tags that belong to you or someone else.
-        This includes the generic tags as well. If this is done in a private
-        message then you will only get the generic tags you own and not the
-        server specific tags.
+
+        Parameters
+        ----------
+        member: discord.Member (optional)
+            Another guild member that you wish to look up tags for.
         """
         owner = ctx.message.author if member is None else member
         server = ctx.message.guild
@@ -1121,28 +1123,13 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            try:
-                if await self.configV3.guild(ctx.guild).dm():
-                    await ctx.send("Check your DMs.")
-                    msg = "Here are a list of tags for {}:\n```".format(ctx.message.author.mention)
-                    for item in tags:
-                        if len(msg) + len(item) > 1990:
-                            msg += "```"
-                            await ctx.author.send(msg)
-                            msg = "```"
-                        msg += item + "\n"
-                    msg += "```"
-                    await ctx.author.send(msg)
-                else:
-                    p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
-                    p.embed.colour = 0x738BD7  # blurple
-                    p.embed.set_author(
-                        name=owner.display_name,
-                        icon_url=owner.avatar_url or owner.default_avatar_url,
-                    )
-                    await p.paginate()
-            except Exception as e:
-                await ctx.send(e)
+            p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
+            p.embed.colour = 0x738BD7  # blurple
+            p.embed.set_author(
+                name=owner.display_name,
+                icon_url=owner.avatar_url or owner.default_avatar_url,
+            )
+            await p.paginate()
         else:
             await ctx.send("{0.name} has no tags.".format(owner))
 
@@ -1155,24 +1142,9 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            try:
-                if await self.configV3.guild(ctx.guild).dm():
-                    await ctx.send("Check your DMs.")
-                    msg = "Here are a list of tags for {}:\n```".format(ctx.message.guild.name)
-                    for item in tags:
-                        if len(msg) + len(item) > 1990:
-                            msg += "```"
-                            await ctx.author.send(msg)
-                            msg = "```"
-                        msg += item + "\n"
-                    msg += "```"
-                    await ctx.author.send(msg)
-                else:
-                    p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
-                    p.embed.colour = 0x738BD7  # blurple
-                    await p.paginate()
-            except Exception as e:
-                await ctx.send(e)
+            p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
+            p.embed.colour = 0x738BD7  # blurple
+            await p.paginate()
         else:
             await ctx.send("This server has no server-specific tags.")
 
@@ -1295,22 +1267,6 @@ class Tags(commands.Cog):
                 "be created **with an alias**."
             )
         await self.configV3.guild(ctx.guild).useAlias.set(toAlias)
-
-    @settings.command(name="toggledm")
-    async def toggledm(self, ctx: Context):
-        """Toggle sending DM for list of tags."""
-        if await self.configV3.guild(ctx.guild).dm():
-            dm = False
-            await ctx.send(
-                "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will "
-                "be sent **in the channel they were requested**."
-            )
-        else:
-            dm = True
-            await ctx.send(
-                "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will " "be sent **in a DM**."
-            )
-        await self.configV3.guild(ctx.guild).dm.set(dm)
 
     @tag.command(name="runtests")
     @checks.is_owner()
