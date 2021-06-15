@@ -105,10 +105,10 @@ class SmartReact(commands.Cog):
         if not display:
             await ctx.send("There are no smart reacts configured in this server.")
         else:
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+            page = paginator.SimplePages(entries=display)
             page.embed.title = "Smart React emojis for: **{}**".format(ctx.guild.name)
             page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            await page.start(ctx)
 
     def fix_custom_emoji(self, emoji: str):
         self.logger.debug("Emoji: %s", emoji)

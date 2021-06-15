@@ -131,10 +131,10 @@ class Highlight(commands.Cog):
         dlChannels = await self.config.guild(ctx.guild).denylistChannels()
 
         if dlChannels:
-            page = paginator.Pages(ctx=ctx, entries=dlChannels, show_entry_count=True)
+            page = paginator.SimplePages(entries=dlChannels)
             page.embed.title = "Denylist channels for: **{}**".format(ctx.guild.name)
             page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            await page.start(ctx)
         else:
             await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
 

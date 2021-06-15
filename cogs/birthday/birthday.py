@@ -279,10 +279,10 @@ class Birthday(commands.Cog):
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+        page = paginator.SimplePages(entries=display)
         page.embed.title = "Birthdays in **{}**".format(ctx.message.guild.name)
         page.embed.colour = discord.Colour.red()
-        await page.paginate()
+        await page.start(ctx)
 
     @_birthday.command(name="unassign")
     @commands.guild_only()

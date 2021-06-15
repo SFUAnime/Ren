@@ -26,7 +26,7 @@ import logging
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.paginator import Pages
+from redbot.core.utils.paginator import SimplePages
 
 
 class TagInfo:
@@ -1134,13 +1134,13 @@ class Tags(commands.Cog):
                     msg += "```"
                     await ctx.author.send(msg)
                 else:
-                    p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
+                    p = SimplePages(entries=tags)
                     p.embed.colour = 0x738BD7  # blurple
                     p.embed.set_author(
                         name=owner.display_name,
                         icon_url=owner.avatar_url or owner.default_avatar_url,
                     )
-                    await p.paginate()
+                    await p.start(ctx)
             except Exception as e:
                 await ctx.send(e)
         else:
@@ -1168,9 +1168,9 @@ class Tags(commands.Cog):
                     msg += "```"
                     await ctx.author.send(msg)
                 else:
-                    p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
+                    p = SimplePages(entries=tags, per_page=15)
                     p.embed.colour = 0x738BD7  # blurple
-                    await p.paginate()
+                    await p.start(ctx)
             except Exception as e:
                 await ctx.send(e)
         else:
@@ -1264,9 +1264,9 @@ class Tags(commands.Cog):
 
         if results:
             try:
-                p = Pages(ctx=ctx, entries=results, per_page=15, show_entry_count=True)
+                p = SimplePages(entries=results, per_page=15)
                 p.embed.colour = 0x738BD7  # blurple
-                await p.paginate()
+                await p.start(ctx)
             except Exception as e:
                 await ctx.send(e)
         else:

@@ -11,8 +11,8 @@ import asyncio
 import random
 import discord
 from redbot.core import Config, checks, commands, data_manager
-from redbot.core.utils import paginator
 from redbot.core.bot import Red
+from redbot.core.utils import paginator
 
 COLOUR = discord.Colour
 COLOURS = [COLOUR.purple(), COLOUR.red(), COLOUR.blue(), COLOUR.orange(), COLOUR.green()]
@@ -134,10 +134,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             for regex in filters:
                 display.append("`{}`".format(regex))
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+            page = paginator.SimplePages(entries=display)
             page.embed.title = "Filtered words for: **{}**".format(guildName)
             page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            await page.start(ctx)
         else:
             await user.send("Sorry you have no filtered words in **{}**".format(guildName))
 
@@ -247,10 +247,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             for cmd in cmdDenied:
                 display.append("`{}`".format(cmd))
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+            page = paginator.SimplePages(entries=display)
             page.embed.title = f"Denylist commands for: **{guildName}**"
             page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            await page.start(ctx)
         else:
             await ctx.send(f"Sorry, there are no commands on the denylist for **{guildName}**")
 
@@ -344,10 +344,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     continue
                 display.append("`{}`".format(channelTemp.name))
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
+            page = paginator.SimplePages(entries=display)
             page.embed.title = f"Allowlist channels for: **{guildName}**"
             page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            await page.start(ctx)
         else:
             await ctx.send(f"Sorry, there are no channels in the allowlist for **{guildName}**")
 
