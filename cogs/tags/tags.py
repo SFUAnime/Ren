@@ -196,7 +196,7 @@ class Tags(commands.Cog):
             async with self.configV3.guild(guild).tiers() as tiers:
                 self.allowed_roles[guildId] = set(tiers.keys())
         self.logger.debug(
-            "Roles allowed to create commands: %s", ", ".join(self.allowed_roles.keys())
+            "Roles allowed to create commands: %s", ", ".join(map(str, self.allowed_roles.keys()))
         )
 
     def get_database_location(self, message: discord.Message):
