@@ -195,9 +195,11 @@ class Tags(commands.Cog):
             guild = discord.utils.get(self.bot.guilds, id=guildId)
             async with self.configV3.guild(guild).tiers() as tiers:
                 self.allowed_roles[guildId] = set(tiers.keys())
-        self.logger.debug(
-            "Roles allowed to create commands: %s", ", ".join(self.allowed_roles.keys())
-        )
+                self.logger.debug(
+                    "Roles allowed to create commands on %s: %s",
+                    guildId,
+                    ", ".join(map(str, tiers)),
+                )
 
     def get_database_location(self, message: discord.Message):
         """Get the database of tags.
