@@ -261,5 +261,9 @@ class Respects(commands.Cog):
                         users = "{}, {}".format(userObj.name, users)
                 message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
 
-            messageObj = await ctx.send(message)
+            messageObj = await ctx.send(
+                message,
+                reference=ctx.message.reference,
+                mention_author=False,
+            )
             chData[KEY_MSG] = messageObj.id
