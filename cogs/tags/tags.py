@@ -1126,7 +1126,7 @@ class Tags(commands.Cog):
 
         if tags:
             p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
-            p.embed.colour = 0x738BD7  # blurple
+            p.embed.colour = COLOUR_BLURPLE
             p.embed.set_author(
                 name=owner.display_name,
                 icon_url=owner.avatar_url or owner.default_avatar_url,
@@ -1145,7 +1145,7 @@ class Tags(commands.Cog):
 
         if tags:
             p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
-            p.embed.colour = 0x738BD7  # blurple
+            p.embed.colour = COLOUR_BLURPLE
             await p.paginate()
         else:
             await ctx.send("This server has no server-specific tags.")
@@ -1239,7 +1239,7 @@ class Tags(commands.Cog):
         if results:
             try:
                 p = Pages(ctx=ctx, entries=results, per_page=15, show_entry_count=True)
-                p.embed.colour = 0x738BD7  # blurple
+                p.embed.colour = COLOUR_BLURPLE
                 await p.paginate()
             except Exception as e:
                 await ctx.send(e)
