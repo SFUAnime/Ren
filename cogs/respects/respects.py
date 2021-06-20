@@ -164,12 +164,15 @@ class Respects(commands.Cog):
     async def checkLastRespect(self, ctx):
         """Check to see if respects have been paid already.
 
-        This method only checks the time portion and previous messages.
+        This method only checks the time portion, previous messages
+        and the last respect.
 
         This method returns False if:
         - No respects have been paid in this channel before, or
-        - The time exceeds the threshold AND the last respect in the channel was more
-          than a certain number of messages.
+        - The current respect is paid to a message that is different from
+          the message to which the last respect was paid, or
+        - The time exceeds the threshold AND the last respect in the channel was behind
+          more than a certain number of messages.
 
         Otherwise, this method returns True.
         """
@@ -178,6 +181,33 @@ class Respects(commands.Cog):
 
         if not chData[KEY_MSG]:
             return False
+        else:
+            oldRespect = None
+            try:
+                oldRespect = await ctx.channel.fetch_message(chData[KEY_MSG])
+            except discord.NotFound:
+                self.logger.debug("Could not find the old respect")
+                return False
+            except discord.Forbidden:
+                self.logger.debug("Did not have permissions to get the old respect")
+                await ctx.send(
+                    'I currently cannot get messages, please give me "Manage'
+                    ' Message" permissions to allow this feature to work!'
+                )
+            except discord.HTTPException:
+                self.logger.debug("Could not retrieve the old respect")
+            else:
+                oldReference = oldRespect.reference if oldRespect else None
+                currentRespect = ctx.message
+                currentReference = currentRespect.reference
+                if currentReference:
+                    if not oldReference or oldReference.message_id != currentReference.message_id:
+                        self.logger.debug(
+                            "Two most recent respects were paid to two different messages"
+                        )
+                        self.logger.debug("Resetting the respect chain")
+                        await self.config.channel(ctx.channel).clear()
+                        return False
 
         prevMsgs = []
 
@@ -227,9 +257,12 @@ class Respects(commands.Cog):
             chData[KEY_USERS].append(ctx.author.id)
             chData[KEY_TIME] = datetime.now().timestamp()
 
+            oldReference = None
+
             if chData[KEY_MSG]:
                 try:
                     oldRespect = await ctx.channel.fetch_message(chData[KEY_MSG])
+                    oldReference = oldRespect.reference if oldRespect else None
                     await oldRespect.delete()
                 except (discord.Forbidden, discord.NotFound):
                     await ctx.send(
@@ -261,9 +294,11 @@ class Respects(commands.Cog):
                         users = "{}, {}".format(userObj.name, users)
                 message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
 
+            newReference = oldReference if oldReference else ctx.message.reference
+
             messageObj = await ctx.send(
                 message,
-                reference=ctx.message.reference,
+                reference=newReference,
                 mention_author=False,
             )
             chData[KEY_MSG] = messageObj.id
