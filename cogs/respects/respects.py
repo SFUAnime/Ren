@@ -195,7 +195,7 @@ class Respects(commands.Cog):
                     ' Message" permissions to allow this feature to work!'
                 )
             except discord.HTTPException:
-                self.logger.debug("Could not retrieve the old respect")
+                self.logger.error("Could not retrieve the old respect", exc_info=True)
             else:
                 oldReference = oldRespect.reference if oldRespect else None
                 currentRespect = ctx.message
