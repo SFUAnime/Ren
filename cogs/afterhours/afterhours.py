@@ -12,7 +12,9 @@ from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
 AH_CHANNEL = "after-hours"
-DEFAULT_GUILD = {"channelId": None, "channelIds": {}, "afterHoursChannelIds": []}
+KEY_CTX_CHANNEL_ID = "channelId"
+KEY_CHANNEL_IDS = "channelIds"
+DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}}
 STARBOARD = "highlights"
 DELETE_TIME = 32 * 60 * 60
 SLEEP_TIME = 60 * 60
@@ -56,7 +58,7 @@ class AfterHours(commands.Cog):
             self.logger.debug("Checking to see if we need to garbage collect")
             for guild in self.bot.guilds:
                 self.logger.debug("Checking guild %s", guild.id)
-                async with self.config.guild(guild).channelIds() as channels:
+                async with self.config.guild(guild).get_attr(KEY_CHANNEL_IDS)() as channels:
                     staleIds = []
                     for channelId, data in channels.items():
                         self.logger.debug("Checking channel ID %s", channelId)
@@ -91,7 +93,7 @@ class AfterHours(commands.Cog):
             The context needed to send messages and invoke methods from other cogs.
         """
         ctxGuild = channel.guild
-        ctxChannelId = await self.config.guild(ctxGuild).channelId()
+        ctxChannelId = await self.config.guild(ctxGuild).get_attr(KEY_CTX_CHANNEL_ID)()
         ctxChannel = discord.utils.get(ctxGuild.channels, id=ctxChannelId)
         if not ctxChannel:
             self.logger.error("Cannot find channel to construct context!")
@@ -179,7 +181,7 @@ class AfterHours(commands.Cog):
             await self.notifyChannel(ctx)
             await self.makeStarboardChanges(ctx, channel)
             await self.makeWordFilterChanges(ctx, channel)
-            async with self.config.guild(channel.guild).channelIds() as channelIds:
+            async with self.config.guild(channel.guild).get_attr(KEY_CHANNEL_IDS)() as channelIds:
                 channelIds[channel.id] = {"time": datetime.now().timestamp()}
 
     @commands.Cog.listener("on_guild_channel_delete")
@@ -192,7 +194,7 @@ class AfterHours(commands.Cog):
         if not isinstance(channel, discord.TextChannel):
             return
 
-        async with self.config.guild(channel.guild).channelIds() as channelIds:
+        async with self.config.guild(channel.guild).get_attr(KEY_CHANNEL_IDS)() as channelIds:
             if str(channel.id) in channelIds:
                 self.logger.info("%s detected, removing exceptions", AH_CHANNEL)
                 ctx = await self.getContext(channel)
@@ -215,5 +217,5 @@ class AfterHours(commands.Cog):
     @afterHours.command(name="set")
     async def afterHoursSet(self, ctx: Context):
         """Set the channel for notifications."""
-        await self.config.guild(ctx.guild).channelId.set(ctx.channel.id)
+        await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
         await ctx.send("Using this channel to construct context later!")
