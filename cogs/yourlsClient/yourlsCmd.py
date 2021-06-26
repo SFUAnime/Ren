@@ -16,10 +16,12 @@ from yourls import YOURLSClientBase, YOURLSAPIMixin
 
 from .exceptions import *
 
+KEY_API = "api"
+KEY_SIGNATURE = "signature"
 
 BASE_GUILD = {
-    "api": None,
-    "signature": None,
+    KEY_API: None,
+    KEY_SIGNATURE: None,
 }
 DEFAULT_ERROR = "Something went wrong, please try again later, or check your console for details."
 
@@ -405,7 +407,7 @@ class YOURLS(commands.Cog):
         apiEndpoint: str
             The URL to the YOURLS API endpoint.
         """
-        await self.config.guild(ctx.guild).api.set(apiEndpoint)
+        await self.config.guild(ctx.guild).get_attr(KEY_API).set(apiEndpoint)
         self.logger.info(
             "%s (%s) modified the YOURLS API endpoint for %s (%s)",
             ctx.author.name,
@@ -424,7 +426,7 @@ class YOURLS(commands.Cog):
         signature: str
             The signature to access the YOURLS API endpoint.
         """
-        await self.config.guild(ctx.guild).signature.set(signature)
+        await self.config.guild(ctx.guild).get_attr(KEY_SIGNATURE).set(signature)
         self.logger.info(
             "%s (%s) modified the YOURLS signature for %s (%s)",
             ctx.author.name,
@@ -453,8 +455,8 @@ class YOURLS(commands.Cog):
         YOURLSNotConfigured
             Unable to create the YOURLS client because of missing information.
         """
-        api = await self.config.guild(guild).api()
-        sig = await self.config.guild(guild).signature()
+        api = await self.config.guild(guild).get_attr(KEY_API)()
+        sig = await self.config.guild(guild).get_attr(KEY_SIGNATURE)()
         if not (api and sig):
             raise YOURLSNotConfigured("Please configure the YOURLS API first.")
         return YOURLSClient(api, signature=sig)
