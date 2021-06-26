@@ -1,5 +1,5 @@
-"""Welcome cog
-Sends welcome DMs to users that join the server.
+"""GoodSmileCompany cog
+Post updates from GSC's site.
 """
 
 import asyncio
