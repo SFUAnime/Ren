@@ -195,13 +195,7 @@ class Respects(commands.Cog):
         chConfig = self.config.channel(ctx.channel)
         guildConfig = self.config.guild(ctx.guild)
 
-        oldRespectMsgId = None
-        try:
-            oldRespectMsgId = await chConfig.get_attr(KEY_MSG)()
-        except AttributeError:
-            # the attribute has not been registered
-            # so leave it as is
-            pass
+        oldRespectMsgId = await chConfig.get_attr(KEY_MSG)()
 
         if not oldRespectMsgId:
             return False
