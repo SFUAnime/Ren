@@ -1,5 +1,5 @@
-"""Welcome cog
-Sends welcome DMs to users that join the server.
+"""GoodSmileCompany cog
+Post updates from GSC's site.
 """
 
 import asyncio
@@ -12,7 +12,9 @@ from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
-DEFAULT_GUILD = {"postChannel": None, "urls": {}}
+KEY_POST_CHANNEL = "postChannel"
+KEY_URLS = "urls"
+DEFAULT_GUILD = {KEY_POST_CHANNEL: None, KEY_URLS: {}}
 
 URL = "https://www.goodsmile.info/en/posts/category/information/date/"
 # XXX Use another library to strip URL to root
@@ -71,7 +73,7 @@ class GoodSmileInfo(commands.Cog):
             A text channel to post updates to. Pass nothing in to disable.
         """
         if channel:
-            await self.config.guild(ctx.message.guild).postChannel.set(channel.id)
+            await self.config.guild(ctx.message.guild).get_attr(KEY_POST_CHANNEL).set(channel.id)
             self.logger.info(
                 "%s#%s (%s) set the post channel to %s",
                 ctx.message.author.name,
@@ -84,7 +86,7 @@ class GoodSmileInfo(commands.Cog):
                 "as the update channel!".format(channel.name)
             )
         else:
-            await self.config.guild(ctx.message.guild).postChannel.set(None)
+            await self.config.guild(ctx.message.guild).get_attr(KEY_POST_CHANNEL).set(None)
             await ctx.send(":white_check_mark: **GSC - Channel**: GSC updates are now disabled.")
 
     async def bgLoop(self):
@@ -152,7 +154,7 @@ class GoodSmileInfo(commands.Cog):
             A list of embeds, generated using checkGscInfo
         """
         for guild in self.bot.guilds:
-            postChannel = await self.config.guild(guild).postChannel()
+            postChannel = await self.config.guild(guild).get_attr(KEY_POST_CHANNEL)()
             if not postChannel:
                 self.logger.debug("No post channel configured, skipping")
                 continue
@@ -165,11 +167,11 @@ class GoodSmileInfo(commands.Cog):
                 continue
 
             for embed in listOfEmbeds:
-                if embed.url in await self.config.guild(guild).urls():
+                if embed.url in await self.config.guild(guild).get_attr(KEY_URLS)():
                     self.logger.debug("Sent before, skipping")
                     continue
                 else:
-                    async with self.config.guild(guild).urls() as urls:
+                    async with self.config.guild(guild).get_attr(KEY_URLS)() as urls:
                         urls[embed.url] = True
                     self.logger.debug("Not sent before, will send")
 
