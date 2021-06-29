@@ -14,15 +14,10 @@ from redbot.core.utils.chat_formatting import error, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
 
+from .constants import *
 from .commands import ServerManageCommands
 from .exceptions import InvalidAttachmentsError, InvalidFileError, InvalidImageError
 from .meta import ServerManageMeta
-
-KEY_ICONS = "icons"
-KEY_ICONS_DATES = "iconsDates"
-KEY_BANNERS = "banners"
-KEY_BANNERS_DATES = "bannersDates"
-BASE_GUILD = {KEY_ICONS: {}, KEY_ICONS_DATES: {}, KEY_BANNERS: {}, KEY_BANNERS_DATES: {}}
 
 
 class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMeta):
