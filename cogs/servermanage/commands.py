@@ -6,6 +6,7 @@ from redbot.core.utils.chat_formatting import error, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
 
+from .constants import IMAGE_BANNERS
 from .meta import ServerManageMeta
 
 
@@ -103,7 +104,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         image: attachment
             The server banner, included as an attachment.
         """
-        return await self.imageAdd(ctx, bannerName, imageType="banners")
+        return await self.imageAdd(ctx, bannerName, imageType=IMAGE_BANNERS)
 
     @serverBanners.command(name="remove", aliases=["del", "delete", "rm"])
     async def bannerRemove(self, ctx: Context, bannerName: str):
@@ -114,7 +115,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         bannerName: str
             The banner name you wish to remove.
         """
-        return await self.imageRemove(ctx, bannerName, imageType="banners")
+        return await self.imageRemove(ctx, bannerName, imageType=IMAGE_BANNERS)
 
     @serverBanners.command(name="show")
     async def bannerShow(self, ctx: Context, bannerName: str):
@@ -125,12 +126,12 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         bannerName: str
             The banner name you wish to show.
         """
-        await self.imageShow(ctx, bannerName, imageType="banners")
+        await self.imageShow(ctx, bannerName, imageType=IMAGE_BANNERS)
 
     @serverBanners.command(name="list", aliases=["ls"])
     async def bannerList(self, ctx: Context):
         """List the server banners associated with each date."""
-        return await self.imageList(ctx, imageType="banners")
+        return await self.imageList(ctx, imageType=IMAGE_BANNERS)
 
     @serverBanners.command(name="set")
     async def bannerSet(self, ctx: Context, month: int, day: int, bannerName: str):
@@ -145,7 +146,7 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         bannerName: str
             The name of the server banner to change to. The banner should already be added.
         """
-        await self.imageDateSet(ctx, month, day, bannerName, imageType="banners")
+        await self.imageDateSet(ctx, month, day, bannerName, imageType=IMAGE_BANNERS)
 
     @serverBanners.command(name="reset")
     async def bannerReset(self, ctx: Context, month: int, day: int):
@@ -158,4 +159,4 @@ class ServerManageCommands(ABC, metaclass=ServerManageMeta):
         day: int
             The day of the month to remove any server banner changes, expressed as a number.
         """
-        await self.imageDateReset(ctx, month, day, imageType="banners")
+        await self.imageDateReset(ctx, month, day, imageType=IMAGE_BANNERS)
