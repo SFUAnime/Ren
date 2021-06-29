@@ -70,10 +70,10 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
     async def checkGuildIcons(self, guild: discord.Guild):
         self.logger.debug("Checking guild icon for %s (%s)", guild.name, guild.id)
         today = datetime.now().strftime("%m-%d")
-        iconDates = await self.config.guild(guild).iconsDates()
+        iconDates = await self.config.guild(guild).get_attr(KEY_ICONS_DATES)()
         if today in iconDates:
             iconName = iconDates[today]
-            icons = await self.config.guild(guild).icons()
+            icons = await self.config.guild(guild).get_attr(KEY_ICONS)()
             icon = icons[iconName]
 
             filepath = self.getFullFilepath(guild, icon)
@@ -95,10 +95,10 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
     async def checkGuildBanners(self, guild: discord.Guild):
         self.logger.debug("Checking guild banner for %s (%s)", guild.name, guild.id)
         today = datetime.now().strftime("%m-%d")
-        bannerDates = await self.config.guild(guild).bannersDates()
+        bannerDates = await self.config.guild(guild).get_attr(KEY_BANNERS_DATES)()
         if today in bannerDates:
             bannerName = bannerDates[today]
-            banners = await self.config.guild(guild).banners()
+            banners = await self.config.guild(guild).get_attr(KEY_BANNERS)()
             banner = banners[bannerName]
 
             filepath = self.getFullFilepath(guild, banner, imageType="banners")
@@ -207,7 +207,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         except InvalidImageError:
             await ctx.send("Please upload a PNG or GIF image!")
             return
-        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        images = await self.config.guild(ctx.guild).get_attr(imageType)()
         if name in images.keys():
 
             def check(msg: discord.Message):
@@ -236,7 +236,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         imageDict["filename"] = f"{name}{extension}"
         filepath = self.getFullFilepath(ctx.guild, imageDict, imageType=imageType, mkdir=True)
         await ctx.message.attachments[0].save(filepath, use_cached=True)
-        async with getattr(self.config.guild(ctx.guild), imageType)() as images:
+        async with self.config.guild(ctx.guild).get_attr(imageType)() as images:
             images[name] = imageDict
         await ctx.send(f"Saved the {imageSingular} as {name}!")
         self.logger.info(
@@ -263,7 +263,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         imageSingular = self.getSingularImageType(imageType)
 
         # Check to see if this image exists in dictionary
-        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        images = await self.config.guild(ctx.guild).get_attr(imageType)()
         if name not in images.keys():
             await ctx.send(f"This {imageSingular} doesn't exist!")
             return
@@ -291,7 +291,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
             self.logger.error("File does not exist %s", filepath)
 
         # Delete key from dictonary
-        async with getattr(self.config.guild(ctx.guild), imageType)() as images:
+        async with self.config.guild(ctx.guild).get_attr(imageType)() as images:
             del images[name]
         async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as dates:
             datesToRemove = []
@@ -328,7 +328,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         imageSingular = self.getSingularImageType(imageType)
 
         # Check to see if this icon exists in dictionary
-        images = await getattr(self.config.guild(ctx.guild), imageType)()
+        images = await self.config.guild(ctx.guild).get_attr(imageType)()
         if name not in images.keys():
             await ctx.send(f"This {imageSingular} doesn't exist!")
             return
@@ -353,12 +353,12 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
             One of either icons or banners
         """
         imageSingular = self.getSingularImageType(imageType)
-        allImages = await getattr(self.config.guild(ctx.guild), imageType)()
+        allImages = await self.config.guild(ctx.guild).get_attr(imageType)()
         if not allImages:
             await ctx.send(f"There are no {imageType}, please add some first!")
             return
 
-        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+        async with self.config.guild(ctx.guild).get_attr(f"{imageType}Dates")() as imageDates:
             imageDates = dict(sorted(imageDates.items()))
             msg = ""
             for changeDate, name in imageDates.items():
@@ -400,11 +400,11 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         if not self.validDate(month, day):
             await ctx.send("Please enter a valid date!")
             return
-        if name not in await getattr(self.config.guild(ctx.guild), imageType)():
+        if name not in await self.config.guild(ctx.guild).get_attr(imageType)():
             await ctx.send(f"This {imageSingular} doesn't exist!")
             return
 
-        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+        async with self.config.guild(ctx.guild).get_attr(f"{imageType}Dates")() as imageDates:
             theDate = datetime(2020, month, day)
             storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
@@ -429,7 +429,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         if not self.validDate(month, day):
             await ctx.send("Please enter a valid date!")
             return
-        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as imageDates:
+        async with self.config.guild(ctx.guild).get_attr(f"{imageType}Dates")() as imageDates:
             theDate = datetime(2020, month, day)
             storageDate = theDate.strftime("%m-%d")
             humanDate = theDate.strftime("%B %d")
