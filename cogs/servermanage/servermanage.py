@@ -293,7 +293,7 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         # Delete key from dictonary
         async with self.config.guild(ctx.guild).get_attr(imageType)() as images:
             del images[name]
-        async with getattr(self.config.guild(ctx.guild), f"{imageType}Dates")() as dates:
+        async with self.config.guild(ctx.guild).get_attr(f"{imageType}Dates")() as dates:
             datesToRemove = []
             for date, imageName in dates.items():
                 if name == imageName:
