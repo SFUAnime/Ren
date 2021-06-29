@@ -323,7 +323,7 @@ class Respects(commands.Cog):
                         users = "{}, {}".format(userObj.name, users)
                 message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
 
-            newReference = oldReference if oldReference else ctx.message.reference
+            newReference = ctx.message.reference if ctx.message.reference else oldReference
 
             messageObj = await ctx.send(
                 message,
