@@ -18,7 +18,11 @@ from .commands import ServerManageCommands
 from .exceptions import InvalidAttachmentsError, InvalidFileError, InvalidImageError
 from .meta import ServerManageMeta
 
-BASE_GUILD = {"icons": {}, "iconsDates": {}, "banners": {}, "bannersDates": {}}
+KEY_ICONS = "icons"
+KEY_ICONS_DATES = "iconsDates"
+KEY_BANNERS = "banners"
+KEY_BANNERS_DATES = "bannersDates"
+BASE_GUILD = {KEY_ICONS: {}, KEY_ICONS_DATES: {}, KEY_BANNERS: {}, KEY_BANNERS_DATES: {}}
 
 
 class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMeta):
