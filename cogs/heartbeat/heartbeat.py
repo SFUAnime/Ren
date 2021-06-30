@@ -26,19 +26,20 @@ class Heartbeat(commands.Cog):
 
     def __init__(self, bot: Red):
         self.bot = bot
-        self.time_interval = 295
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_global(**DEFAULT_GLOBAL)
         self.bgTask = self.bot.loop.create_task(self._loop())
 
     async def _loop(self):
-        LOGGER.info("Heartbeat is running, pinging at %s second intervals", self.time_interval)
+        initialInterval = await self.config.get_attr(KEY_INTERVAL)()
+        LOGGER.info("Heartbeat is running, pinging at %s second intervals", initialInterval)
         while self == self.bot.get_cog("Heartbeat"):
             try:
-                await asyncio.sleep(await self.config.interval())
-                if await self.config.pushUrl():
-                    LOGGER.debug("Pinging %s", await self.config.pushUrl())
-                    requests.get(await self.config.pushUrl())
+                await asyncio.sleep(await self.config.get_attr(KEY_INTERVAL)())
+                url = await self.config.get_attr(KEY_PUSH_URL)()
+                if url:
+                    LOGGER.debug("Pinging %s", url)
+                    requests.get(url)
             except asyncio.CancelledError as e:
                 LOGGER.error("Error in sleeping")
                 raise e
@@ -56,7 +57,7 @@ class Heartbeat(commands.Cog):
     @commands.command(name="heartbeat", aliases=["hb"])
     @commands.guild_only()
     async def _check(self, ctx: Context):
-        name = await self.config.instanceName()
+        name = await self.config.get_attr(KEY_INSTANCE_NAME)()
         await ctx.send(f"**{name}** is responding.")
 
     @commands.group(name="heartbeatset", aliases=["hbset"])
@@ -73,7 +74,7 @@ class Heartbeat(commands.Cog):
         str: url
             The URL to notify.
         """
-        await self.config.pushUrl.set(url)
+        await self.config.get_attr(KEY_PUSH_URL).set(url)
         await ctx.send(f"Set the push URL to: `{url}`")
 
     @hbSettings.command(name="interval")
@@ -88,7 +89,7 @@ class Heartbeat(commands.Cog):
         if interval < MIN_INTERVAL:
             await ctx.send(f"Please set an interval greater than **{MIN_INTERVAL}** seconds")
             return
-        await self.config.interval.set(interval)
+        await self.config.get_attr(KEY_INTERVAL).set(interval)
         await ctx.send(f"Set interval to: `{interval}` seconds")
 
     @hbSettings.command(name="name")
@@ -102,5 +103,5 @@ class Heartbeat(commands.Cog):
         name: str
             The instance name.
         """
-        await self.config.instanceName.set(name)
+        await self.config.get_attr(KEY_INSTANCE_NAME).set(name)
         await ctx.send(f"Set the instance name to: `{name}`")
