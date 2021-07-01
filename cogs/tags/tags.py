@@ -129,14 +129,6 @@ class Tags(commands.Cog):
 
     allowed_roles = defaultdict(lambda: set([]))
 
-    # def setAllowedRoles(self, guild: discord.Guild, roles: list):
-    #     self.allowed_roles[guild.id] = set(roles)
-
-    # def getAllowedRoles(self):
-    #     # tiers = await self.configV3.guild(ctx.guild).tiers()
-    #     # return tiers.keys()
-    #     return list(self.allowed_roles)
-
     def addAllowedRole(self, guild: discord.Guild, role: discord.Role):
         self.allowed_roles[guild.id].add(str(role.id))
 
@@ -193,7 +185,7 @@ class Tags(commands.Cog):
         guildIds = await self.configV3.all_guilds()
         for guildId in guildIds.keys():
             guild = discord.utils.get(self.bot.guilds, id=guildId)
-            async with self.configV3.guild(guild).tiers() as tiers:
+            async with self.configV3.guild(guild).get_attr(KEY_TIERS)() as tiers:
                 self.allowed_roles[guildId] = set(tiers.keys())
                 self.logger.debug(
                     "Roles allowed to create commands on %s: %s",
@@ -297,7 +289,7 @@ class Tags(commands.Cog):
                 for tag in self.config.get(str(server.id), {}).values()
                 if tag.owner_id == str(user.id)
             )
-        tiers = await self.configV3.guild(server).tiers()
+        tiers = await self.configV3.guild(server).get_attr(KEY_TIERS)()
         # Convert role IDs to string since keys are stored as strings.
         roleIds = [str(r.id) for r in user.roles]
         relevantTiers = list(set(tiers.keys()) & set(roleIds))
@@ -310,7 +302,7 @@ class Tags(commands.Cog):
 
     async def checkAliasCog(self, ctx: Context, name: str = None):
         aliasCog = None
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             aliasCog = self.bot.get_cog("Alias")
             if not aliasCog:
                 raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
@@ -434,7 +426,7 @@ class Tags(commands.Cog):
             await ctx.send("Please set a value greater than 0.")
             return
 
-        async with self.configV3.guild(ctx.guild).tiers() as tiers:
+        async with self.configV3.guild(ctx.guild).get_attr(KEY_TIERS)() as tiers:
             if num_tags == 0:
                 if str(role.id) in tiers.keys():
                     del tiers[str(role.id)]
@@ -448,7 +440,7 @@ class Tags(commands.Cog):
     @settings.command(name="tiers")
     async def tiers(self, ctx: Context):
         """Show the tiers and their respective max tags."""
-        tiers = await self.configV3.guild(ctx.guild).tiers()
+        tiers = await self.configV3.guild(ctx.guild).get_attr(KEY_TIERS)()
         validTiers = []
         msg = ""
         for roleId, maxTags in tiers.items():
@@ -550,7 +542,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send('Tag "{}" successfully created.'.format(name))
 
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -731,7 +723,9 @@ class Tags(commands.Cog):
             return
 
         # Alias is already loaded
-        if await self.configV3.guild(ctx.guild).useAlias() and aliasCog.is_command(lookup):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)() and aliasCog.is_command(
+            lookup
+        ):
             await ctx.send(
                 "This name cannot be used because there is already "
                 "an internal command with this name."
@@ -763,7 +757,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send("Cool. I've made your {0.content} tag.".format(name))
 
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -987,7 +981,7 @@ class Tags(commands.Cog):
         del db[oldName]
 
         await self.config.put(location, db)
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, newName, "tag {}".format(newName))
             await aliasCog.del_alias(ctx, oldName)
@@ -1055,7 +1049,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send(msg)
 
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.del_alias(ctx, lookup)
 
@@ -1256,7 +1250,7 @@ class Tags(commands.Cog):
     @settings.command(name="togglealias")
     async def togglealias(self, ctx: Context):
         """Toggle creating aliases for tags."""
-        if await self.configV3.guild(ctx.guild).useAlias():
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             toAlias = False
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
@@ -1268,7 +1262,7 @@ class Tags(commands.Cog):
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
                 "be created **with an alias**."
             )
-        await self.configV3.guild(ctx.guild).useAlias.set(toAlias)
+        await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS).set(toAlias)
 
     @tag.command(name="runtests")
     @checks.is_owner()
