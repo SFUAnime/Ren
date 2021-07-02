@@ -166,7 +166,7 @@ class Tags(commands.Cog):
             load_later=True,
         )
         self.configV3 = ConfigV3.get_conf(self, identifier=5842647, force_registration=True)
-        self.configV3.register_guild(**BASE)  # Register default (empty) settings.
+        self.configV3.register_guild(**BASE_GUILD)  # Register default (empty) settings.
         self.lock = Lock()
         tagGroup = self.get_commands()[0]
         self.tagCommands = tagGroup.all_commands.keys()
