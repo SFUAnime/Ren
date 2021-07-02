@@ -69,43 +69,6 @@ class Highlight(commands.Cog):
             )
             self.logger.addHandler(handler)
 
-    async def _sleepThenDelete(self, msg, time):
-        await asyncio.sleep(time)  # pylint: disable=no-member
-        await msg.delete()
-
-    def _registerUser(self, guildId, userId):
-        """Checks to see if user is registered, and if not, registers the user.
-        If the user is already registered, this method will do nothing. If the
-        user is not, they will be initialized to contain an empty words list.
-
-        Parameters:
-        -----------
-        guildId: int
-            The guild ID for the user.
-        userId: int
-            The user ID.
-
-        Returns:
-        --------
-            None.
-        """
-        if guildId not in self.highlights.keys():
-            self.highlights[guildId] = {}
-
-        if userId not in self.highlights[guildId].keys():
-            self.highlights[guildId][userId] = {
-                KEY_WORDS: [],
-                KEY_BLACKLIST: [],
-                KEY_TIMEOUT: DEFAULT_TIMEOUT,
-            }
-            return
-
-        if KEY_BLACKLIST not in self.highlights[guildId][userId].keys():
-            self.highlights[guildId][userId][KEY_BLACKLIST] = []
-
-        if KEY_TIMEOUT not in self.highlights[guildId][userId].keys():
-            self.highlights[guildId][userId][KEY_TIMEOUT] = DEFAULT_TIMEOUT
-
     @commands.group(name="highlight", aliases=["hl"])
     @commands.guild_only()
     async def highlight(self, ctx):
