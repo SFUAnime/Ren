@@ -1,10 +1,9 @@
 import discord
 
+import aiohttp
 import asyncio  # Used for task loop.
-import os  # Used to create folder at first load.
 from datetime import datetime
 import logging
-import requests
 
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
@@ -39,12 +38,24 @@ class Heartbeat(commands.Cog):
                 url = await self.config.get_attr(KEY_PUSH_URL)()
                 if url:
                     LOGGER.debug("Pinging %s", url)
-                    requests.get(url)
+                    async with aiohttp.ClientSession() as session:
+                        resp = await session.get(url)
+                        resp.close()
+                        if resp.status == 200:
+                            LOGGER.debug("Successfully pinged %s", url)
+                        else:
+                            LOGGER.error(
+                                "Something went wrong, we got HTTP code %s",
+                                resp.status,
+                            )
             except asyncio.CancelledError as e:
-                LOGGER.error("Error in sleeping")
-                raise e
-            except requests.exceptions.HTTPError as error:
-                LOGGER.error("HTTP error occurred: %s", error)
+                LOGGER.error(
+                    "The background task got cancelled! If the cog was reloaded, "
+                    "this can be safely ignored",
+                    exc_info=True,
+                )
+            except:
+                LOGGER.error("Something went horribly wrong!", exc_info=True)
 
     # Cancel the background task on cog unload.
     def __unload(self):  # pylint: disable=invalid-name
