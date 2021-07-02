@@ -30,6 +30,7 @@ class Heartbeat(commands.Cog):
         self.bgTask = self.bot.loop.create_task(self._loop())
 
     async def _loop(self):
+        session = aiohttp.ClientSession()
         initialInterval = await self.config.get_attr(KEY_INTERVAL)()
         LOGGER.info("Heartbeat is running, pinging at %s second intervals", initialInterval)
         while self == self.bot.get_cog("Heartbeat"):
@@ -38,8 +39,7 @@ class Heartbeat(commands.Cog):
                 url = await self.config.get_attr(KEY_PUSH_URL)()
                 if url:
                     LOGGER.debug("Pinging %s", url)
-                    async with aiohttp.ClientSession() as session:
-                        resp = await session.get(url)
+                    async with session.get(url) as resp:
                         resp.close()
                         if resp.status == 200:
                             LOGGER.debug("Successfully pinged %s", url)
@@ -48,14 +48,20 @@ class Heartbeat(commands.Cog):
                                 "Something went wrong, we got HTTP code %s",
                                 resp.status,
                             )
-            except asyncio.CancelledError as e:
-                LOGGER.error(
-                    "The background task got cancelled! If the cog was reloaded, "
-                    "this can be safely ignored",
-                    exc_info=True,
-                )
-            except:
-                LOGGER.error("Something went horribly wrong!", exc_info=True)
+            except BaseException as e:
+                if isinstance(e, asyncio.CancelledError):
+                    LOGGER.error(
+                        "The background task got cancelled! If the cog was reloaded, "
+                        "this can be safely ignored",
+                        exc_info=True,
+                    )
+                else:
+                    LOGGER.error("Something went horribly wrong!", exc_info=True)
+                if not session.closed:
+                    await session.close()
+                break
+        if not session.closed:
+            await session.close()
 
     # Cancel the background task on cog unload.
     def __unload(self):  # pylint: disable=invalid-name
