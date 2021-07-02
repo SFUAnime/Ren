@@ -40,6 +40,7 @@ class Heartbeat(commands.Cog):
                     LOGGER.debug("Pinging %s", url)
                     async with aiohttp.ClientSession() as session:
                         resp = await session.get(url)
+                        resp.close()
                         if resp.status == 200:
                             LOGGER.debug("Successfully pinged %s", url)
                         else:
