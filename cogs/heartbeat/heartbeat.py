@@ -16,6 +16,7 @@ KEY_PUSH_URL = "pushUrl"
 LOGGER = logging.getLogger("red.luicogs.Heartbeat")
 
 MIN_INTERVAL = 10
+MAX_FAILED_PINGS = 15
 
 DEFAULT_GLOBAL = {KEY_INSTANCE_NAME: "Ren", KEY_INTERVAL: 295, KEY_PUSH_URL: None}
 
@@ -33,6 +34,11 @@ class Heartbeat(commands.Cog):
         session = aiohttp.ClientSession()
         initialInterval = await self.config.get_attr(KEY_INTERVAL)()
         LOGGER.info("Heartbeat is running, pinging at %s second intervals", initialInterval)
+
+        countFailedPings = 0
+        # the following loop shall break only on cancel event
+        # and shall keep running on other exceptions until exceeding
+        MAX_FAILED_PINGS # failed retries
         while self == self.bot.get_cog("Heartbeat"):
             try:
                 await asyncio.sleep(await self.config.get_attr(KEY_INTERVAL)())
@@ -40,26 +46,42 @@ class Heartbeat(commands.Cog):
                 if url:
                     LOGGER.debug("Pinging %s", url)
                     async with session.get(url) as resp:
-                        resp.close()
                         if resp.status == 200:
                             LOGGER.debug("Successfully pinged %s", url)
+                            countFailedPings = 0 # reset to zero on success
                         else:
-                            LOGGER.error(
-                                "Something went wrong, we got HTTP code %s",
-                                resp.status,
-                            )
-            except BaseException as e:
-                if isinstance(e, asyncio.CancelledError):
-                    LOGGER.error(
-                        "The background task got cancelled! If the cog was reloaded, "
-                        "this can be safely ignored",
-                        exc_info=True,
+                            LOGGER.error("HTTP GET failed! We got HTTP code %s", resp.status)
+                            countFailedPings += 1
+            except asyncio.CancelledError: # cancelled
+                LOGGER.error(
+                    "The background task got cancelled! If the cog was reloaded, "
+                    "this can be safely ignored",
+                    exc_info=True,
+                )
+                break
+            except Exception: # keep retrying on other exceptions
+                LOGGER.error("Something went wrong!", exc_info=True)
+                countFailedPings += 1
+            except: # these abnormal exceptions should not happen
+                LOGGER.error("Something went horribly wrong!", exc_info=True)
+                break
+
+            if countFailedPings > 0:
+                if countFailedPings <= MAX_FAILED_PINGS:
+                    LOGGER.debug(
+                        "Retrying in %d seconds... (attempt %d of %d)",
+                        await self.config.get_attr(KEY_INTERVAL)(),
+                        countFailedPings,
+                        MAX_FAILED_PINGS,
                     )
                 else:
-                    LOGGER.error("Something went horribly wrong!", exc_info=True)
-                if not session.closed:
-                    await session.close()
-                break
+                    LOGGER.error(
+                        "Heartbeat main loop stopped after exceeding %d failed attempts",
+                        MAX_FAILED_PINGS,
+                    )
+                    break
+
+        # the session has to be closed
         if not session.closed:
             await session.close()
 
