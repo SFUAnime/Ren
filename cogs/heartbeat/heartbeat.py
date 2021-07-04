@@ -38,7 +38,7 @@ class Heartbeat(commands.Cog):
         countFailedPings = 0
         # the following loop shall break only on cancel event
         # and shall keep running on other exceptions until exceeding
-        MAX_FAILED_PINGS # failed retries
+        # the threshold for failed retries
         while self == self.bot.get_cog("Heartbeat"):
             try:
                 await asyncio.sleep(await self.config.get_attr(KEY_INTERVAL)())
@@ -47,22 +47,27 @@ class Heartbeat(commands.Cog):
                     LOGGER.debug("Pinging %s", url)
                     async with session.get(url) as resp:
                         if resp.status == 200:
+                            # reset failed count to zero on success
                             LOGGER.debug("Successfully pinged %s", url)
-                            countFailedPings = 0 # reset to zero on success
+                            countFailedPings = 0
                         else:
+                            # increment failed count
                             LOGGER.error("HTTP GET failed! We got HTTP code %s", resp.status)
                             countFailedPings += 1
-            except asyncio.CancelledError: # cancelled
+            except asyncio.CancelledError:
+                # cancelled
                 LOGGER.error(
                     "The background task got cancelled! If the cog was reloaded, "
                     "this can be safely ignored",
                     exc_info=True,
                 )
                 break
-            except Exception: # keep retrying on other exceptions
+            except Exception:
+                # keep retrying
                 LOGGER.error("Something went wrong!", exc_info=True)
                 countFailedPings += 1
-            except: # these abnormal exceptions should not happen
+            except:
+                # these abnormal exceptions should not happen
                 LOGGER.error("Something went horribly wrong!", exc_info=True)
                 break
 
