@@ -1,6 +1,8 @@
 from redbot.core import commands
+from redbot.core.bot import Red
 import tracemoepy
 from tracemoepy.errors import EmptyImage, EntityTooLarge, ServerError, TooManyRequests
+import logging
 
 
 def messageBuilder(titleEnglish: str, anilistID: str, episode: str, similarity: int):
@@ -23,35 +25,46 @@ def messageBuilder(titleEnglish: str, anilistID: str, episode: str, similarity: 
     return message
 
 
-async def postSourceFunction(ctx, imageURL):
-    """helper method"""
-    try:
-        # use the API to get results
-        tracemoe = tracemoepy.tracemoe.TraceMoe()
-        result = tracemoe.search(imageURL.strip("<>"), is_url=True)
-        titleEnglish = result.docs[0].title_english or "No Title Found"
-        anilistID = f"{result.docs[0].anilist_id}" or "No anilistID Found"
-        episode = f"{result.docs[0].episode}" or "No Episode Found"
-        similarity = float(result.docs[0].similarity) or 0
-
-        # send the message using messageBGuilder to build the message
-        await ctx.send(messageBuilder(titleEnglish, anilistID, episode, similarity))
-
-    except TooManyRequests:
-        await ctx.send("Please try again later")
-    except EntityTooLarge:
-        await ctx.send("Too big of file image")
-    except ServerError:
-        await ctx.send(
-            "Server error. Ensure image is provided as URL and points directly to png or jpg image"
-        )
-    except EmptyImage:
-        await ctx.send(
-            "Empty image provided. Ensure image is provided as URL and points directly to png or jpg image"
-        )
-
-
 class Source(commands.Cog):
+    def __init__(self, bot: Red):
+        self.bot = bot
+        self.logger = logging.getLogger("red.eilacogs.Source")
+        self.tracemoe = tracemoepy.AsyncTrace()
+
+    async def closeSession(self):
+        self.logger.debug("Closing session")
+        await self.tracemoe.aio_session.close()
+
+    def cog_unload(self):
+        self.bot.loop.create_task(self.closeSession())
+
+    async def postSourceFunction(self, ctx, imageURL):
+        """helper method"""
+        try:
+            # use the API to get results
+            async with ctx.typing():
+                result = await self.tracemoe.search(imageURL.strip("<>"), is_url=True)
+                titleEnglish = result.result[0].anilist.title.english or "No Title Found"
+                anilistID = f"{result.result[0].anilist.id}" or "No anilistID Found"
+                episode = f"{result.result[0].episode}" or "No Episode Found"
+                similarity = float(result.result[0].similarity) or 0
+
+                # send the message using messageBuilder to build the message
+                await ctx.send(messageBuilder(titleEnglish, anilistID, episode, similarity))
+
+        except TooManyRequests:
+            await ctx.send("Please try again later")
+        except EntityTooLarge:
+            await ctx.send("Too big of file image")
+        except ServerError:
+            await ctx.send(
+                "Server error. Ensure image is provided as URL and points directly to png or jpg image"
+            )
+        except EmptyImage:
+            await ctx.send(
+                "Empty image provided. Ensure image is provided as URL and points directly to png or jpg image"
+            )
+
     @commands.group(name="source", invoke_without_command=True)
     async def sourceCommand(self, ctx):
         """Looks for source of a screenshot from anime, using trace.moe
@@ -66,7 +79,7 @@ class Source(commands.Cog):
             return
         else:
             imageURL = ctx.message.attachments[0].url
-            await postSourceFunction(ctx, imageURL)
+            await self.postSourceFunction(ctx, imageURL)
             return
 
     @sourceCommand.command(name="url")
@@ -77,4 +90,4 @@ class Source(commands.Cog):
         -----------
         imageURL: a url pointing to a image from an anime episode. Can be surrounded with <> to suppress embeds in Discord
         """
-        await postSourceFunction(ctx, imageURL)
+        await self.postSourceFunction(ctx, imageURL)
