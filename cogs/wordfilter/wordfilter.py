@@ -1,5 +1,5 @@
 """Word Filter cog.
-To filter words in a more smart/useful wya than simply detecting and
+To filter words in a more smart/useful way than simply detecting and
 deleting a message.
 
 This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
@@ -130,7 +130,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
         user = ctx.message.author
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if filters:
             display = []
@@ -149,7 +149,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions(manage_messages=True)
     async def toggleMod(self, ctx):
         """Toggle global override of filters for server admins/mods."""
-        toggleMod = await self.config.guild(ctx.guild).toggleMod()
+        toggleMod = await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD)()
 
         if toggleMod:
             toggleMod = False
@@ -160,7 +160,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             toggleMod = True
             await ctx.send(
-                ":white_check_mark: Word Filter: Moderators (and higher "
+                ":white_check_mark: Word Filter: Moderators (and higher) "
                 "**will not be** filtered."
             )
         await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD).set(toggleMod)
