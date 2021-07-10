@@ -1,5 +1,5 @@
 """Word Filter cog.
-To filter words in a more smart/useful wya than simply detecting and
+To filter words in a more smart/useful way than simply detecting and
 deleting a message.
 
 This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
@@ -13,11 +13,14 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.utils import paginator
 from redbot.core.bot import Red
-
-COLOUR = discord.Colour
-COLOURS = [COLOUR.purple(), COLOUR.red(), COLOUR.blue(), COLOUR.orange(), COLOUR.green()]
-PATTERN_CHANNEL_ID = r"<#(\d+)>"
-BASE = {"channelIdsAllowed": [], "filters": [], "commandDenied": [], "toggleMod": False}
+from .constants import (
+    BASE,
+    COLOURS,
+    KEY_CHANNEL_IDS,
+    KEY_FILTERS,
+    KEY_CMD_DENIED,
+    KEY_TOGGLE_MOD,
+)
 
 
 class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
@@ -75,11 +78,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         user = ctx.message.author
         guildName = ctx.message.guild.name
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if word not in filters:
             filters.append(word)
-            await self.config.guild(ctx.guild).filters.set(filters)
+            await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
             await user.send(
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -103,7 +106,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         user = ctx.message.author
         guildName = ctx.message.guild.name
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if not filters or word not in filters:
             await user.send(
@@ -112,7 +115,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             )
         else:
             filters.remove(word)
-            await self.config.guild(ctx.guild).filters.set(filters)
+            await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
             await user.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -127,7 +130,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
         user = ctx.message.author
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if filters:
             display = []
@@ -146,7 +149,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions(manage_messages=True)
     async def toggleMod(self, ctx):
         """Toggle global override of filters for server admins/mods."""
-        toggleMod = await self.config.guild(ctx.guild).toggleMod()
+        toggleMod = await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD)()
 
         if toggleMod:
             toggleMod = False
@@ -157,10 +160,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             toggleMod = True
             await ctx.send(
-                ":white_check_mark: Word Filter: Moderators (and higher "
+                ":white_check_mark: Word Filter: Moderators (and higher) "
                 "**will not be** filtered."
             )
-        await self.config.guild(ctx.guild).toggleMod.set(toggleMod)
+        await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD).set(toggleMod)
 
     #########################################
     # COMMANDS - COMMAND BLACKLIST SETTINGS #
@@ -182,11 +185,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         is filtered and the contents of the message will be sent back to the
         user via DM.
         """
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if cmd not in cmdDenied:
             cmdDenied.append(cmd)
-            await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
+            await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED).set(cmdDenied)
             await ctx.send(
                 f":white_check_mark: Word Filter: Command `{cmd}` is now "
                 "in the denylist.  It will have the entire message filtered "
@@ -216,7 +219,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
 
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if not cmdDenied or cmd not in cmdDenied:
             await ctx.send(
@@ -225,7 +228,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             )
         else:
             cmdDenied.remove(cmd)
-            await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
+            await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED).set(cmdDenied)
             await ctx.send(
                 f":white_check_mark: Word Filter: `{cmd}` removed from " "the command denylist."
             )
@@ -240,7 +243,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
 
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if cmdDenied:
             display = []
@@ -282,11 +285,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         channel: discord.TextChannel
             The channel to add to the allowlist.
         """
-        channelIdsAllowed = await self.config.guild(ctx.guild).channelIdsAllowed()
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
         if channel.id not in channelIdsAllowed:
             channelIdsAllowed.append(channel.id)
-            await self.config.guild(ctx.guild).channelIdsAllowed.set(channelIdsAllowed)
+            await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS).set(channelIdsAllowed)
             await ctx.send(
                 ":white_check_mark: Word Filter: Channel with name "
                 f"`{channel.name}` will not be filtered."
@@ -310,7 +313,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         channel: discord.TextChannel
             The channel to remove from the allowlist.
         """
-        channelIdsAllowed = await self.config.guild(ctx.guild).channelIdsAllowed()
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
         if channel.id not in channelIdsAllowed:
             await ctx.send(
@@ -319,7 +322,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             )
         else:
             channelIdsAllowed.remove(channel.id)
-            await self.config.guild(ctx.guild).channelIdsAllowed.set(channelIdsAllowed)
+            await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS).set(channelIdsAllowed)
             await ctx.send(
                 f":white_check_mark: Word Filter: `{channel.name}` removed from "
                 "the channel allowlist."
@@ -334,7 +337,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
 
-        channelIdsAllowed = await self.config.guild(ctx.guild).channelIdsAllowed()
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
         if channelIdsAllowed:
             display = []
@@ -369,11 +372,9 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if isinstance(msg.channel, discord.DMChannel):
             return False
 
-        filters = await self.config.guild(msg.guild).filters()
-
         # Do not filter allowlist channels
         try:
-            allowlist = await self.config.guild(msg.guild).channelIdsAllowed()
+            allowlist = await self.config.guild(msg.guild).get_attr(KEY_CHANNEL_IDS)()
             for channels in allowlist:
                 if channels == msg.channel.id:
                     return False
@@ -384,7 +385,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # Check if mod or admin, and do not filter if togglemod is enabled.
         try:
-            toggleMod = await self.config.guild(msg.guild).toggleMod()
+            toggleMod = await self.config.guild(msg.guild).get_attr(KEY_TOGGLE_MOD)()
             if toggleMod:
                 if await self.bot.is_mod(msg.author) or await self.bot.is_admin(msg.author):
                     return False
@@ -413,7 +414,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             return False
 
         filteredMsg = msg.content
-        filters = await self.config.guild(msg.guild).filters()
+        filters = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
         filteredMsg = _filterWord(filters, filteredMsg)
 
         if msg.content == filteredMsg:
@@ -446,8 +447,8 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         blacklistedCmd = False
 
-        filteredWords = await self.config.guild(msg.guild).filters()
-        commandDenied = await self.config.guild(msg.guild).commandDenied()
+        filteredWords = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
+        commandDenied = await self.config.guild(msg.guild).get_attr(KEY_CMD_DENIED)()
 
         if newMsg:
             checkMsg = newMsg.content
