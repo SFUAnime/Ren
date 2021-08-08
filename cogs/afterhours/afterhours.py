@@ -225,8 +225,20 @@ class AfterHours(commands.Cog):
     @afterHours.command(name="removerole")
     async def afterHoursRemoveRole(self, ctx: Context):
         """Set the channel for notifications."""
-        await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
-        await ctx.send("Removed the role")
+        # check if after hours role is set
+        if(self.config.guild(ctx.guild).getget_attr(KEY_ROLE_ID) == None):
+            await ctx.send("After Hours role not set, can't remove")
+            return
+        # get after hours role by id
+        role = ctx.guild.get_role(self.config.guild(ctx.guild).getget_attr(KEY_ROLE_ID))
+        # if id is no longer valid (role deleted most likely)
+        if(role == None):
+            await ctx.send("After Hours role no longer valid, most likely role was deleted by admins")
+            return
+        # remove role
+        ctx.author.remove_roles(role, reason="User removed role")
+        # post message saying role removed
+        await ctx.send(f"Removed the role {role.name}")
 
     @checks.mod_or_permissions(manage_messages=True)
     @afterHours.command(name="setchannel")
