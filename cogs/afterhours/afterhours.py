@@ -215,9 +215,9 @@ class AfterHours(commands.Cog):
     @afterHours.command(name="setrole")
     async def afterHoursSetRole(self, ctx: Context, role: discord.Role):
         """Set the after-hours role.
-        
+
         This allows for self-removals later.
-        
+
         Parameters
         ----------
         role: discord.Role
