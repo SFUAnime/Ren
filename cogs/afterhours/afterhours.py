@@ -220,7 +220,7 @@ class AfterHours(commands.Cog):
     async def afterHoursSetRole(self, ctx: Context, role: discord.Role):
         """Set the channel for notifications."""
         await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID).set(role.id)
-        await ctx.send(f"Set the After Hours role toP{role.name}")
+        await ctx.send(f"Set the After Hours role to {role.name}")
 
     @afterHours.command(name="removerole")
     async def afterHoursRemoveRole(self, ctx: Context):
