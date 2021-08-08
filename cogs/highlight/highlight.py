@@ -13,7 +13,8 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils import chat_formatting, paginator
+from redbot.core.utils import AsyncIter, chat_formatting
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 DEFAULT_TIMEOUT = 20
 DELETE_TIME = 5
@@ -94,10 +95,19 @@ class Highlight(commands.Cog):
         dlChannels = await self.config.guild(ctx.guild).denylistChannels()
 
         if dlChannels:
-            page = paginator.Pages(ctx=ctx, entries=dlChannels, show_entry_count=True)
-            page.embed.title = "Denylist channels for: **{}**".format(ctx.guild.name)
-            page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            pageList = []
+            msg = "\n".join(dlChannels)
+            pages = list(chat_formatting.pagify(msg, page_length=300))
+            totalPages = len(pages)
+            totalEntries = len(dlChannels)
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Denylist channels for **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
             await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
 
@@ -180,7 +190,7 @@ class Highlight(commands.Cog):
     @highlight.command(name="list", aliases=["ls"])
     @commands.guild_only()
     async def listHighlight(self, ctx: Context):
-        """List your highighted words for the current guild."""
+        """List your highlighted words for the current guild."""
         userName = ctx.message.author.name
 
         async with self.config.member(ctx.author).words() as userWords:

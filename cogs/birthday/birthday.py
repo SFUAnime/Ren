@@ -8,8 +8,9 @@ from datetime import datetime, timedelta
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
-from redbot.core.utils import paginator
-from redbot.core.utils.chat_formatting import warning
+from redbot.core.utils import AsyncIter
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from redbot.core.utils.chat_formatting import pagify, warning
 from redbot.core.bot import Red
 from .constants import *
 
@@ -279,10 +280,16 @@ class Birthday(commands.Cog):
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-        page.embed.title = "Birthdays in **{}**".format(ctx.guild.name)
-        page.embed.colour = discord.Colour.red()
-        await page.paginate()
+        pageList = []
+        msg = "\n".join(display)
+        pages = list(pagify(msg, page_length=300))
+        totalPages = len(pages)
+        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+            embed = discord.Embed(title=f"Birthdays in **{ctx.guild.name}**", description=page)
+            embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
+            embed.colour = discord.Colour.red()
+            pageList.append(embed)
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
 
     @_birthday.command(name="unassign")
     @commands.guild_only()
