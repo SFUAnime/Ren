@@ -217,22 +217,30 @@ class AfterHours(commands.Cog):
     @checks.mod_or_permissions(manage_messages=True)
     @afterHours.command(name="setrole")
     async def afterHoursSetRole(self, ctx: Context, role: discord.Role):
-        """Set the channel for notifications."""
+        """Set the after-hours role.
+        
+        This allows for self-removals later.
+        
+        Parameters
+        ----------
+        role: discord.Role
+            The role associated with after hours.
+        """
         await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID).set(role.id)
         await ctx.send(f"Set the After Hours role to {role.name}")
 
     @afterHours.command(name="removerole")
     async def afterHoursRemoveRole(self, ctx: Context):
-        """Set the channel for notifications."""
+        """Remove the after-hours role from yourself."""
         # check if after hours role is set
         roleid = await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID)()
-        if roleid == None:
-            await ctx.send("After Hours role not set, can't remove")
+        if roleid is None:
+            await ctx.send("Please configure the after-hours role first!")
             return
         # get after hours role by id
         role = ctx.guild.get_role(roleid)
         # if id is no longer valid (role deleted most likely)
-        if role == None:
+        if role is None:
             await ctx.send(
                 "After Hours role no longer valid, most likely role was deleted by admins"
             )
@@ -240,7 +248,7 @@ class AfterHours(commands.Cog):
         # remove role
         await ctx.author.remove_roles(role, reason="User removed role")
         # post message saying role removed
-        await ctx.send(f"Removed the role {role.name}")
+        await ctx.send(f"Removed the role {role.name} from you.")
 
     @checks.mod_or_permissions(manage_messages=True)
     @afterHours.command(name="setchannel")
