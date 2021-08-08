@@ -209,10 +209,7 @@ class AfterHours(commands.Cog):
     @commands.group(name="afterhours")
     @commands.guild_only()
     async def afterHours(self, ctx: Context):
-        """Configure after-hours exceptions
-
-        There's nothing configurable from Discord.
-        """
+        """Manage after-hours"""
 
     @checks.mod_or_permissions(manage_messages=True)
     @afterHours.command(name="setrole")
