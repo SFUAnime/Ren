@@ -14,7 +14,8 @@ from redbot.core.commands.context import Context
 AH_CHANNEL = "after-hours"
 KEY_CTX_CHANNEL_ID = "channelId"
 KEY_CHANNEL_IDS = "channelIds"
-DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}}
+KEY_ROLE_ID = "roleId"
+DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}, KEY_ROLE_ID: None}
 STARBOARD = "highlights"
 DELETE_TIME = 32 * 60 * 60
 SLEEP_TIME = 60 * 60
@@ -207,14 +208,28 @@ class AfterHours(commands.Cog):
 
     @commands.group(name="afterhours")
     @commands.guild_only()
-    @checks.mod_or_permissions(manage_messages=True)
+
     async def afterHours(self, ctx: Context):
         """Configure after-hours exceptions
 
         There's nothing configurable from Discord.
         """
 
-    @afterHours.command(name="set")
+    @checks.mod_or_permissions(manage_messages=True)
+    @afterHours.command(name="setrole")
+    async def afterHoursSetRole(self, ctx: Context, role: discord.Role):
+        """Set the channel for notifications."""
+        await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID).set(role.id)
+        await ctx.send(f"Set the After Hours role toP{role.name}")
+
+    @afterHours.command(name="removerole")
+    async def afterHoursRemoveRole(self, ctx: Context):
+        """Set the channel for notifications."""
+        await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
+        await ctx.send("Removed the role")
+
+    @checks.mod_or_permissions(manage_messages=True)
+    @afterHours.command(name="setchannel")
     async def afterHoursSet(self, ctx: Context):
         """Set the channel for notifications."""
         await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
