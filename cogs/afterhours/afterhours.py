@@ -243,7 +243,14 @@ class AfterHours(commands.Cog):
             )
             return
         # remove role
-        await ctx.author.remove_roles(role, reason="User removed role")
+        try:
+            await ctx.author.remove_roles(role, reason="User removed role")
+        except discord.Forbidden:
+            self.logger.info("Not allowed to remove role")
+        except discord.HTTPException:
+            self.logger.info("HTTP Exception")
+
+
         # post message saying role removed
         await ctx.send(f"Removed the role {role.name} from you.")
 
