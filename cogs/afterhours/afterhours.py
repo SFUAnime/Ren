@@ -244,6 +244,10 @@ class AfterHours(commands.Cog):
             return
         # remove role
         try:
+            rolesList = ctx.author.roles
+            if role not in rolesList:
+                await ctx.send(f"You do not have the role {role.name}")
+                return
             await ctx.author.remove_roles(role, reason="User removed role")
         except discord.Forbidden:
             self.logger.info("Not allowed to remove role")
