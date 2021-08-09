@@ -254,7 +254,6 @@ class AfterHours(commands.Cog):
         except discord.HTTPException:
             self.logger.info("HTTP Exception")
 
-
         # post message saying role removed
         await ctx.send(f"Removed the role {role.name} from you.")
 
