@@ -242,17 +242,19 @@ class AfterHours(commands.Cog):
                 "After Hours role no longer valid, most likely role was deleted by admins"
             )
             return
+
+        # check if user has roles
+        rolesList = ctx.author.roles
+        if role not in rolesList:
+            await ctx.send(f"You do not have the role {role.name}")
+            return
         # remove role
         try:
-            rolesList = ctx.author.roles
-            if role not in rolesList:
-                await ctx.send(f"You do not have the role {role.name}")
-                return
             await ctx.author.remove_roles(role, reason="User removed role")
         except discord.Forbidden:
-            self.logger.error("Not allowed to remove role")
+            self.logger.error("Not allowed to remove role", exc_info=True)
         except discord.HTTPException:
-            self.logger.error("HTTP Exception")
+            self.logger.error("HTTP Exception", exc_info=True)
 
         # post message saying role removed
         await ctx.send(f"Removed the role {role.name} from you.")
