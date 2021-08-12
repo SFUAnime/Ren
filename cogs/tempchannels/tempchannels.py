@@ -544,7 +544,7 @@ class TempChannels(commands.Cog):
     @tempChannels.command(name="delete", aliases=["remove", "del", "rm"])
     async def tempChannelsDelete(self, ctx: Context):
         """Deletes the temp channel, if it exists."""
-        guildConfig = await self.config.guild(ctx.guild)
+        guildConfig = self.config.guild(ctx.guild)
         channelCreated = await guildConfig.get_attr(KEY_CH_CREATED)()
         channelId = await guildConfig.get_attr(KEY_CH_ID)()
 
