@@ -46,11 +46,6 @@ class TempChannels(commands.Cog):
     def cog_unload(self):
         self.__unload()
 
-    async def _syncSettings(self):
-        """Force settings to file and reload."""
-        await self.config.put(KEY_SETTINGS, self.settings)
-        self.settings = self.config.get(KEY_SETTINGS)
-
     @commands.group(name="tempchannels", aliases=["tc"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
