@@ -227,7 +227,7 @@ class TempChannels(commands.Cog):
 
     @tempChannels.command(name="duration")
     async def tempChannelsDuration(self, ctx: Context, hours: int, minutes: int):
-        """Set the duration of the temp channel.  Max 100 hours.
+        """Set the duration of the temp channel. Max 100 hours.
 
         Parameters:
         -----------
@@ -289,11 +289,11 @@ class TempChannels(commands.Cog):
         if len(topic) > MAX_CH_TOPIC:
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Topic: "
-                "Topic is too long.  Try again."
+                "Topic is too long. Try again."
             )
             return
 
-        await self.config.guild(ctx.guild).channelTopic.set(topic)
+        await self.config.guild(ctx.guild).get_attr(KEY_CH_TOPIC).set(topic)
 
         self.logger.info(
             "%s (%s) set the channel topic to the following on %s (%s): %s",
@@ -320,11 +320,11 @@ class TempChannels(commands.Cog):
         if len(name) > MAX_CH_NAME:
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Name: "
-                "Name is too long.  Try again."
+                "Name is too long. Try again."
             )
             return
 
-        await self.config.guild(ctx.guild).channelName.set(name)
+        await self.config.guild(ctx.guild).get_attr(KEY_CH_NAME).set(name)
 
         self.logger.info(
             "%s (%s) set the channel name to " "%s" " on %s (%s)",
@@ -352,11 +352,11 @@ class TempChannels(commands.Cog):
         if position > MAX_CH_POS or position < 0:
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Position: "
-                "Invalid position.  Try again."
+                "Invalid position. Try again."
             )
             return
 
-        await self.config.guild(ctx.guild).channelPosition.set(position)
+        await self.config.guild(ctx.guild).get_attr(KEY_CH_POS).set(position)
         self.logger.info(
             "%s (%s) changed the position to %s on %s (%s)",
             ctx.author.name,
@@ -382,7 +382,7 @@ class TempChannels(commands.Cog):
         category: discord.CategoryChannel
             The category you wish to nest the temporary channel under.
         """
-        await self.config.guild(ctx.guild).channelCategory.set(category.id)
+        await self.config.guild(ctx.guild).get_attr(KEY_CH_CATEGORY).set(category.id)
 
         if not category:
             self.logger.info(
@@ -418,7 +418,7 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to allow access to the temporary channel.
         """
-        async with self.config.guild(ctx.guild).roleAllow() as roleAllow:
+        async with self.config.guild(ctx.guild).get_attr(KEY_ROLE_ALLOW)() as roleAllow:
             if role.id not in roleAllow:
                 roleAllow.append(role.id)
                 self.logger.info(
@@ -448,7 +448,7 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to remove access from.
         """
-        async with self.config.guild(ctx.guild).roleAllow() as roleAllow:
+        async with self.config.guild(ctx.guild).get_attr(KEY_ROLE_ALLOW)() as roleAllow:
             if not roleAllow or role.id not in roleAllow:
                 await ctx.send(
                     ":negative_squared_cross_mark: TempChannel - Role Allow: "
@@ -474,14 +474,14 @@ class TempChannels(commands.Cog):
         """Add a role to block sending message to the channel.
 
         This role should be HIGHER in the role hierarchy than the roles in
-        the allowed list!  The bot will not check for this.
+        the allowed list! The bot will not check for this.
 
         Parameters:
         -----------
         role: discord.Role
             The role you wish to deny sending permissions in the temporary channel.
         """
-        async with self.config.guild(ctx.guild).roleDeny() as roleDeny:
+        async with self.config.guild(ctx.guild).get_attr(KEY_ROLE_DENY)() as roleDeny:
             if role.id not in roleDeny:
                 roleDeny.append(role.id)
                 self.logger.info(
@@ -512,7 +512,7 @@ class TempChannels(commands.Cog):
         role: discord.Role
             The role you wish to remove from the deny list.
         """
-        async with self.config.guild(ctx.guild).roleDeny() as roleDeny:
+        async with self.config.guild(ctx.guild).get_attr(KEY_ROLE_DENY)() as roleDeny:
             if not roleDeny or role.id not in roleDeny:
                 await ctx.send(
                     ":negative_squared_cross_mark: TempChannel - Role Deny: "
