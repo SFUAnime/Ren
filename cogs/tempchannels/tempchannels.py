@@ -102,87 +102,93 @@ class TempChannels(commands.Cog):
     @checks.admin()
     async def tempChannelsArchive(self, ctx: Context):
         """Toggle archiving the channel after the fact."""
-        async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData[KEY_ARCHIVE]:
-                guildData[KEY_ARCHIVE] = False
-                self.logger.info(
-                    "%s (%s) DISABLED archiving the temp channel for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.guild.id,
-                )
-                await ctx.send(
-                    ":negative_squared_cross_mark: TempChannel: Archiving disabled. "
-                    " The channel will be deleted after its lifetime expires."
-                )
-            else:
-                guildData[KEY_ARCHIVE] = True
-                self.logger.info(
-                    "%s (%s) ENABLED archiving the temp channel for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.guild.id,
-                )
-                await ctx.send(
-                    ":white_check_mark: TempChannel: Archiving enabled. The channel "
-                    "will have ALL user permissions revoked after its lifetime "
-                    "expires, and will be renamed with the date and time that it "
-                    "was archived."
-                )
+        guildConfig = self.config.guild(ctx.guild)
+        archiving = await guildConfig.get_attr(KEY_ARCHIVE)()
+        if archiving:
+            archiving = False
+            self.logger.info(
+                "%s (%s) DISABLED archiving the temp channel for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(
+                ":negative_squared_cross_mark: TempChannel: Archiving disabled. "
+                " The channel will be deleted after its lifetime expires."
+            )
+        else:
+            archiving = True
+            self.logger.info(
+                "%s (%s) ENABLED archiving the temp channel for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(
+                ":white_check_mark: TempChannel: Archiving enabled. The channel "
+                "will have ALL user permissions revoked after its lifetime "
+                "expires, and will be renamed with the date and time that it "
+                "was archived."
+            )
+        await guildConfig.get_attr(KEY_ARCHIVE).set(archiving)
 
     @tempChannels.command(name="toggle")
     async def tempChannelsToggle(self, ctx: Context):
         """Toggle the creation/deletion of the temporary channel."""
-        async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData[KEY_ENABLED]:
-                guildData[KEY_ENABLED] = False
-                self.logger.info(
-                    "%s (%s) DISABLED the temp channel for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.guild.id,
-                )
-                await ctx.send(":negative_squared_cross_mark: TempChannel: Disabled.")
-            else:
-                guildData[KEY_ENABLED] = True
-                self.logger.info(
-                    "%s (%s) ENABLED the temp channel for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.guild.id,
-                )
-                await ctx.send(":white_check_mark: TempChannel: Enabled.")
+        guildConfig = self.config.guild(ctx.guild)
+        enabled = await guildConfig.get_attr(KEY_ENABLED)()
+        if enabled:
+            enabled = False
+            self.logger.info(
+                "%s (%s) DISABLED the temp channel for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(":negative_squared_cross_mark: TempChannel: Disabled.")
+        else:
+            enabled = True
+            self.logger.info(
+                "%s (%s) ENABLED the temp channel for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(":white_check_mark: TempChannel: Enabled.")
+        await guildConfig.get_attr(KEY_ENABLED).set(enabled)
 
     @tempChannels.command(name="nsfw")
     async def tempChannelsNSFW(self, ctx: Context):
         """Toggle NSFW requirements."""
-        async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData[KEY_NSFW]:
-                nsfw = False
-                self.logger.info(
-                    "%s (%s) DISABLED the NSFW prompt for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.author.id,
-                )
-                await ctx.send(
-                    ":negative_squared_cross_mark: TempChannel: NSFW " "requirement disabled."
-                )
-            else:
-                guildData[KEY_NSFW] = True
-                self.logger.info(
-                    "%s (%s) ENABLED the NSFW prompt for %s (%s)",
-                    ctx.author.name,
-                    ctx.author.id,
-                    ctx.guild.name,
-                    ctx.guild.id,
-                )
-                await ctx.send(":white_check_mark: TempChannel: NSFW " "requirement enabled.")
+        guildConfig = self.config.guild(ctx.guild)
+        nsfw = await guildConfig.get_attr(KEY_NSFW)()
+        if nsfw:
+            nsfw = False
+            self.logger.info(
+                "%s (%s) DISABLED the NSFW prompt for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.author.id,
+            )
+            await ctx.send(
+                ":negative_squared_cross_mark: TempChannel: NSFW " "requirement disabled."
+            )
+        else:
+            nsfw = True
+            self.logger.info(
+                "%s (%s) ENABLED the NSFW prompt for %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(":white_check_mark: TempChannel: NSFW " "requirement enabled.")
+        await guildConfig.get_attr(KEY_NSFW).set(nsfw)
 
     @tempChannels.command(name="start")
     async def tempChannelsStart(self, ctx: Context, hour: int, minute: int):
@@ -201,6 +207,7 @@ class TempChannels(commands.Cog):
                 "Time: Please enter a valid time."
             )
             return
+
         if (minute > 59) or (minute < 0):
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Start "
@@ -208,9 +215,10 @@ class TempChannels(commands.Cog):
             )
             return
 
-        async with self.config.guild(ctx.guild).all() as guildData:
-            guildData[KEY_START_HOUR] = hour
-            guildData[KEY_START_MIN] = minute
+        guildConfig = self.config.guild(ctx.guild)
+        await guildConfig.get_attr(KEY_START_HOUR).set(hour)
+        await guildConfig.get_attr(KEY_START_MIN).set(minute)
+
         self.logger.info(
             "%s (%s) set the start time to %002d:%002d on %s (%s)",
             ctx.author.name,
@@ -220,6 +228,7 @@ class TempChannels(commands.Cog):
             ctx.guild.name,
             ctx.guild.id,
         )
+
         await ctx.send(
             ":white_check_mark: TempChannel - Start Time: Start time "
             "set to {0:002d}:{1:002d}.".format(hour, minute)
@@ -246,12 +255,14 @@ class TempChannels(commands.Cog):
                 "Please enter valid hours!"
             )
             return
+
         if (minutes >= 60) or (minutes < 0):
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Duration: "
                 "Please enter valid minutes!"
             )
             return
+
         if (hours >= 99) and (minutes >= 60):
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel - Duration: "
@@ -259,9 +270,10 @@ class TempChannels(commands.Cog):
             )
             return
 
-        async with self.config.guild(ctx.guild).all() as guildData:
-            guildData[KEY_DURATION_HOURS] = hours
-            guildData[KEY_DURATION_MINS] = minutes
+        guildConfig = self.config.guild(ctx.guild)
+        await guildConfig.get_attr(KEY_DURATION_HOURS).set(hours)
+        await guildConfig.get_attr(KEY_DURATION_MINS).set(minutes)
+
         self.logger.info(
             "%s (%s) set the duration to %s hours, %s minutes on %s (%s)",
             ctx.author.name,
@@ -357,6 +369,7 @@ class TempChannels(commands.Cog):
             return
 
         await self.config.guild(ctx.guild).get_attr(KEY_CH_POS).set(position)
+
         self.logger.info(
             "%s (%s) changed the position to %s on %s (%s)",
             ctx.author.name,
@@ -536,37 +549,42 @@ class TempChannels(commands.Cog):
     @tempChannels.command(name="delete", aliases=["remove", "del", "rm"])
     async def tempChannelsDelete(self, ctx: Context):
         """Deletes the temp channel, if it exists."""
-        async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData[KEY_CH_CREATED] and guildData[KEY_CH_ID]:
-                # Channel created, see when we should delete it.
-                try:
-                    chanObj = self.bot.get_channel(guildData[KEY_CH_ID])
-                    await chanObj.delete()
-                except discord.DiscordException:
-                    self.logger.error("Could not delete channel!", exc_info=True)
-                    await ctx.send(
-                        ":warning: TempChannel: Something went wrong "
-                        "while trying to delete the channel. Please "
-                        "check the console log for details."
-                    )
-                else:
-                    guildData[KEY_CH_ID] = None
-                    guildData[KEY_CH_CREATED] = False
-                    self.logger.info(
-                        "%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
-                        ctx.author.name,
-                        ctx.author.id,
-                        chanObj.name,
-                        chanObj.id,
-                        ctx.guild.name,
-                        ctx.guild.id,
-                    )
-                    await ctx.send(":white_check_mark: TempChannel: Channel deleted")
-            else:
+        guildConfig = await self.config.guild(ctx.guild)
+        channelCreated = await guildConfig.get_attr(KEY_CH_CREATED)()
+        channelId = await guildConfig.get_attr(KEY_CH_ID)()
+
+        if channelCreated and channelId:
+            # Channel created, see when we should delete it.
+            try:
+                chanObj = self.bot.get_channel(channelId)
+                await chanObj.delete()
+            except discord.DiscordException:
+                self.logger.error("Could not delete channel!", exc_info=True)
                 await ctx.send(
-                    ":negative_squared_cross_mark: TempChannel: There is no "
-                    "temporary channel to delete!"
+                    ":warning: TempChannel: Something went wrong "
+                    "while trying to delete the channel. Please "
+                    "check the console log for details."
                 )
+            else:
+                channelId = None
+                channelCreated = False
+                self.logger.info(
+                    "%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
+                    ctx.author.name,
+                    ctx.author.id,
+                    chanObj.name,
+                    chanObj.id,
+                    ctx.guild.name,
+                    ctx.guild.id,
+                )
+                await ctx.send(":white_check_mark: TempChannel: Channel deleted")
+        else:
+            await ctx.send(
+                ":negative_squared_cross_mark: TempChannel: There is no "
+                "temporary channel to delete!"
+            )
+        await guildConfig.get_attr(KEY_CH_CREATED).set(channelCreated)
+        await guildConfig.get_attr(KEY_CH_ID).set(channelId)
 
     ###################
     # Background Loop #
