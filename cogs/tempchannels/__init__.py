@@ -1,8 +1,6 @@
 """tempchannels module.
 
-DM users based on a set of words that they are listening for.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
+Creates a temporary channel.
 """
 
 from redbot.core.bot import Red
