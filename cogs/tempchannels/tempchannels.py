@@ -170,9 +170,7 @@ class TempChannels(commands.Cog):
                 ctx.guild.name,
                 ctx.author.id,
             )
-            await ctx.send(
-                ":negative_squared_cross_mark: TempChannel: NSFW " "requirement disabled."
-            )
+            await ctx.send(":negative_squared_cross_mark: TempChannel: NSFW requirement disabled.")
         else:
             nsfw = True
             self.logger.info(
@@ -182,7 +180,7 @@ class TempChannels(commands.Cog):
                 ctx.guild.name,
                 ctx.guild.id,
             )
-            await ctx.send(":white_check_mark: TempChannel: NSFW " "requirement enabled.")
+            await ctx.send(":white_check_mark: TempChannel: NSFW requirement enabled.")
         await guildConfig.get_attr(KEY_NSFW).set(nsfw)
 
     @tempChannels.command(name="start")
@@ -326,8 +324,7 @@ class TempChannels(commands.Cog):
         """
         if len(name) > MAX_CH_NAME:
             await ctx.send(
-                ":negative_squared_cross_mark: TempChannel - Name: "
-                "Name is too long. Try again."
+                ":negative_squared_cross_mark: TempChannel - Name: " "Name is too long. Try again."
             )
             return
 
