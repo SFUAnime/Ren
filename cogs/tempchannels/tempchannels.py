@@ -558,8 +558,8 @@ class TempChannels(commands.Cog):
                     "check the console log for details."
                 )
             else:
-                channelId = None
-                channelCreated = False
+                await guildConfig.get_attr(KEY_CH_ID).set(None)
+                await guildConfig.get_attr(KEY_CH_CREATED).set(False)
                 self.logger.info(
                     "%s (%s) deleted the temp channel #%s (%s) in %s (%s).",
                     ctx.author.name,
@@ -569,8 +569,6 @@ class TempChannels(commands.Cog):
                     ctx.guild.name,
                     ctx.guild.id,
                 )
-                await guildConfig.get_attr(KEY_CH_ID).set(channelId)
-                await guildConfig.get_attr(KEY_CH_CREATED).set(channelCreated)
                 await ctx.send(":white_check_mark: TempChannel: Channel deleted")
         else:
             await ctx.send(
