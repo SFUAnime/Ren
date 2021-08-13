@@ -542,8 +542,8 @@ class TempChannels(commands.Cog):
     async def tempChannelsDelete(self, ctx: Context):
         """Deletes the temp channel, if it exists."""
         guildConfig = self.config.guild(ctx.guild)
-        channelCreated = await guildConfig.get_attr(KEY_CH_CREATED)()
         channelId = await guildConfig.get_attr(KEY_CH_ID)()
+        channelCreated = await guildConfig.get_attr(KEY_CH_CREATED)()
 
         if channelCreated and channelId:
             # Channel created, see when we should delete it.
@@ -569,14 +569,14 @@ class TempChannels(commands.Cog):
                     ctx.guild.name,
                     ctx.guild.id,
                 )
+                await guildConfig.get_attr(KEY_CH_ID).set(channelId)
+                await guildConfig.get_attr(KEY_CH_CREATED).set(channelCreated)
                 await ctx.send(":white_check_mark: TempChannel: Channel deleted")
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: TempChannel: There is no "
                 "temporary channel to delete!"
             )
-        await guildConfig.get_attr(KEY_CH_CREATED).set(channelCreated)
-        await guildConfig.get_attr(KEY_CH_ID).set(channelId)
 
     ###################
     # Background Loop #
