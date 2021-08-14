@@ -14,7 +14,8 @@ from redbot.core.commands.context import Context
 AH_CHANNEL = "after-hours"
 KEY_CTX_CHANNEL_ID = "channelId"
 KEY_CHANNEL_IDS = "channelIds"
-DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}}
+KEY_ROLE_ID = "roleId"
+DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}, KEY_ROLE_ID: None}
 STARBOARD = "highlights"
 DELETE_TIME = 32 * 60 * 60
 SLEEP_TIME = 60 * 60
@@ -207,14 +208,59 @@ class AfterHours(commands.Cog):
 
     @commands.group(name="afterhours")
     @commands.guild_only()
-    @checks.mod_or_permissions(manage_messages=True)
     async def afterHours(self, ctx: Context):
-        """Configure after-hours exceptions
+        """Manage after-hours"""
 
-        There's nothing configurable from Discord.
+    @checks.mod_or_permissions(manage_messages=True)
+    @afterHours.command(name="setrole")
+    async def afterHoursSetRole(self, ctx: Context, role: discord.Role):
+        """Set the after-hours role.
+
+        This allows for self-removals later.
+
+        Parameters
+        ----------
+        role: discord.Role
+            The role associated with after hours.
         """
+        await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID).set(role.id)
+        await ctx.send(f"Set the After Hours role to {role.name}")
 
-    @afterHours.command(name="set")
+    @afterHours.command(name="removerole")
+    async def afterHoursRemoveRole(self, ctx: Context):
+        """Remove the after-hours role from yourself."""
+        # check if after hours role is set
+        roleid = await self.config.guild(ctx.guild).get_attr(KEY_ROLE_ID)()
+        if roleid is None:
+            await ctx.send("Please configure the after-hours role first!")
+            return
+        # get after hours role by id
+        role = ctx.guild.get_role(roleid)
+        # if id is no longer valid (role deleted most likely)
+        if role is None:
+            await ctx.send(
+                "After Hours role no longer valid, most likely role was deleted by admins"
+            )
+            return
+
+        # check if user has roles
+        rolesList = ctx.author.roles
+        if role not in rolesList:
+            await ctx.send(f"You do not have the role {role.name}")
+            return
+        # remove role
+        try:
+            await ctx.author.remove_roles(role, reason="User removed role")
+        except discord.Forbidden:
+            self.logger.error("Not allowed to remove role", exc_info=True)
+        except discord.HTTPException:
+            self.logger.error("HTTP Exception", exc_info=True)
+
+        # post message saying role removed
+        await ctx.send(f"Removed the role {role.name} from you.")
+
+    @checks.mod_or_permissions(manage_messages=True)
+    @afterHours.command(name="setchannel")
     async def afterHoursSet(self, ctx: Context):
         """Set the channel for notifications."""
         await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
