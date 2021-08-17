@@ -2,8 +2,6 @@
 
 This cog was originally from flapjax/FlapJack-Cogs in v2.
 """
-import os
-import copy
 import logging
 import re
 import asyncio
@@ -61,7 +59,7 @@ class SmartReact(commands.Cog):
         word: str
             The word you wish to react to.
         emoji: Union[str, discord.Emoji]
-            The emoji you wish to react with, intrepreted as the string representation
+            The emoji you wish to react with, interpreted as the string representation
             with <:name:id> if it is a custom emoji.
         """
         emoji = self.fix_custom_emoji(emoji)
@@ -78,7 +76,7 @@ class SmartReact(commands.Cog):
         word: str
             The word you wish to react to.
         emoji: Union[str, discord.Emoji]
-            The emoji you wish to react with, intrepreted as the string representation
+            The emoji you wish to react with, interpreted as the string representation
             with <:name:id> if it is a custom emoji.
         """
         emoji = self.fix_custom_emoji(emoji)
