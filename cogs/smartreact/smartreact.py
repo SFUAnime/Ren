@@ -2,8 +2,6 @@
 
 This cog was originally from flapjax/FlapJack-Cogs in v2.
 """
-import os
-import copy
 import logging
 import re
 import asyncio
@@ -15,7 +13,9 @@ from redbot.core.commands.context import Context
 
 UPDATE_WAIT_DUR = 1200  # Autoupdate waits this much before updating
 
-BASE_GUILD = {"emojis": {}}
+KEY_EMOJIS = "emojis"
+
+BASE_GUILD = {KEY_EMOJIS: {}}
 
 
 class SmartReact(commands.Cog):
@@ -59,7 +59,7 @@ class SmartReact(commands.Cog):
         word: str
             The word you wish to react to.
         emoji: Union[str, discord.Emoji]
-            The emoji you wish to react with, intrepreted as the string representation
+            The emoji you wish to react with, interpreted as the string representation
             with <:name:id> if it is a custom emoji.
         """
         emoji = self.fix_custom_emoji(emoji)
@@ -76,7 +76,7 @@ class SmartReact(commands.Cog):
         word: str
             The word you wish to react to.
         emoji: Union[str, discord.Emoji]
-            The emoji you wish to react with, intrepreted as the string representation
+            The emoji you wish to react with, interpreted as the string representation
             with <:name:id> if it is a custom emoji.
         """
         emoji = self.fix_custom_emoji(emoji)
@@ -95,7 +95,7 @@ class SmartReact(commands.Cog):
     async def list(self, ctx):
         """List the auto reaction emojis and triggers."""
         display = []
-        emojis = await self.config.guild(ctx.guild).emojis()
+        emojis = await self.config.guild(ctx.guild).get_attr(KEY_EMOJIS)()
         for emoji, triggers in emojis.items():
             text = "{}: ".format(emoji)
             for trig in triggers:
@@ -180,7 +180,7 @@ class SmartReact(commands.Cog):
         guild: discord.Guild
             The guild to update.
         """
-        async with self.config.guild(guild).emojis() as emojiList:
+        async with self.config.guild(guild).get_attr(KEY_EMOJIS)() as emojiList:
             namesList = [x.name.lower() for x in guild.emojis]
 
             for emoji in emojiList.keys():
@@ -230,7 +230,7 @@ class SmartReact(commands.Cog):
             self.logger.error("Could not add reaction.", exc_info=True)
             return
 
-        async with self.config.guild(ctx.guild).emojis() as emojiDict:
+        async with self.config.guild(ctx.guild).get_attr(KEY_EMOJIS)() as emojiDict:
             if str(emoji) in emojiDict:
                 if word.lower() in emojiDict[str(emoji)]:
                     await ctx.send("This smart reaction already exists.")
@@ -260,7 +260,7 @@ class SmartReact(commands.Cog):
             await ctx.send("That's not an emoji I recognize.")
             return
 
-        async with self.config.guild(ctx.guild).emojis() as emojiDict:
+        async with self.config.guild(ctx.guild).get_attr(KEY_EMOJIS)() as emojiDict:
             if str(emoji) in emojiDict:
                 if word.lower() in emojiDict[str(emoji)]:
                     emojiDict[str(emoji)].remove(word.lower())
@@ -299,7 +299,7 @@ class SmartReact(commands.Cog):
             return
         if not message.guild:
             return
-        react_dict = await self.config.guild(message.guild).emojis()
+        react_dict = await self.config.guild(message.guild).get_attr(KEY_EMOJIS)()
 
         # For matching non-word characters and emojis
         end_sym = r"([\W:\\<>._]+|$)"
