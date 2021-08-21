@@ -9,20 +9,18 @@ from .exceptions import *
 from .helpers import createSimplePages
 from .rolecheck import roles_or_mod_or_permissions
 
+from collections import defaultdict
 from copy import deepcopy
 import csv
-import json
-import re
 import datetime
-import discord
 import difflib
+import json
+import logging
 from threading import Lock
-from collections import defaultdict
 
 import asyncio
 import discord
 from os.path import isfile, join
-import logging
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
@@ -136,7 +134,7 @@ class Tags(commands.Cog):
     def removeAllowedRole(self, guild: discord.Guild, role: discord.Role):
         self.allowed_roles[guild.id].discard(str(role.id))
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.Tags")
