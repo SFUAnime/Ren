@@ -8,7 +8,9 @@ from datetime import datetime, timedelta
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
-from redbot.core.utils import paginator
+from redbot.core.utils import AsyncIter
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+from redbot.core.utils.chat_formatting import pagify, warning
 from redbot.core.bot import Red
 from .constants import *
 
@@ -59,7 +61,7 @@ class Birthday(commands.Cog):
     @_birthday.command(name="channel", aliases=["ch"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def setChannel(self, ctx, channel: discord.TextChannel = None):
+    async def setChannel(self, ctx: Context, channel: discord.TextChannel = None):
         """Set the channel to mention members on their birthday.
 
         Parameters:
@@ -69,12 +71,12 @@ class Birthday(commands.Cog):
         """
 
         if channel:
-            await self.config.guild(ctx.message.guild).birthdayChannel.set(channel.id)
+            await self.config.guild(ctx.guild).get_attr(KEY_BDAY_CHANNEL).set(channel.id)
             self.logger.info(
                 "%s#%s (%s) set the birthday channel to %s",
-                ctx.message.author.name,
-                ctx.message.author.discriminator,
-                ctx.message.author.id,
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
                 channel.name,
             )
             await ctx.send(
@@ -82,7 +84,7 @@ class Birthday(commands.Cog):
                 "as the birthday mention channel!".format(channel.name)
             )
         else:
-            await self.config.guild(ctx.message.guild).birthdayChannel.set(None)
+            await self.config.guild(ctx.guild).get_attr(KEY_BDAY_CHANNEL).set(None)
             await ctx.send(
                 ":white_check_mark: **Birthday - Channel**: Birthday mentions are now disabled."
             )
@@ -90,7 +92,7 @@ class Birthday(commands.Cog):
     @_birthday.command(name="role")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def setRole(self, ctx, role: discord.Role):
+    async def setRole(self, ctx: Context, role: discord.Role):
         """Set the role to assign to a birthday user. Make sure this role can
         be assigned and removed by the bot by placing it in the correct
         hierarchy location.
@@ -101,12 +103,12 @@ class Birthday(commands.Cog):
             A role (name or mention) to set as the birthday role.
         """
 
-        await self.config.guild(ctx.message.guild).birthdayRole.set(role.id)
+        await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE).set(role.id)
         self.logger.info(
             "%s#%s (%s) set the birthday role to %s",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
             role.name,
         )
         await ctx.send(
@@ -116,7 +118,7 @@ class Birthday(commands.Cog):
 
     @_birthday.command(name="test")
     @commands.guild_only()
-    async def test(self, ctx):
+    async def test(self, ctx: Context):
         """Test at-mentions."""
         for msg in CANNED_MESSAGES:
             await ctx.send(msg.format(ctx.author.mention))
@@ -141,7 +143,7 @@ class Birthday(commands.Cog):
         day: int (optional)
             The birthday day, range between 1 and 31 inclusive, depending on month.
         """
-        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        rid = await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE)()
 
         # Check if guild is initialized.
         if not rid:
@@ -152,7 +154,7 @@ class Birthday(commands.Cog):
             return
 
         # Check if both the inputs are empty, for this case set the birthday as current day
-        # If one of the parameters are missing, then raise error
+        # If one of the parameters are missing, then send error message
         if month == None and day == None:
             day = int(time.strftime("%d"))
             month = int(time.strftime("%m"))
@@ -174,16 +176,36 @@ class Birthday(commands.Cog):
             )
             return
 
-        # Save settings
+        def check(msg: discord.Message):
+            return msg.author == ctx.author and msg.channel == ctx.channel
+
         async with self.config.member(member).all() as userConfig:
+            addedBefore = userConfig[KEY_ADDED_BEFORE]
+            birthdayExists = userConfig[KEY_BDAY_MONTH] and userConfig[KEY_BDAY_DAY]
+            if not birthdayExists and addedBefore:
+                await ctx.send(
+                    warning(
+                        f"This user had their birthday previously removed. Are you sure you "
+                        "still want to re-add them? Please type `yes` to confirm."
+                    )
+                )
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    await ctx.send(f"You took too long, not re-adding them.")
+                    return
+
+                if response.content.lower() != "yes":
+                    await ctx.send(f"Not re-adding them to the birthday list.")
+                    return
+
             userConfig[KEY_BDAY_MONTH] = month
             userConfig[KEY_BDAY_DAY] = day
 
         confMsg = await ctx.send(
-            ":white_check_mark: **Birthday - Add**: Successfully "
-            "added **{0}**'s birthday as **{1:%B} {1:%d}**. "
-            "The role will be assigned automatically on this "
-            "day.".format(member.name, userBirthday)
+            ":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s birthday "
+            "as **{2:%B} {2:%d}**. The role will be assigned automatically on this "
+            "day.".format("updated" if birthdayExists else "added", member.name, userBirthday)
         )
 
         # Explicitly check to see if user should be added to role, if the month
@@ -193,16 +215,17 @@ class Birthday(commands.Cog):
         await asyncio.sleep(5)  # pylint: disable=no-member
 
         await confMsg.edit(
-            content=":white_check_mark: **Birthday - Add**: Successfully "
-            "added **{0}**'s birthday, and the role will be automatically "
-            "assigned on the day.".format(member.name)
+            content=":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s "
+            "birthday, and the role will be automatically assigned on the day.".format(
+                "updated" if birthdayExists else "added", member.name
+            )
         )
 
         self.logger.info(
             "%s#%s (%s) added the birthday of %s#%s (%s) as %s",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
             member.name,
             member.discriminator,
             member.id,
@@ -213,14 +236,14 @@ class Birthday(commands.Cog):
     @_birthday.command(name="list", aliases=["ls"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def list(self, ctx: Context):
+    async def listBirthdays(self, ctx: Context):
         """Lists the birthdays of users in the server."""
 
         sortedList = []  # List to sort by month, day.
         display = []  # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
-        membersData = await self.config.all_members(ctx.message.guild)
+        membersData = await self.config.all_members(ctx.guild)
         for memberId, memberDetails in membersData.items():
             # Check if the birthdate keys exist, and they are not null.
             # If true, add an ID key and append to list.
@@ -246,7 +269,7 @@ class Birthday(commands.Cog):
 
         for user in sortedList:
             # Get the associated user Discord object.
-            userObject = discord.utils.get(ctx.message.guild.members, id=user["ID"])
+            userObject = discord.utils.get(ctx.guild.members, id=user["ID"])
 
             # Skip if user is no longer in server.
             if not userObject:
@@ -257,10 +280,16 @@ class Birthday(commands.Cog):
             text = "{0:%B} {0:%d}: {1}".format(userBirthday, userObject.name)
             display.append(text)
 
-        page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-        page.embed.title = "Birthdays in **{}**".format(ctx.message.guild.name)
-        page.embed.colour = discord.Colour.red()
-        await page.paginate()
+        pageList = []
+        msg = "\n".join(display)
+        pages = list(pagify(msg, page_length=300))
+        totalPages = len(pages)
+        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+            embed = discord.Embed(title=f"Birthdays in **{ctx.guild.name}**", description=page)
+            embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
+            embed.colour = discord.Colour.red()
+            pageList.append(embed)
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
 
     @_birthday.command(name="unassign")
     @commands.guild_only()
@@ -273,7 +302,7 @@ class Birthday(commands.Cog):
         member: discord.Member
             The guild member that you want to remove the birthday role from.
         """
-        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        rid = await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE)()
         if not rid:
             await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Unassign**: This "
@@ -283,7 +312,7 @@ class Birthday(commands.Cog):
 
         try:
             # Find the Role object to remove from the member.
-            role = discord.utils.get(ctx.message.guild.roles, id=rid)
+            role = discord.utils.get(ctx.guild.roles, id=rid)
 
             # Remove role from the user.
             await member.remove_roles(role)
@@ -305,8 +334,7 @@ class Birthday(commands.Cog):
             )
             return
 
-        async with self.config.member(member).all() as userConfig:
-            userConfig[KEY_IS_ASSIGNED] = False
+        await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(False)
 
         await ctx.send(
             ":white_check_mark: **Birthday - Unassign**: Successfully "
@@ -315,9 +343,9 @@ class Birthday(commands.Cog):
 
         self.logger.info(
             "%s#%s (%s) unassigned %s#%s (%s) from the birthday role",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
             member.name,
             member.discriminator,
             member.id,
@@ -335,7 +363,7 @@ class Birthday(commands.Cog):
         member: discord.Member
             The guild member whose birthday role and saved birthday you want to remove.
         """
-        rid = await self.config.guild(ctx.message.guild).birthdayRole()
+        rid = await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE)()
         if not rid:
             await ctx.send(
                 ":negative_squared_cross_mark: **Birthday - Delete**: This "
@@ -345,7 +373,7 @@ class Birthday(commands.Cog):
 
         try:
             # Find the Role object to remove from the member.
-            role = discord.utils.get(ctx.message.guild.roles, id=rid)
+            role = discord.utils.get(ctx.guild.roles, id=rid)
 
             # Remove role from the user.
             await member.remove_roles(role)
@@ -368,6 +396,7 @@ class Birthday(commands.Cog):
             return
 
         async with self.config.member(member).all() as userConfig:
+            userConfig[KEY_ADDED_BEFORE] = True
             userConfig[KEY_IS_ASSIGNED] = False
             userConfig[KEY_BDAY_MONTH] = None
             userConfig[KEY_BDAY_DAY] = None
@@ -380,9 +409,9 @@ class Birthday(commands.Cog):
 
         self.logger.info(
             "%s#%s (%s) deleted the birthday of %s#%s (%s)",
-            ctx.message.author.name,
-            ctx.message.author.discriminator,
-            ctx.message.author.id,
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
             member.name,
             member.discriminator,
             member.id,
@@ -416,7 +445,7 @@ class Birthday(commands.Cog):
             for guild in guilds:
                 # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
-                bdayRoleId = await self.config.guild(guild).birthdayRole()
+                bdayRoleId = await self.config.guild(guild).get_attr(KEY_BDAY_ROLE)()
                 if not bdayRoleId:
                     continue
 
@@ -455,7 +484,7 @@ class Birthday(commands.Cog):
                             continue
 
                         # Update the list.
-                        await self.config.member(member).isAssigned.set(False)
+                        await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(False)
 
     async def _dailyAdd(self):  # pylint: disable=too-many-branches
         """Add guild members to the birthday role."""
@@ -471,8 +500,8 @@ class Birthday(commands.Cog):
             for guild in guilds:
                 # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
-                bdayRoleId = await self.config.guild(guild).birthdayRole()
-                bdayChannelId = await self.config.guild(guild).birthdayChannel()
+                bdayRoleId = await self.config.guild(guild).get_attr(KEY_BDAY_ROLE)()
+                bdayChannelId = await self.config.guild(guild).get_attr(KEY_BDAY_CHANNEL)()
                 if not bdayRoleId:
                     continue
 
@@ -507,8 +536,9 @@ class Birthday(commands.Cog):
                                     member.id,
                                 )
                                 # Update the list.
-                                async with self.config.member(member).all() as memberConfig:
-                                    memberConfig[KEY_IS_ASSIGNED] = True
+                                await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(
+                                    True
+                                )
 
                             except discord.Forbidden:
                                 self.logger.error(

@@ -4,10 +4,11 @@
     ],
     "description" : "Create a starboard channel to save those amazing posts!",
     "disabled" : false,
+    "end_user_data_statement" : "This stores message information from Users for the purposes of tracking reactions to the message.",
     "hidden" : false,
     "install_msg" : "Create a starboard!",
     "max_bot_version" : "0.0.0",
-    "min_bot_version" : "3.1.8",
+    "min_bot_version" : "3.3.12",
     "min_python_version" : [
         3,
         7,

@@ -1,5 +1,5 @@
 """Word Filter cog.
-To filter words in a more smart/useful wya than simply detecting and
+To filter words in a more smart/useful way than simply detecting and
 deleting a message.
 
 This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
@@ -11,13 +11,17 @@ import asyncio
 import random
 import discord
 from redbot.core import Config, checks, commands, data_manager
-from redbot.core.utils import paginator
+from redbot.core.utils import AsyncIter, chat_formatting
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.bot import Red
-
-COLOUR = discord.Colour
-COLOURS = [COLOUR.purple(), COLOUR.red(), COLOUR.blue(), COLOUR.orange(), COLOUR.green()]
-PATTERN_CHANNEL_ID = r"<#(\d+)>"
-BASE = {"channelAllowed": [], "filters": [], "commandDenied": [], "toggleMod": False}
+from .constants import (
+    BASE,
+    COLOURS,
+    KEY_CHANNEL_IDS,
+    KEY_FILTERS,
+    KEY_CMD_DENIED,
+    KEY_TOGGLE_MOD,
+)
 
 
 class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
@@ -75,11 +79,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         user = ctx.message.author
         guildName = ctx.message.guild.name
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if word not in filters:
             filters.append(word)
-            await self.config.guild(ctx.guild).filters.set(filters)
+            await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
             await user.send(
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -103,7 +107,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         user = ctx.message.author
         guildName = ctx.message.guild.name
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if not filters or word not in filters:
             await user.send(
@@ -112,7 +116,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             )
         else:
             filters.remove(word)
-            await self.config.guild(ctx.guild).filters.set(filters)
+            await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
             await user.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -125,28 +129,36 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """List the regex used to filter messages in raw format.
         NOTE: do this in a channel outside of the viewing public
         """
-        guildName = ctx.message.guild.name
         user = ctx.message.author
-        filters = await self.config.guild(ctx.guild).filters()
+        filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if filters:
             display = []
-            for regex in filters:
-                display.append("`{}`".format(regex))
+            pageList = []
+            for num, regex in enumerate(filters, start=1):
+                display.append(f"{num}. `{regex}`")
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = "Filtered words for: **{}**".format(guildName)
-            page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Filtered words for **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
-            await user.send("Sorry you have no filtered words in **{}**".format(guildName))
+            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
 
     @wordFilter.command(name="togglemod")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
     async def toggleMod(self, ctx):
         """Toggle global override of filters for server admins/mods."""
-        toggleMod = await self.config.guild(ctx.guild).toggleMod()
+        toggleMod = await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD)()
 
         if toggleMod:
             toggleMod = False
@@ -157,10 +169,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             toggleMod = True
             await ctx.send(
-                ":white_check_mark: Word Filter: Moderators (and higher "
+                ":white_check_mark: Word Filter: Moderators (and higher) "
                 "**will not be** filtered."
             )
-        await self.config.guild(ctx.guild).toggleMod.set(toggleMod)
+        await self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_MOD).set(toggleMod)
 
     #########################################
     # COMMANDS - COMMAND BLACKLIST SETTINGS #
@@ -182,11 +194,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         is filtered and the contents of the message will be sent back to the
         user via DM.
         """
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if cmd not in cmdDenied:
             cmdDenied.append(cmd)
-            await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
+            await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED).set(cmdDenied)
             await ctx.send(
                 f":white_check_mark: Word Filter: Command `{cmd}` is now "
                 "in the denylist.  It will have the entire message filtered "
@@ -216,7 +228,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         guildName = ctx.message.guild.name
 
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if not cmdDenied or cmd not in cmdDenied:
             await ctx.send(
@@ -225,7 +237,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             )
         else:
             cmdDenied.remove(cmd)
-            await self.config.guild(ctx.guild).commandDenied.set(cmdDenied)
+            await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED).set(cmdDenied)
             await ctx.send(
                 f":white_check_mark: Word Filter: `{cmd}` removed from " "the command denylist."
             )
@@ -238,21 +250,30 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         entire message is filtered and the contents of the message will be sent
         back to the user via DM.
         """
-        guildName = ctx.message.guild.name
-
-        cmdDenied = await self.config.guild(ctx.guild).commandDenied()
+        cmdDenied = await self.config.guild(ctx.guild).get_attr(KEY_CMD_DENIED)()
 
         if cmdDenied:
             display = []
-            for cmd in cmdDenied:
-                display.append("`{}`".format(cmd))
+            pageList = []
+            for num, cmd in enumerate(cmdDenied, start=1):
+                display.append(f"{num}. `{cmd}`")
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = f"Denylist commands for: **{guildName}**"
-            page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Denylist commands for: **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
-            await ctx.send(f"Sorry, there are no commands on the denylist for **{guildName}**")
+            await ctx.send(
+                f"Sorry, there are no commands on the denylist for **{ctx.guild.name}**"
+            )
 
     ############################################
     # COMMANDS - CHANNEL WHITELISTING SETTINGS #
@@ -272,69 +293,56 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @_channel.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _channelAdd(self, ctx, channelName):
+    async def _channelAdd(self, ctx, channel: discord.TextChannel):
         """Add a channel to the allowlist.
 
         All messages in the channel will not be filtered.
 
         Parameters:
         -----------
-        channelName: str
+        channel: discord.TextChannel
             The channel to add to the allowlist.
         """
-        guildId = ctx.message.guild.id
-        channelAllowed = await self.config.guild(ctx.guild).channelAllowed()
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
-        match = re.search(PATTERN_CHANNEL_ID, channelName)
-        if match:  # channel ID
-            channel = discord.utils.get(ctx.message.guild.channels, id=match.group(1))
-            channelName = channel.name
-
-        if channelName not in channelAllowed:
-            channelAllowed.append(channelName)
-            await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
+        if channel.id not in channelIdsAllowed:
+            channelIdsAllowed.append(channel.id)
+            await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS).set(channelIdsAllowed)
             await ctx.send(
                 ":white_check_mark: Word Filter: Channel with name "
-                f"`{channelName}` will not be filtered."
+                f"`{channel.name}` will not be filtered."
             )
         else:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                f"`{channelName}` is already on the allowlist."
+                f"`{channel.name}` is already on the allowlist."
             )
 
     @_channel.command(name="del", aliases=["delete", "remove", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
-    async def _channelRemove(self, ctx, channelName):
+    async def _channelRemove(self, ctx, channel: discord.TextChannel):
         """Remove a channel from the allowlist.
 
         All messages in the removed channel will be subjected to the filter.
 
         Parameters:
         -----------
-        channelName: str
+        channel: discord.TextChannel
             The channel to remove from the allowlist.
         """
-        guildName = ctx.message.guild.name
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
-        channelAllowed = await self.config.guild(ctx.guild).channelAllowed()
-
-        match = re.search(PATTERN_CHANNEL_ID, channelName)
-        if match:  # channel ID
-            channel = discord.utils.get(ctx.message.guild.channels, id=match.group(1))
-            channelName = channel.name
-
-        if not channelAllowed or channelName not in channelAllowed:
+        if channel.id not in channelIdsAllowed:
             await ctx.send(
                 ":negative_squared_cross_mark: Word Filter: Channel "
-                f"`{channelName}` is not on the allowlist."
+                f"`{channel.name}` is not on the allowlist."
             )
         else:
-            channelAllowed.remove(channelName)
-            await self.config.guild(ctx.guild).channelAllowed.set(channelAllowed)
+            channelIdsAllowed.remove(channel.id)
+            await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS).set(channelIdsAllowed)
             await ctx.send(
-                f":white_check_mark: Word Filter: `{channelName}` removed from "
+                f":white_check_mark: Word Filter: `{channel.name}` removed from "
                 "the channel allowlist."
             )
 
@@ -345,21 +353,33 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """List channels on the allowlist.
         NOTE: do this in a channel outside of the viewing public
         """
-        guildName = ctx.message.guild.name
+        channelIdsAllowed = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_IDS)()
 
-        channelAllowed = await self.config.guild(ctx.guild).channelAllowed()
-
-        if channelAllowed:
+        if channelIdsAllowed:
             display = []
-            for channel in channelAllowed:
-                display.append("`{}`".format(channel))
+            pageList = []
+            for num, channel in enumerate(channelIdsAllowed, start=1):
+                channelTemp = discord.utils.get(ctx.guild.channels, id=channel)
+                if not channelTemp:
+                    continue
+                display.append(f"{num}. `{channelTemp.name}`")
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
 
-            page = paginator.Pages(ctx=ctx, entries=display, show_entry_count=True)
-            page.embed.title = f"Allowlist channels for: **{guildName}**"
-            page.embed.colour = discord.Colour.red()
-            await page.paginate()
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Allowlist channels for: **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
-            await ctx.send(f"Sorry, there are no channels in the allowlist for **{guildName}**")
+            await ctx.send(
+                f"Sorry, there are no channels in the allowlist for **{ctx.guild.name}**"
+            )
 
     async def checkMessageServerAndChannel(self, msg):
         """Checks to see if the message is in a server/channel eligible for
@@ -379,13 +399,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if isinstance(msg.channel, discord.DMChannel):
             return False
 
-        filters = await self.config.guild(msg.guild).filters()
-
         # Do not filter allowlist channels
         try:
-            allowlist = await self.config.guild(msg.guild).channelAllowed()
+            allowlist = await self.config.guild(msg.guild).get_attr(KEY_CHANNEL_IDS)()
             for channels in allowlist:
-                if channels.lower() == msg.channel.name.lower():
+                if channels == msg.channel.id:
                     return False
         except Exception as error:  # pylint: disable=broad-except
             # Most likely no allowlist channels.
@@ -394,7 +412,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # Check if mod or admin, and do not filter if togglemod is enabled.
         try:
-            toggleMod = await self.config.guild(msg.guild).toggleMod()
+            toggleMod = await self.config.guild(msg.guild).get_attr(KEY_TOGGLE_MOD)()
             if toggleMod:
                 if await self.bot.is_mod(msg.author) or await self.bot.is_admin(msg.author):
                     return False
@@ -423,7 +441,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             return False
 
         filteredMsg = msg.content
-        filters = await self.config.guild(msg.guild).filters()
+        filters = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
         filteredMsg = _filterWord(filters, filteredMsg)
 
         if msg.content == filteredMsg:
@@ -456,8 +474,8 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         blacklistedCmd = False
 
-        filteredWords = await self.config.guild(msg.guild).filters()
-        commandDenied = await self.config.guild(msg.guild).commandDenied()
+        filteredWords = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
+        commandDenied = await self.config.guild(msg.guild).get_attr(KEY_CMD_DENIED)()
 
         if newMsg:
             checkMsg = newMsg.content

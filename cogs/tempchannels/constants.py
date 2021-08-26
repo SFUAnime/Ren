@@ -39,7 +39,7 @@ MAX_CH_NAME = 25
 MAX_CH_POS = 100
 MAX_CH_TOPIC = 1024
 
-PERMS_READ_Y = PermissionOverwrite(read_messages=True, add_reactions=False)
+PERMS_READ_Y = PermissionOverwrite(read_messages=True, add_reactions=True)
 PERMS_READ_N = PermissionOverwrite(read_messages=False, add_reactions=False)
 PERMS_SEND_N = PermissionOverwrite(send_messages=False, add_reactions=False)
 

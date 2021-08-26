@@ -30,12 +30,31 @@ async def role_or_permissions(ctx, check, **perms):
 
 def role_or_mod_or_permissions(role=None, **perms):
     async def predicate(ctx):
-        server = ctx.guild
-        mod_roles = [r.name.lower() for r in await ctx.bot.get_mod_roles(server)]
-        admin_roles = [r.name.lower() for r in await ctx.bot.get_admin_roles(server)]
+        guild = ctx.guild
+        mod_roles = [r.name.lower() for r in await ctx.bot.get_mod_roles(guild)]
+        admin_roles = [r.name.lower() for r in await ctx.bot.get_admin_roles(guild)]
         roles = mod_roles + admin_roles
         if role:
             roles.append(role.lower())
+        return await role_or_permissions(ctx, lambda r: r.name.lower() in roles, **perms)
+
+    return commands.check(predicate)
+
+
+def roles_or_mod_or_permissions(allowed_roles: dict = {}, **perms):
+    async def predicate(ctx):
+        guild = ctx.guild
+        guild_roles = []
+        if guild:
+            server_roles = [
+                discord.utils.get(ctx.guild.roles, id=int(r))
+                for r in allowed_roles.get(guild.id, [])
+            ]
+            server_roles = [r.name.lower() for r in server_roles if r is not None]
+        # TODO debug logging print(server_roles)
+        mod_roles = [r.name.lower() for r in await ctx.bot.get_mod_roles(guild)]
+        admin_roles = [r.name.lower() for r in await ctx.bot.get_admin_roles(guild)]
+        roles = mod_roles + admin_roles + server_roles
         return await role_or_permissions(ctx, lambda r: r.name.lower() in roles, **perms)
 
     return commands.check(predicate)

@@ -183,11 +183,14 @@ def _extract(data: dict):
 
     classtimes = ""
     for time in schedule:
-        classtimes += "[{}] {} {} - {}, {} {}, {}\n".format(
+        if "startTime" not in time or "endTime" not in time:
+            sectionTime = "Unknown Time"
+        else:
+            sectionTime = "{} - {}".format(time["startTime"], time["endTime"])
+        classtimes += "[{}] {} {}, {} {}, {}\n".format(
             time["sectionCode"],
             time["days"],
-            time["startTime"],
-            time["endTime"],
+            sectionTime,
             time["buildingCode"],
             time["roomNumber"],
             time["campus"],

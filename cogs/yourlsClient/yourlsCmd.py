@@ -16,10 +16,12 @@ from yourls import YOURLSClientBase, YOURLSAPIMixin
 
 from .exceptions import *
 
+KEY_API = "api"
+KEY_SIGNATURE = "signature"
 
 BASE_GUILD = {
-    "api": None,
-    "signature": None,
+    KEY_API: None,
+    KEY_SIGNATURE: None,
 }
 DEFAULT_ERROR = "Something went wrong, please try again later, or check your console for details."
 
@@ -30,7 +32,42 @@ class YOURLSDeleteMixin(object):
         self._api_request(params=data)
 
 
-class YOURLSClient(YOURLSDeleteMixin, YOURLSAPIMixin, YOURLSClientBase):
+class YOURLSEditMixin(object):
+    def edit(self, shortUrl: str, newLongUrl: str):
+        """Edit the long URL for a particular short URL.
+
+        Parameters
+        ----------
+        short: str
+            The short URL for which you wish to update the long URL for.
+        newLongUrl: str
+            The new long URL you wish the short URL to point to.
+        """
+        data = dict(action="update", shorturl=shortUrl, url=newLongUrl)
+        self._api_request(params=data)
+
+    def rename(self, oldShortUrl: str, newShortUrl: str):
+        """Rename the short URL to a new one.
+
+        Parameters
+        ----------
+        short: str
+            The short URL for which you wish to update the long URL for.
+        newLongUrl: str
+            The new long URL you wish the short URL to point to.
+        """
+        urlStats = self.url_stats(oldShortUrl)
+        data = dict(
+            action="change_keyword",
+            oldshorturl=oldShortUrl,
+            newshorturl=newShortUrl,
+            url=urlStats.url,
+            title=urlStats.title,
+        )
+        self._api_request(params=data)
+
+
+class YOURLSClient(YOURLSDeleteMixin, YOURLSEditMixin, YOURLSAPIMixin, YOURLSClientBase):
     """YOURLS client with API delete support."""
 
 
@@ -204,6 +241,114 @@ class YOURLS(commands.Cog):
         else:
             await ctx.send(f"Short URL deleted.")
 
+    @yourlsBase.command(name="rename")
+    async def rename(self, ctx: Context, oldKeyword: str, newKeyword: str):
+        """Rename a keyword.
+
+        Parameters
+        ----------
+        oldKeyword: str
+            The original keyword.
+        newKeyword: str
+            The new keyword.
+        """
+        try:
+            shortener = await self.fetchYourlsClient(ctx.guild)
+            shortener.rename(oldKeyword, newKeyword)
+        except YOURLSNotConfigured as error:
+            await ctx.send(error)
+        except HTTPError as error:
+            self.logger.error(
+                "%s (%s) attempted to add a short URL for %s (%s), but something went "
+                "wrong. Please see the traceback for more info",
+                ctx.author.name,
+                ctx.author.id,
+                ctx.guild.name,
+                ctx.guild.id,
+                exc_info=True,
+            )
+            if error.response.status_code == 429:
+                await ctx.send("You're creating URLs too fast, please try again shortly.")
+            elif error.response.status_code == 409:
+                self.logger.debug(
+                    "%s (%s) attempted to rename %s for %s (%s), but the keyword %s was "
+                    "already in use.",
+                    ctx.author.name,
+                    ctx.author.id,
+                    oldKeyword,
+                    ctx.guild.name,
+                    ctx.guild.id,
+                    newKeyword,
+                    exc_info=True,
+                )
+                await ctx.send(
+                    f"Keyword {newKeyword} is already used, please choose another keyword!"
+                )
+            elif error.response.status_code == 404:
+                await ctx.send(
+                    "Could not find the keyword, please make sure it is correct and try again!"
+                )
+            else:
+                await ctx.send(DEFAULT_ERROR)
+        else:
+            self.logger.info(
+                "%s (%s) renamed short URL %s to %s in %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                oldKeyword,
+                newKeyword,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(f"Short URL renamed to {newKeyword}")
+
+    @yourlsBase.command(name="edit")
+    async def edit(self, ctx: Context, keyword: str, newLongUrl: str):
+        """Edit the long URL for a given keyword.
+
+        Parameters
+        ----------
+        keyword: str
+            The keyword to edit.
+        newLongUrl: str
+            The new URL that this keyword should point to.
+        """
+        try:
+            shortener = await self.fetchYourlsClient(ctx.guild)
+            shortener.edit(keyword, newLongUrl)
+        except YOURLSNotConfigured as error:
+            await ctx.send(error)
+        except HTTPError as error:
+            self.logger.error(
+                "%s (%s) attempted to edit %s for %s (%s), but something went "
+                "wrong. Please see the traceback for more info",
+                ctx.author.name,
+                ctx.author.id,
+                keyword,
+                ctx.guild.name,
+                ctx.guild.id,
+                exc_info=True,
+            )
+            if error.response.status_code == 429:
+                await ctx.send("You're creating URLs too fast, please try again shortly.")
+            elif error.response.status_code == 404:
+                await ctx.send(
+                    "Could not find the keyword, please make sure it is correct and try again!"
+                )
+            else:
+                await ctx.send(DEFAULT_ERROR)
+        else:
+            self.logger.info(
+                "%s (%s) changed short URL %s to point to %s in %s (%s)",
+                ctx.author.name,
+                ctx.author.id,
+                keyword,
+                newLongUrl,
+                ctx.guild.name,
+                ctx.guild.id,
+            )
+            await ctx.send(f"Short URL {keyword} now points to {newLongUrl}")
+
     @yourlsBase.command(name="info")
     async def urlInfo(self, ctx: Context, keyword: str):
         """Get keyword-specific information.
@@ -236,8 +381,13 @@ class YOURLS(commands.Cog):
         except RuntimeError as error:
             await ctx.send(error)
         except HTTPError as error:
-            self.logger.error(error, exc_info=True)
-            await ctx.send(DEFAULT_ERROR)
+            if error.response.status_code == 404:
+                await ctx.send(
+                    "Could not find the keyword, please make sure it is correct and try again!"
+                )
+            else:
+                self.logger.error(error, exc_info=True)
+                await ctx.send(DEFAULT_ERROR)
         except RequestException as error:
             self.logger.error(error)
             await ctx.send(DEFAULT_ERROR)
@@ -257,7 +407,7 @@ class YOURLS(commands.Cog):
         apiEndpoint: str
             The URL to the YOURLS API endpoint.
         """
-        await self.config.guild(ctx.guild).api.set(apiEndpoint)
+        await self.config.guild(ctx.guild).get_attr(KEY_API).set(apiEndpoint)
         self.logger.info(
             "%s (%s) modified the YOURLS API endpoint for %s (%s)",
             ctx.author.name,
@@ -276,7 +426,7 @@ class YOURLS(commands.Cog):
         signature: str
             The signature to access the YOURLS API endpoint.
         """
-        await self.config.guild(ctx.guild).signature.set(signature)
+        await self.config.guild(ctx.guild).get_attr(KEY_SIGNATURE).set(signature)
         self.logger.info(
             "%s (%s) modified the YOURLS signature for %s (%s)",
             ctx.author.name,
@@ -305,8 +455,8 @@ class YOURLS(commands.Cog):
         YOURLSNotConfigured
             Unable to create the YOURLS client because of missing information.
         """
-        api = await self.config.guild(guild).api()
-        sig = await self.config.guild(guild).signature()
+        api = await self.config.guild(guild).get_attr(KEY_API)()
+        sig = await self.config.guild(guild).get_attr(KEY_SIGNATURE)()
         if not (api and sig):
             raise YOURLSNotConfigured("Please configure the YOURLS API first.")
         return YOURLSClient(api, signature=sig)

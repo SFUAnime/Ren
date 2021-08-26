@@ -6,7 +6,7 @@
 from .config import Config
 from .constants import *
 from .exceptions import *
-from .rolecheck import role_or_mod_or_permissions
+from .rolecheck import roles_or_mod_or_permissions
 
 from copy import deepcopy
 import csv
@@ -16,6 +16,7 @@ import datetime
 import discord
 import difflib
 from threading import Lock
+from collections import defaultdict
 
 import asyncio
 import discord
@@ -126,9 +127,29 @@ def tag_decoder(obj):
 class Tags(commands.Cog):
     """The tag related commands."""
 
+    allowed_roles = defaultdict(lambda: set([]))
+
+    def addAllowedRole(self, guild: discord.Guild, role: discord.Role):
+        self.allowed_roles[guild.id].add(str(role.id))
+
+    def removeAllowedRole(self, guild: discord.Guild, role: discord.Role):
+        self.allowed_roles[guild.id].discard(str(role.id))
+
     def __init__(self, bot):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.logger = logging.getLogger("red.luicogs.Tags")
+        if self.logger.level == 0:
+            # Prevents the self.logger from being loaded again in case of module reload.
+            self.logger.setLevel(logging.INFO)
+            handler = logging.FileHandler(
+                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
+            )
+            handler.setFormatter(
+                logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
+            )
+            self.logger.addHandler(handler)
+
         # if tags.json doesnt exist, create it
         universal_path = join(str(saveFolder), "tags.json")
         if not isfile(universal_path):
@@ -144,12 +165,33 @@ class Tags(commands.Cog):
             loop=bot.loop,
             load_later=True,
         )
-        self.settings = Config(saveFolder, "settings-v2.json")
         self.configV3 = ConfigV3.get_conf(self, identifier=5842647, force_registration=True)
-        self.configV3.register_guild(**BASE)  # Register default (empty) settings.
+        self.configV3.register_guild(**BASE_GUILD)  # Register default (empty) settings.
         self.lock = Lock()
         tagGroup = self.get_commands()[0]
         self.tagCommands = tagGroup.all_commands.keys()
+        self.syncLoopCreated = False
+        if self.bot.guilds:
+            self.bot.loop.create_task(self.syncAllowedRoles())
+
+    @commands.Cog.listener("on_ready")
+    async def initialSyncLoop(self):
+        if not self.syncLoopCreated:
+            self.logger.info("Synchronizing allowed roles")
+            await self.syncAllowedRoles()
+            self.syncLoopCreated = True
+
+    async def syncAllowedRoles(self):
+        guildIds = await self.configV3.all_guilds()
+        for guildId in guildIds.keys():
+            guild = discord.utils.get(self.bot.guilds, id=guildId)
+            async with self.configV3.guild(guild).get_attr(KEY_TIERS)() as tiers:
+                self.allowed_roles[guildId] = set(tiers.keys())
+                self.logger.debug(
+                    "Roles allowed to create commands on %s: %s",
+                    guildId,
+                    ", ".join(map(str, tiers)),
+                )
 
     def get_database_location(self, message: discord.Message):
         """Get the database of tags.
@@ -203,7 +245,7 @@ class Tags(commands.Cog):
                 raise RuntimeError("Tag not found.")
             raise RuntimeError("Tag not found. Did you mean...\n" + "\n".join(possible_matches))
 
-    async def user_exceeds_tag_limit(self, server: discord.Guild, user: discord.Member):
+    async def userExceedsTagLimit(self, server: discord.Guild, user: discord.Member):
         """Check to see if user has too many tags.
 
         This check compares against all relevant roles that the member has, and will
@@ -247,7 +289,7 @@ class Tags(commands.Cog):
                 for tag in self.config.get(str(server.id), {}).values()
                 if tag.owner_id == str(user.id)
             )
-        tiers = await self.configV3.guild(server).tiers()
+        tiers = await self.configV3.guild(server).get_attr(KEY_TIERS)()
         # Convert role IDs to string since keys are stored as strings.
         roleIds = [str(r.id) for r in user.roles]
         relevantTiers = list(set(tiers.keys()) & set(roleIds))
@@ -258,9 +300,9 @@ class Tags(commands.Cog):
             return (True, limit)
         return (False, limit)
 
-    def checkAliasCog(self, name: str = None):
+    async def checkAliasCog(self, ctx: Context, name: str = None):
         aliasCog = None
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             aliasCog = self.bot.get_cog("Alias")
             if not aliasCog:
                 raise RuntimeError("Could not access the Alias cog. Please load it and try again.")
@@ -304,7 +346,6 @@ class Tags(commands.Cog):
         """
         mod_roles = await self.bot.get_mod_roles(guild)
         admin_roles = await self.bot.get_admin_roles(guild)
-        sensei = discord.utils.get(guild.roles, name=ALLOWED_ROLE)
 
         # Check and see if the user requesting the transfer is not the tag owner, or
         # is not a mod, or is not an admin.
@@ -385,19 +426,21 @@ class Tags(commands.Cog):
             await ctx.send("Please set a value greater than 0.")
             return
 
-        async with self.configV3.guild(ctx.guild).tiers() as tiers:
+        async with self.configV3.guild(ctx.guild).get_attr(KEY_TIERS)() as tiers:
             if num_tags == 0:
                 if str(role.id) in tiers.keys():
                     del tiers[str(role.id)]
+                    self.removeAllowedRole(ctx.guild, role)
                 await ctx.send(f"{role.name} will not be allowed to add tags")
             else:
                 tiers[role.id] = num_tags
+                self.addAllowedRole(ctx.guild, role)
                 await ctx.send(f"The tag limit for {role.name} was set to {num_tags}.")
 
     @settings.command(name="tiers")
     async def tiers(self, ctx: Context):
         """Show the tiers and their respective max tags."""
-        tiers = await self.configV3.guild(ctx.guild).tiers()
+        tiers = await self.configV3.guild(ctx.guild).get_attr(KEY_TIERS)()
         validTiers = []
         msg = ""
         for roleId, maxTags in tiers.items():
@@ -454,7 +497,7 @@ class Tags(commands.Cog):
 
     @tag.command(name="add", aliases=["create"])
     @commands.guild_only()
-    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
+    @roles_or_mod_or_permissions(allowed_roles=allowed_roles, manage_messages=True)
     async def create(self, ctx: Context, name: str, *, content: str):
         """Creates a new tag owned by you.
         If you create a tag via private message then the tag is a generic
@@ -462,12 +505,12 @@ class Tags(commands.Cog):
         create can only be accessed in the server that it was created in.
         """
         try:
-            aliasCog = self.checkAliasCog(name)
+            aliasCog = await self.checkAliasCog(ctx, name)
             self.checkValidCommandName(name)
         except RuntimeError as error:
             return await ctx.send(error)
 
-        exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
+        exceedsLimit, limit = await self.userExceedsTagLimit(ctx.guild, ctx.author)
         if exceedsLimit:
             await ctx.send(
                 "You have too many commands. The maximum number of commands "
@@ -499,7 +542,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send('Tag "{}" successfully created.'.format(name))
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -509,8 +552,13 @@ class Tags(commands.Cog):
             await ctx.send("Tag " + str(error))
         elif isinstance(error, commands.CheckFailure):
             pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
-            await ctx.send("Something went wrong, please check the logs for details.")
+            await ctx.send(
+                "Something went wrong, please try again or contact the bot owner(s) "
+                "if this continues."
+            )
             raise error
 
     @tag.command(name="generic")
@@ -550,7 +598,15 @@ class Tags(commands.Cog):
     async def generic_error(self, ctx: Context, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Tag " + str(error))
+        elif isinstance(error, commands.CheckFailure):
+            pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
+            await ctx.send(
+                "Something went wrong, please try again or contact the bot owner(s) "
+                "if this continues."
+            )
             raise error
 
     @tag.command(name="alias")
@@ -606,7 +662,7 @@ class Tags(commands.Cog):
 
     @tag.command(ignore_extra=False)
     @commands.guild_only()
-    @role_or_mod_or_permissions(role=ALLOWED_ROLE, administrator=True)
+    @roles_or_mod_or_permissions(allowed_roles=allowed_roles, administrator=True)
     async def make(self, ctx):
         """Interactive makes a tag for you.
         This walks you through the process of creating a tag with
@@ -614,11 +670,11 @@ class Tags(commands.Cog):
         create command.
         """
         try:
-            aliasCog = self.checkAliasCog()
+            aliasCog = await self.checkAliasCog(ctx)
         except RuntimeError as error:
             return await ctx.send(error)
 
-        exceedsLimit, limit = await self.user_exceeds_tag_limit(ctx.guild, ctx.author)
+        exceedsLimit, limit = await self.userExceedsTagLimit(ctx.guild, ctx.author)
         if exceedsLimit:
             await ctx.send(
                 "You have too many commands. The maximum number of commands "
@@ -667,7 +723,9 @@ class Tags(commands.Cog):
             return
 
         # Alias is already loaded
-        if self.settings.get(KEY_USE_ALIAS, False) and aliasCog.is_command(lookup):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)() and aliasCog.is_command(
+            lookup
+        ):
             await ctx.send(
                 "This name cannot be used because there is already "
                 "an internal command with this name."
@@ -699,7 +757,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send("Cool. I've made your {0.content} tag.".format(name))
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, lookup, "tag {}".format(lookup))
 
@@ -709,7 +767,10 @@ class Tags(commands.Cog):
             await ctx.send("Please call just {0.prefix}tag make".format(ctx))
         elif isinstance(error, commands.CheckFailure):
             pass
+        elif isinstance(error, commands.UnexpectedQuoteError):
+            await ctx.send("Please do not use quotes in the tag name!")
         else:
+            await ctx.send("Something went wrong, please check the logs for details.")
             raise error
 
     def top_three_tags(self, db):
@@ -754,7 +815,7 @@ class Tags(commands.Cog):
         await ctx.send(embed=e)
 
     @tag.command()
-    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
+    @roles_or_mod_or_permissions(allowed_roles=allowed_roles, manage_messages=True)
     async def edit(self, ctx: Context, name: str, *, content: str):
         """Modifies an existing tag that you own.
         This command completely replaces the original text. If you edit
@@ -786,7 +847,7 @@ class Tags(commands.Cog):
 
     @tag.command(name="transfer")
     @commands.guild_only()
-    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
+    @roles_or_mod_or_permissions(allowed_roles=allowed_roles, manage_messages=True)
     async def transfer(self, ctx: Context, tag_name, user: discord.Member):
         """Transfer your tag to another user.
 
@@ -815,9 +876,13 @@ class Tags(commands.Cog):
         # Check if the user to transfer to has permissions to create tags
         mod_roles = await self.bot.get_mod_roles(ctx.guild)
         admin_roles = await self.bot.get_admin_roles(ctx.guild)
-        sensei = discord.utils.get(ctx.message.guild.roles, name=ALLOWED_ROLE)
+        allowed_server_roles = [
+            discord.utils.get(ctx.guild.roles, id=int(r))
+            for r in self.allowed_roles.get(ctx.guild.id, [])
+        ]
+
         if (
-            sensei not in user.roles
+            not list(set(allowed_server_roles) & set(user.roles))
             and not list(set(admin_roles) & set(user.roles))
             and not list(set(mod_roles) & set(user.roles))
             and not await self.bot.is_owner(user)
@@ -826,7 +891,7 @@ class Tags(commands.Cog):
             return
 
         # Check if the user to transfer to has exceeded the tag limit
-        exceedsLimit, _ = await self.user_exceeds_tag_limit(ctx.guild, user)
+        exceedsLimit, _ = await self.userExceedsTagLimit(ctx.guild, user)
         if exceedsLimit:
             await ctx.send(
                 "The person you are trying to transfer a tag to is not allowed to have "
@@ -916,14 +981,14 @@ class Tags(commands.Cog):
         del db[oldName]
 
         await self.config.put(location, db)
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.add_alias(ctx, newName, "tag {}".format(newName))
             await aliasCog.del_alias(ctx, oldName)
         await ctx.send('Tag "{}" successfully renamed to "{}".'.format(oldName, newName))
 
     @tag.command(name="delete", aliases=["del", "remove", "rm"])
-    @role_or_mod_or_permissions(role=ALLOWED_ROLE, manage_messages=True)
+    @roles_or_mod_or_permissions(allowed_roles=allowed_roles, manage_messages=True)
     async def remove(self, ctx: Context, *, name: str):
         """Removes a tag that you own.
         The tag owner can always delete their own tags. If someone requests
@@ -933,7 +998,7 @@ class Tags(commands.Cog):
         Deleting a tag will delete all of its aliases as well.
         """
         try:
-            aliasCog = self.checkAliasCog()
+            aliasCog = await self.checkAliasCog(ctx)
         except RuntimeError as error:
             return await ctx.send(error)
 
@@ -984,7 +1049,7 @@ class Tags(commands.Cog):
         await self.config.put(location, db)
         await ctx.send(msg)
 
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             # Alias is already loaded.
             await aliasCog.del_alias(ctx, lookup)
 
@@ -1009,6 +1074,7 @@ class Tags(commands.Cog):
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send("Missing tag name to get info of.")
         else:
+            await ctx.send("Something went wrong, please check the logs for details.")
             raise error
 
     @tag.command(name="raw")
@@ -1025,20 +1091,16 @@ class Tags(commands.Cog):
             await ctx.send(e)
             return
 
-        transformations = {re.escape(c): "\\" + c for c in ("*", "`", "_", "~", "\\", "<")}
-
-        def replace(obj):
-            return transformations.get(re.escape(obj.group(0)), "")
-
-        pattern = re.compile("|".join(transformations.keys()))
-        await ctx.send(pattern.sub(replace, tag.content))
+        await ctx.send(discord.utils.escape_markdown(tag.content))
 
     @tag.command(name="list")
     async def _list(self, ctx: Context, *, member: discord.Member = None):
         """Lists all the tags that belong to you or someone else.
-        This includes the generic tags as well. If this is done in a private
-        message then you will only get the generic tags you own and not the
-        server specific tags.
+
+        Parameters
+        ----------
+        member: discord.Member (optional)
+            Another guild member that you wish to look up tags for.
         """
         owner = ctx.message.author if member is None else member
         server = ctx.message.guild
@@ -1057,29 +1119,13 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            try:
-                self.dm = self.settings.get("dm", False)
-                if self.dm:
-                    await ctx.send("Check your DMs.")
-                    msg = "Here are a list of tags for {}:\n```".format(ctx.message.author.mention)
-                    for item in tags:
-                        if len(msg) + len(item) > 1990:
-                            msg += "```"
-                            await ctx.author.send(msg)
-                            msg = "```"
-                        msg += item + "\n"
-                    msg += "```"
-                    await ctx.author.send(msg)
-                else:
-                    p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
-                    p.embed.colour = 0x738BD7  # blurple
-                    p.embed.set_author(
-                        name=owner.display_name,
-                        icon_url=owner.avatar_url or owner.default_avatar_url,
-                    )
-                    await p.paginate()
-            except Exception as e:
-                await ctx.send(e)
+            p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
+            p.embed.colour = COLOUR_BLURPLE
+            p.embed.set_author(
+                name=owner.display_name,
+                icon_url=owner.avatar_url or owner.default_avatar_url,
+            )
+            await p.paginate()
         else:
             await ctx.send("{0.name} has no tags.".format(owner))
 
@@ -1092,25 +1138,9 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            try:
-                self.dm = self.settings.get("dm", False)
-                if self.dm:
-                    await ctx.send("Check your DMs.")
-                    msg = "Here are a list of tags for {}:\n```".format(ctx.message.guild.name)
-                    for item in tags:
-                        if len(msg) + len(item) > 1990:
-                            msg += "```"
-                            await ctx.author.send(msg)
-                            msg = "```"
-                        msg += item + "\n"
-                    msg += "```"
-                    await ctx.author.send(msg)
-                else:
-                    p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
-                    p.embed.colour = 0x738BD7  # blurple
-                    await p.paginate()
-            except Exception as e:
-                await ctx.send(e)
+            p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
+            p.embed.colour = COLOUR_BLURPLE
+            await p.paginate()
         else:
             await ctx.send("This server has no server-specific tags.")
 
@@ -1203,7 +1233,7 @@ class Tags(commands.Cog):
         if results:
             try:
                 p = Pages(ctx=ctx, entries=results, per_page=15, show_entry_count=True)
-                p.embed.colour = 0x738BD7  # blurple
+                p.embed.colour = COLOUR_BLURPLE
                 await p.paginate()
             except Exception as e:
                 await ctx.send(e)
@@ -1220,7 +1250,7 @@ class Tags(commands.Cog):
     @settings.command(name="togglealias")
     async def togglealias(self, ctx: Context):
         """Toggle creating aliases for tags."""
-        if self.settings.get(KEY_USE_ALIAS, False):
+        if await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS)():
             toAlias = False
             await ctx.send(
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
@@ -1232,25 +1262,7 @@ class Tags(commands.Cog):
                 "\N{WHITE HEAVY CHECK MARK} **Tags - Aliasing**: Tags will "
                 "be created **with an alias**."
             )
-        await self.settings.put(KEY_USE_ALIAS, toAlias)
-
-    @settings.command(name="toggledm")
-    async def toggledm(self, ctx: Context):
-        """Toggle sending DM for list of tags."""
-        self.dm = self.settings.get("dm", False)
-        if self.dm:
-            self.dm = False
-            await self.settings.put("dm", False)
-            await ctx.send(
-                "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will "
-                "be sent **in the channel they were requested**."
-            )
-        else:
-            self.dm = True
-            await self.settings.put("dm", True)
-            await ctx.send(
-                "\N{WHITE HEAVY CHECK MARK} **Tags - DM**: Tag lists will " "be sent **in a DM**."
-            )
+        await self.configV3.guild(ctx.guild).get_attr(KEY_USE_ALIAS).set(toAlias)
 
     @tag.command(name="runtests")
     @checks.is_owner()
