@@ -19,11 +19,9 @@ AH_CHANNEL = "after-hours"
 KEY_CTX_CHANNEL_ID = "channelId"
 KEY_CHANNEL_IDS = "channelIds"
 KEY_ROLE_ID = "roleId"
-DEFAULT_GUILD = {KEY_CTX_CHANNEL_ID: None, KEY_CHANNEL_IDS: {}, KEY_ROLE_ID: None}
 STARBOARD = "highlights"
 DELETE_TIME = 32 * 60 * 60
 SLEEP_TIME = 60 * 60
-
 
 # Logging
 KEY_LAST_MSG_TIMESTAMPS = "lastMsgTimestamps"
@@ -133,7 +131,9 @@ class AfterHours(commands.Cog):
             autoPurgeConfig: Group = guildConfig.get_attr(KEY_AUTO_PURGE)
 
             if not forced and await autoPurgeConfig.get_attr(KEY_BACKGROUND_LOOP)() is False:
-                self.logger.debug("Background execution of auto-purged is disabled for guild %s", guild.id)
+                self.logger.debug(
+                    "Background execution of auto-purged is disabled for guild %s", guild.id
+                )
                 continue
 
             # checking if the AfterHours role exists in this guild
