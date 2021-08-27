@@ -158,7 +158,7 @@ class AfterHours(commands.Cog):
                 minutes,
                 seconds,
             ) = await self.getAutoPurgeInactiveDuration(guild)
-            
+
             inactiveDurationTimeDelta = timedelta(
                 days=years * 365 + months * 30 + weeks * 7 + days,
                 hours=hours,
