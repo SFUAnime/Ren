@@ -241,6 +241,34 @@ class AfterHours(commands.Cog):
                 await self.makeWordFilterChanges(ctx, channel, remove=True)
                 del channelIds[str(channel.id)]
 
+    async def saveMessageTimestampOf(self, message):
+        guildConfig = self.config.guild(message.guild)
+
+        async with guildConfig.get_attr(KEY_CHANNEL_IDS)() as channels:
+            if str(message.channel.id) not in channels:
+                return
+
+            async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                lastMsgTimestamps[message.author.id] = message.created_at.timestamp()
+
+    @commands.Cog.listener("on_message")
+    async def handleMessage(self, message: discord.Message):
+        """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # ignore bot messages
+        if message.author.bot:
+            return
+
+        self.saveMessageTimestampOf(message)
+
+    @commands.Cog.listener("on_message_edit")
+    async def handleMessageEdit(self, before: discord.Message, after: discord.Message):
+        """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # ignore bot messages
+        if after.author.bot:
+            return
+
+        self.saveMessageTimestampOf(after)
+
     @commands.group(name="afterhours")
     @commands.guild_only()
     async def afterHours(self, ctx: Context):
