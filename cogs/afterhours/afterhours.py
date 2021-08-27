@@ -27,6 +27,7 @@ KEY_LAST_MSG_TIMESTAMPS = "lastMsgTimestamps"
 
 # Auto-purging
 KEY_AUTO_PURGE = "autoPurge"
+KEY_BACKGROUND_LOOP = "backgroundLoop"
 KEY_INACTIVE_DURATION = "inactiveDuration"
 KEY_INACTIVE_DURATION_YEARS = "inactiveDurationYears"
 KEY_INACTIVE_DURATION_MONTHS = "inactiveDurationMonths"
@@ -43,6 +44,7 @@ DEFAULT_GUILD = {
     KEY_ROLE_ID: None,
     KEY_LAST_MSG_TIMESTAMPS: {},
     KEY_AUTO_PURGE: {
+        KEY_BACKGROUND_LOOP: True,
         KEY_INACTIVE_DURATION: {
             KEY_INACTIVE_DURATION_YEARS: 0,
             KEY_INACTIVE_DURATION_MONTHS: 0,
@@ -334,7 +336,8 @@ class AfterHours(commands.Cog):
     async def afterHoursAutoPurge(self, ctx: Context):
         """Manage auto-purge
 
-        Auto-purge is executed at the same frequency as the AfterHours background loop.
+        Auto-purge is by default executed at the same frequency as the AfterHours background loop.
+        Refer to the subcommands section to see the subcommand to disable this behavior.
         """
 
     @checks.mod()
@@ -342,8 +345,24 @@ class AfterHours(commands.Cog):
     async def afterHoursAutoPurgeNow(self, ctx: Context):
         """Execute auto-purge immediately"""
         await ctx.send("Purging...")
-        await self.doAutoPurge()
+        await self.doAutoPurge(forced=True)
         await ctx.send("Purge completed!")
+
+    @checks.admin()
+    @afterHoursAutoPurge.command(name="togglebackground")
+    async def afterHoursAutoPurgeToggleBackgroundLoop(self, ctx: Context):
+        """Toggle auto-purge background loop
+        If it is disabled, the AfterHours background loop will not execute auto-purge.
+        """
+        guildConfig = self.config.guild(ctx.guild)
+        autoPurgeConfig = guildConfig.get_attr(KEY_AUTO_PURGE)
+        bgLoopConfig = autoPurgeConfig.get_attr(KEY_BACKGROUND_LOOP)
+        if await bgLoopConfig() is True:
+            await bgLoopConfig.set(False)
+            await ctx.send("Disabled auto-purge background loop")
+        else:
+            await bgLoopConfig.set(True)
+            await ctx.send("Enabled auto-purge background loop")
 
     @checks.admin()
     @afterHoursAutoPurge.command(name="inactiveduration")
