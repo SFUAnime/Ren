@@ -21,6 +21,7 @@ from .constants import (
     KEY_FILTERS,
     KEY_CMD_DENIED,
     KEY_TOGGLE_MOD,
+    KEY_USAGE_STATS,
 )
 
 
@@ -88,6 +89,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
+            # adds word to dictionary of tracked usage words
+            filterStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+            filterStats.update({word: 0})
+            await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)().set(filterStats)
+
         else:
             await user.send(
                 "`Word Filter:` The word `{0}` is already in the filter "
@@ -121,6 +127,9 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
+            filterStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+            del filterStats[word]
+            await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)().set(filterStats)
 
     @regex.command(name="list", aliases=["ls"])
     @commands.guild_only()
