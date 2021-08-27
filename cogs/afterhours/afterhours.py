@@ -328,3 +328,228 @@ class AfterHours(commands.Cog):
         """Set the channel for notifications."""
         await self.config.guild(ctx.guild).get_attr(KEY_CTX_CHANNEL_ID).set(ctx.channel.id)
         await ctx.send("Using this channel to construct context later!")
+
+    @checks.mod()
+    @afterHours.group(name="autopurge")
+    async def afterHoursAutoPurge(self, ctx: Context):
+        """Manage auto-purge
+
+        Auto-purge is executed at the same frequency as the AfterHours background loop.
+        """
+
+    @checks.mod()
+    @afterHoursAutoPurge.command(name="now")
+    async def afterHoursAutoPurgeNow(self, ctx: Context):
+        """Execute auto-purge immediately"""
+        await ctx.send("Purging...")
+        await self.doAutoPurge()
+        await ctx.send("Purge completed!")
+
+    @checks.admin()
+    @afterHoursAutoPurge.command(name="inactiveduration")
+    async def afterHoursAutoPurgeInactiveDuration(self, ctx: Context, duration: Optional[str]):
+        """View or set the duration of inactivity for auto-purge.
+
+        Parameters
+        ----------
+        duration: str
+            The duration string, containing none, some or all of the following non-negative numbers (max. 5 digits) **in order**:
+            - Num. of years (365-day equivalent), optionally followed by spaces, followed by `y`/`yr[s]`/`year[s]`.
+            - Num. of months (30-day equivalent), optionally followed by spaces, followed by `mo[s]`/`month[s]`.
+            - Num. of weeks, optionally followed by spaces, followed by `w`/`wk[s]`/`week[s]`.
+            - Num. of days, optionally followed by spaces, followed by `d`/`day[s]`.
+            - Num. of hours, optionally followed by spaces, followed by `h`/`hr[s]`/`hour[s]`.
+            - Num. of minutes, optionally followed by spaces, followed by `m`/`min[s]`/`minute[s]`.
+            - Num. of seconds, optionally followed by spaces, followed by `s`/`sec[s]`/`second[s]`.
+            Set this to 0 or a duration equivalent to 0 to disable auto-purging based on inactive duration.
+            Leave blank to check the current settings.
+            Duration containing spaces must be wrapped in double-quotes.
+        """
+
+        if duration:
+            if duration == "0":
+                await ctx.send("Disabled auto-purge on inactive duration.")
+                return
+            else:
+                match = re.match(
+                    r"^\s*"
+                    r"(?:(\d{1,5})\s*y(?:(?:ea)?r(?:s)?)?)?"  # years
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*mo(?:nth)?(?:s)?)?"  # months
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*w(?:(?:ee)?k(?:s)?)?)?"  # weeks
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*d(?:ay(?:s)?)?)?"  # days
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*h(?:(?:ou)?r(?:s)?)?)?"  # hours
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*m(?:in(?:ute)?(?:s)?)?)?"  # minutes
+                    r"\s*"
+                    r"(?:(\d{1,5})\s*s(?:ec(?:ond)?(?:s)?)?)?"  # seconds
+                    r"\s*$",
+                    duration,
+                    re.IGNORECASE,
+                )
+                if match is None:
+                    await ctx.send("Invalid duration.")
+                    return
+                else:
+                    groups = match.groups()
+                    years, months, weeks, days, hours, minutes, seconds = [
+                        int(x) if x else 0 for x in groups
+                    ]
+
+                    await self.setAutoPurgeInactiveDuration(
+                        ctx.guild, years, months, weeks, days, hours, minutes, seconds
+                    )
+
+                    if years == months == weeks == days == hours == minutes == seconds == 0:
+                        await ctx.send("Disabled auto-purge on inactive duration.")
+                    else:
+                        await ctx.send(
+                            f"Set the inactive duration for auto-purge to {AfterHours.strAutoPurgeInactiveDuration(years, months, weeks, days, hours, minutes, seconds)}."
+                        )
+        else:
+            (
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+            ) = await self.getAutoPurgeInactiveDuration(ctx.guild)
+            if years == months == weeks == days == hours == minutes == seconds == 0:
+                await ctx.send("The inactive duration for auto-purge is currently not set.")
+            else:
+                await ctx.send(
+                    f"The inactive duration for auto-purge is currently set to {AfterHours.strAutoPurgeInactiveDuration(*await self.getAutoPurgeInactiveDuration(ctx.guild))}."
+                )
+
+    async def getAutoPurgeInactiveDuration(self, guild: discord.Guild) -> List[int]:
+        """Get the inactive duration for auto-purge.
+
+        Returns
+        -------
+        Returns a list of the values for each time unit, in the following order:
+        - Number of years.
+        - Number of months.
+        - Number of weeks.
+        - Number of days.
+        - Number of hours.
+        - Number of minutes.
+        - Number of seconds.
+        """
+        inactiveDurationConfig = await self.config.guild(guild).get_raw(
+            KEY_AUTO_PURGE, KEY_INACTIVE_DURATION
+        )
+        return [
+            int(x) if x else 0
+            for x in [
+                inactiveDurationConfig[key]
+                for key in [
+                    KEY_INACTIVE_DURATION_YEARS,
+                    KEY_INACTIVE_DURATION_MONTHS,
+                    KEY_INACTIVE_DURATION_WEEKS,
+                    KEY_INACTIVE_DURATION_DAYS,
+                    KEY_INACTIVE_DURATION_HOURS,
+                    KEY_INACTIVE_DURATION_MINUTES,
+                    KEY_INACTIVE_DURATION_SECONDS,
+                ]
+            ]
+        ]
+
+    async def setAutoPurgeInactiveDuration(
+        self,
+        guild: discord.Guild,
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+    ) -> None:
+        """Set the inactive duration for auto-purge.
+
+        Parameters
+        ----------
+        guild: discord.Guild
+            The guild to set the inactive duration for.
+        years: int
+            The number of years.
+        months: int
+            The number of months.
+        weeks: int
+            The number of weeks.
+        days: int
+            The number of days.
+        hours: int
+            The number of hours.
+        minutes: int
+            The number of minutes.
+        seconds: int
+            The number of seconds.
+        """
+        async with self.config.guild(guild).get_attr(KEY_AUTO_PURGE).get_attr(
+            KEY_INACTIVE_DURATION
+        )() as inactiveDurationConfig:
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_YEARS] = years
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_MONTHS] = months
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_WEEKS] = weeks
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_DAYS] = days
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_HOURS] = hours
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_MINUTES] = minutes
+            inactiveDurationConfig[KEY_INACTIVE_DURATION_SECONDS] = seconds
+
+    @staticmethod
+    def strAutoPurgeInactiveDuration(
+        years: int = 0,
+        months: int = 0,
+        weeks: int = 0,
+        days: int = 0,
+        hours: int = 0,
+        minutes: int = 0,
+        seconds: int = 0,
+    ) -> str:
+        """Get the inactive duration for auto-purge as a string.
+        Parameters
+        ----------
+        years: int
+            The number of years.
+        months: int
+            The number of months.
+        weeks: int
+            The number of weeks.
+        days: int
+            The number of days.
+        hours: int
+            The number of hours.
+        minutes: int
+            The number of minutes.
+        seconds: int
+            The number of seconds.
+        Returns
+        -------
+        Returns a string representation of the inactive duration.
+        """
+        return ", ".join(
+            filter(
+                lambda s: len(s) > 0,
+                [
+                    f"{years}" + " year{}".format("s" if years > 1 else "") if years > 0 else "",
+                    f"{months}" + " month{}".format("s" if months > 1 else "")
+                    if months > 0
+                    else "",
+                    f"{weeks}" + " week{}".format("s" if weeks > 1 else "") if weeks > 0 else "",
+                    f"{days}" + " day{}".format("s" if days > 1 else "") if days > 0 else "",
+                    f"{hours}" + " hour{}".format("s" if hours > 1 else "") if hours > 0 else "",
+                    f"{minutes}" + " minute{}".format("s" if minutes > 1 else "")
+                    if minutes > 0
+                    else "",
+                    f"{seconds}" + " second{}".format("s" if seconds > 1 else "")
+                    if seconds > 0
+                    else "",
+                ],
+            )
+        )
