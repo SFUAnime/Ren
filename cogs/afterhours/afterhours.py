@@ -91,31 +91,122 @@ class AfterHours(commands.Cog):
         self.__unload()
 
     async def backgroundLoop(self):
-        """Background loop to garbage collect"""
+        """Background loop to garbage collect and purge"""
         while True:
             self.logger.debug("Checking to see if we need to garbage collect")
-            for guild in self.bot.guilds:
-                self.logger.debug("Checking guild %s", guild.id)
-                async with self.config.guild(guild).get_attr(KEY_CHANNEL_IDS)() as channels:
-                    staleIds = []
-                    for channelId, data in channels.items():
-                        self.logger.debug("Checking channel ID %s", channelId)
-                        channel = discord.utils.get(guild.channels, id=int(channelId))
-                        if not channel:
-                            self.logger.error("Channel ID %s doesn't exist!", channelId)
-                            staleIds.append(channelId)
-                            continue
-                        creationTime = datetime.fromtimestamp(data["time"])
-                        self.logger.debug("Time difference = %s", datetime.now() - creationTime)
-                        if datetime.now() - creationTime > timedelta(seconds=DELETE_TIME):
-                            self.logger.info("Deleting channel %s (%s)", channel.name, channel.id)
-                            await channel.delete(reason="AfterHours purge")
-                            # Don't delete the ID here, this will be taken care of in
-                            # the delete listener
-                    for channelId in staleIds:
-                        self.logger.info("Purging stale channel ID %s", channelId)
-                        del channels[channelId]
+            await self.checkGarbageCollect()
+
+            self.logger.debug("Executing auto-purge")
+            await self.doAutoPurge()
+
             await asyncio.sleep(SLEEP_TIME)
+
+    async def checkGarbageCollect(self):
+        for guild in self.bot.guilds:
+            self.logger.debug("Checking guild %s", guild.id)
+            async with self.config.guild(guild).get_attr(KEY_CHANNEL_IDS)() as channels:
+                staleIds = []
+                for channelId, data in channels.items():
+                    self.logger.debug("Checking channel ID %s", channelId)
+                    channel = discord.utils.get(guild.channels, id=int(channelId))
+                    if not channel:
+                        self.logger.error("Channel ID %s doesn't exist!", channelId)
+                        staleIds.append(channelId)
+                        continue
+                    creationTime = datetime.fromtimestamp(data["time"])
+                    self.logger.debug("Time difference = %s", datetime.now() - creationTime)
+                    if datetime.now() - creationTime > timedelta(seconds=DELETE_TIME):
+                        self.logger.info("Deleting channel %s (%s)", channel.name, channel.id)
+                        await channel.delete(reason="AfterHours purge")
+                        # Don't delete the ID here, this will be taken care of in
+                        # the delete listener
+                for channelId in staleIds:
+                    self.logger.info("Purging stale channel ID %s", channelId)
+                    del channels[channelId]
+
+    async def doAutoPurge(self, forced=False):
+        for guild in self.bot.guilds:
+            guildConfig: Group = self.config.guild(guild)
+            autoPurgeConfig: Group = guildConfig.get_attr(KEY_AUTO_PURGE)
+
+            if not forced and await autoPurgeConfig.get_attr(KEY_BACKGROUND_LOOP)() is False:
+                self.logger.debug("Background execution of auto-purged is disabled for guild %s", guild.id)
+                continue
+
+            # checking if the AfterHours role exists in this guild
+            ahRoleId: int = await guildConfig.get_attr(KEY_ROLE_ID)()
+            if not ahRoleId:
+                self.logger.debug("No AfterHours role ID set for guild %s", guild.id)
+            else:
+                ahRole: discord.Role = discord.utils.get(guild.roles, id=int(ahRoleId))
+                if not ahRole:
+                    self.logger.debug("AfterHours role does not exist in guild %s!", guild.id)
+
+            # a list of members to be purged
+            inactiveMembers: List[discord.Member] = []
+
+            # check for inactive members based on a set inactive duration
+            inactiveDurationTimeDelta = timedelta(0)
+            inactiveDuration: Group = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
+            years, months, weeks, days, hours, minutes, seconds = [
+                await inactiveDuration.get_attr(key)()
+                for key in [
+                    KEY_INACTIVE_DURATION_YEARS,
+                    KEY_INACTIVE_DURATION_MONTHS,
+                    KEY_INACTIVE_DURATION_WEEKS,
+                    KEY_INACTIVE_DURATION_DAYS,
+                    KEY_INACTIVE_DURATION_HOURS,
+                    KEY_INACTIVE_DURATION_MINUTES,
+                    KEY_INACTIVE_DURATION_SECONDS,
+                ]
+            ]
+            inactiveDurationTimeDelta = timedelta(
+                days=years * 365 + months * 30 + weeks * 7 + days,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+            )
+
+            if not inactiveDurationTimeDelta or inactiveDurationTimeDelta < timedelta(seconds=1):
+                self.logger.debug(
+                    "Auto-purge based on inactive duration is not enabled for guild %s", guild.id
+                )
+            else:
+                self.logger.debug(
+                    "Auto-purge based on inactive duration is enabled for guild %s (inactive duration %s)",
+                    guild.id,
+                    inactiveDurationTimeDelta,
+                )
+
+                async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                    for member in ahRole.members:
+                        if not member.bot:
+                            memberId = str(member.id)
+                            if memberId in lastMsgTimestamps:
+
+                                if (
+                                    datetime.utcnow()
+                                    - datetime.fromtimestamp(lastMsgTimestamps[memberId])
+                                    > inactiveDurationTimeDelta
+                                ):
+                                    inactiveMembers.append(member)
+                            else:
+                                self.logger.debug(
+                                    "User %s has no AfterHours message timestamp recorded, therefore assuming the last message timestamp is right now",
+                                    memberId,
+                                )
+                                lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
+
+            # purge inactive members
+            async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                for inactiveMember in inactiveMembers:
+                    await inactiveMember.remove_roles(ahRole, reason="AfterHours auto-purge")
+                    self.logger.info(
+                        "Removed role %s from user %s due to inactivity", ahRole.name, memberId
+                    )
+                    # clean up dict entry for this member
+                    memberId = str(inactiveMember.id)
+                    del lastMsgTimestamps[memberId]
 
     async def getContext(self, channel: discord.TextChannel):
         """Get the Context object from a text channel.
