@@ -2,10 +2,13 @@
 
 A special cog to handle the special cases for this channel.
 """
+import re
 import logging
-from datetime import datetime, timedelta
 import asyncio
+from typing import List, Optional
+from datetime import datetime, timedelta
 import discord
+from redbot.core.config import Group
 from discord.ext import commands
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
