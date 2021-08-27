@@ -149,20 +149,16 @@ class AfterHours(commands.Cog):
             inactiveMembers: List[discord.Member] = []
 
             # check for inactive members based on a set inactive duration
-            inactiveDurationTimeDelta = timedelta(0)
-            inactiveDuration: Group = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
-            years, months, weeks, days, hours, minutes, seconds = [
-                await inactiveDuration.get_attr(key)()
-                for key in [
-                    KEY_INACTIVE_DURATION_YEARS,
-                    KEY_INACTIVE_DURATION_MONTHS,
-                    KEY_INACTIVE_DURATION_WEEKS,
-                    KEY_INACTIVE_DURATION_DAYS,
-                    KEY_INACTIVE_DURATION_HOURS,
-                    KEY_INACTIVE_DURATION_MINUTES,
-                    KEY_INACTIVE_DURATION_SECONDS,
-                ]
-            ]
+            (
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+            ) = await self.getAutoPurgeInactiveDuration(guild)
+            
             inactiveDurationTimeDelta = timedelta(
                 days=years * 365 + months * 30 + weeks * 7 + days,
                 hours=hours,
