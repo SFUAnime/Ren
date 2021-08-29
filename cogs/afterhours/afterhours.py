@@ -320,7 +320,7 @@ class AfterHours(commands.Cog):
         if message.author.bot:
             return
 
-        self.saveMessageTimestamp(message, message.created_at.timestamp())
+        await self.saveMessageTimestamp(message, message.created_at.timestamp())
 
     @commands.Cog.listener("on_message_edit")
     async def handleMessageEdit(self, before: discord.Message, after: discord.Message):
@@ -329,7 +329,7 @@ class AfterHours(commands.Cog):
         if after.author.bot:
             return
 
-        self.saveMessageTimestamp(after, after.edited_at.timestamp())
+        await self.saveMessageTimestamp(after, after.edited_at.timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()
