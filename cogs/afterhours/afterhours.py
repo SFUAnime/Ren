@@ -571,9 +571,9 @@ class AfterHours(commands.Cog):
         guild: discord.Guild
             The guild to set the inactive duration for.
         years: int
-            The number of years.
+            The number of years (365-day equivalent).
         months: int
-            The number of months.
+            The number of months (30-day equivalent).
         weeks: int
             The number of weeks.
         days: int
@@ -585,16 +585,22 @@ class AfterHours(commands.Cog):
         seconds: int
             The number of seconds.
         """
-        async with self.config.guild(guild).get_attr(KEY_AUTO_PURGE).get_attr(
-            KEY_INACTIVE_DURATION
-        )() as inactiveDurationConfig:
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_YEARS] = years
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_MONTHS] = months
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_WEEKS] = weeks
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_DAYS] = days
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_HOURS] = hours
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_MINUTES] = minutes
-            inactiveDurationConfig[KEY_INACTIVE_DURATION_SECONDS] = seconds
+
+        totalSeconds = (
+            years * 365 * 24 * 60 * 60 +
+            months * 30 * 24 * 60 * 60 +
+            weeks * 7 * 24 * 60 * 60 +
+            days * 24 * 60 * 60 +
+            hours * 60 * 60 +
+            minutes * 60 +
+            seconds
+        )
+
+        guildConfig = self.config.guild(guild)
+        autoPurgeConfig = guildConfig.get_attr(KEY_AUTO_PURGE)
+        autoPurgeInactiveDurationConfig = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
+
+        await autoPurgeInactiveDurationConfig.set(totalSeconds)
 
     @staticmethod
     def strAutoPurgeInactiveDuration(
