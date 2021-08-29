@@ -13,6 +13,7 @@ from discord.ext import commands
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
+from redbot.core.utils.chat_formatting import humanize_timedelta
 
 # Basic constants
 AH_CHANNEL = "after-hours"
@@ -445,6 +446,10 @@ class AfterHours(commands.Cog):
             Duration containing spaces must be wrapped in double-quotes.
         """
 
+        guildConfig = self.config.guild(ctx.guild)
+        autoPurgeConfig = guildConfig.get_attr(KEY_AUTO_PURGE)
+        autoPurgeInactiveDurationConfig = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
+
         if duration:
             if duration == "0":
                 await ctx.send("Disabled auto-purge on inactive duration.")
@@ -478,31 +483,31 @@ class AfterHours(commands.Cog):
                         int(x) if x else 0 for x in groups
                     ]
 
-                    await self.setAutoPurgeInactiveDuration(
-                        ctx.guild, years, months, weeks, days, hours, minutes, seconds
+                    totalSeconds = (
+                        years * 365 * 24 * 60 * 60 +
+                        months * 30 * 24 * 60 * 60 +
+                        weeks * 7 * 24 * 60 * 60 +
+                        days * 24 * 60 * 60 +
+                        hours * 60 * 60 +
+                        minutes * 60 +
+                        seconds
                     )
 
-                    if years == months == weeks == days == hours == minutes == seconds == 0:
+                    await autoPurgeInactiveDurationConfig.set(totalSeconds)
+
+                    if totalSeconds == 0:
                         await ctx.send("Disabled auto-purge on inactive duration.")
                     else:
                         await ctx.send(
-                            f"Set the inactive duration for auto-purge to {AfterHours.strAutoPurgeInactiveDuration(years, months, weeks, days, hours, minutes, seconds)}."
+                            f"Set the inactive duration for auto-purge to {humanize_timedelta(seconds=totalSeconds)}."
                         )
         else:
-            (
-                years,
-                months,
-                weeks,
-                days,
-                hours,
-                minutes,
-                seconds,
-            ) = await self.getAutoPurgeInactiveDuration(ctx.guild)
-            if years == months == weeks == days == hours == minutes == seconds == 0:
+            totalSeconds: int = await autoPurgeInactiveDurationConfig()
+            if totalSeconds == 0:
                 await ctx.send("The inactive duration for auto-purge is currently not set.")
             else:
                 await ctx.send(
-                    f"The inactive duration for auto-purge is currently set to {AfterHours.strAutoPurgeInactiveDuration(*await self.getAutoPurgeInactiveDuration(ctx.guild))}."
+                    f"The inactive duration for auto-purge is currently set to {humanize_timedelta(seconds=totalSeconds)}."
                 )
 
     async def getAutoPurgeInactiveDuration(self, guild: discord.Guild) -> List[int]:
@@ -537,55 +542,6 @@ class AfterHours(commands.Cog):
                 ]
             ]
         ]
-
-    async def setAutoPurgeInactiveDuration(
-        self,
-        guild: discord.Guild,
-        years: int = 0,
-        months: int = 0,
-        weeks: int = 0,
-        days: int = 0,
-        hours: int = 0,
-        minutes: int = 0,
-        seconds: int = 0,
-    ) -> None:
-        """Set the inactive duration for auto-purge.
-
-        Parameters
-        ----------
-        guild: discord.Guild
-            The guild to set the inactive duration for.
-        years: int
-            The number of years (365-day equivalent).
-        months: int
-            The number of months (30-day equivalent).
-        weeks: int
-            The number of weeks.
-        days: int
-            The number of days.
-        hours: int
-            The number of hours.
-        minutes: int
-            The number of minutes.
-        seconds: int
-            The number of seconds.
-        """
-
-        totalSeconds = (
-            years * 365 * 24 * 60 * 60 +
-            months * 30 * 24 * 60 * 60 +
-            weeks * 7 * 24 * 60 * 60 +
-            days * 24 * 60 * 60 +
-            hours * 60 * 60 +
-            minutes * 60 +
-            seconds
-        )
-
-        guildConfig = self.config.guild(guild)
-        autoPurgeConfig = guildConfig.get_attr(KEY_AUTO_PURGE)
-        autoPurgeInactiveDurationConfig = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
-
-        await autoPurgeInactiveDurationConfig.set(totalSeconds)
 
     @staticmethod
     def strAutoPurgeInactiveDuration(
