@@ -112,8 +112,9 @@ class AfterHours(commands.Cog):
 
     async def doAutoPurge(self, forced=False):
         for guild in self.bot.guilds:
-            guildConfig: Group = self.config.guild(guild)
-            autoPurgeConfig: Group = guildConfig.get_attr(KEY_AUTO_PURGE)
+            guildConfig = self.config.guild(guild)
+            autoPurgeConfig = guildConfig.get_attr(KEY_AUTO_PURGE)
+            autoPurgeInactiveDurationConfig = autoPurgeConfig.get_attr(KEY_INACTIVE_DURATION)
 
             if not forced and await autoPurgeConfig.get_attr(KEY_BACKGROUND_LOOP)() is False:
                 self.logger.debug(
@@ -134,22 +135,9 @@ class AfterHours(commands.Cog):
             inactiveMembers: List[discord.Member] = []
 
             # check for inactive members based on a set inactive duration
-            (
-                years,
-                months,
-                weeks,
-                days,
-                hours,
-                minutes,
-                seconds,
-            ) = await self.getAutoPurgeInactiveDuration(guild)
+            inactiveDuration: int = await autoPurgeInactiveDurationConfig()
 
-            inactiveDurationTimeDelta = timedelta(
-                days=years * 365 + months * 30 + weeks * 7 + days,
-                hours=hours,
-                minutes=minutes,
-                seconds=seconds,
-            )
+            inactiveDurationTimeDelta = timedelta(seconds=inactiveDuration)
 
             if not inactiveDurationTimeDelta or inactiveDurationTimeDelta < timedelta(seconds=1):
                 self.logger.debug(
