@@ -155,16 +155,13 @@ class AfterHours(commands.Cog):
                         if not member.bot:
                             memberId = str(member.id)
                             if memberId in lastMsgTimestamps:
-
-                                if (
-                                    datetime.utcnow()
-                                    - datetime.fromtimestamp(lastMsgTimestamps[memberId])
-                                    > inactiveDurationTimeDelta
-                                ):
+                                lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
+                                if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
                                     inactiveMembers.append(member)
                             else:
                                 self.logger.debug(
-                                    "User %s has no AfterHours message timestamp recorded, therefore assuming the last message timestamp is right now",
+                                    "User %s has no AfterHours message timestamp recorded, "
+                                    "therefore assuming the last message timestamp is right now",
                                     memberId,
                                 )
                                 lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
