@@ -29,14 +29,7 @@ KEY_LAST_MSG_TIMESTAMPS = "lastMsgTimestamps"
 # Auto-purging
 KEY_AUTO_PURGE = "autoPurge"
 KEY_BACKGROUND_LOOP = "backgroundLoop"
-KEY_INACTIVE_DURATION = "inactiveDuration"
-KEY_INACTIVE_DURATION_YEARS = "inactiveDurationYears"
-KEY_INACTIVE_DURATION_MONTHS = "inactiveDurationMonths"
-KEY_INACTIVE_DURATION_WEEKS = "inactiveDurationWeeks"
-KEY_INACTIVE_DURATION_DAYS = "inactiveDurationDays"
-KEY_INACTIVE_DURATION_HOURS = "inactiveDurationHours"
-KEY_INACTIVE_DURATION_MINUTES = "inactiveDurationMinutes"
-KEY_INACTIVE_DURATION_SECONDS = "inactiveDurationSeconds"
+KEY_INACTIVE_DURATION = "inactiveDuration" # unit of time: seconds
 
 # Default guild settings
 DEFAULT_GUILD = {
@@ -46,15 +39,7 @@ DEFAULT_GUILD = {
     KEY_LAST_MSG_TIMESTAMPS: {},
     KEY_AUTO_PURGE: {
         KEY_BACKGROUND_LOOP: True,
-        KEY_INACTIVE_DURATION: {
-            KEY_INACTIVE_DURATION_YEARS: 0,
-            KEY_INACTIVE_DURATION_MONTHS: 0,
-            KEY_INACTIVE_DURATION_WEEKS: 0,
-            KEY_INACTIVE_DURATION_DAYS: 0,
-            KEY_INACTIVE_DURATION_HOURS: 0,
-            KEY_INACTIVE_DURATION_MINUTES: 0,
-            KEY_INACTIVE_DURATION_SECONDS: 0,
-        },
+        KEY_INACTIVE_DURATION: 0,
     },
 }
 
