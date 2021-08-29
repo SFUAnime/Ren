@@ -29,7 +29,7 @@ KEY_LAST_MSG_TIMESTAMPS = "lastMsgTimestamps"
 # Auto-purging
 KEY_AUTO_PURGE = "autoPurge"
 KEY_BACKGROUND_LOOP = "backgroundLoop"
-KEY_INACTIVE_DURATION = "inactiveDuration" # unit of time: seconds
+KEY_INACTIVE_DURATION = "inactiveDuration"  # unit of time: seconds
 
 # Default guild settings
 DEFAULT_GUILD = {
@@ -483,13 +483,13 @@ class AfterHours(commands.Cog):
                     ]
 
                     totalSeconds = (
-                        years * 365 * 24 * 60 * 60 +
-                        months * 30 * 24 * 60 * 60 +
-                        weeks * 7 * 24 * 60 * 60 +
-                        days * 24 * 60 * 60 +
-                        hours * 60 * 60 +
-                        minutes * 60 +
-                        seconds
+                        years * 365 * 24 * 60 * 60
+                        + months * 30 * 24 * 60 * 60
+                        + weeks * 7 * 24 * 60 * 60
+                        + days * 24 * 60 * 60
+                        + hours * 60 * 60
+                        + minutes * 60
+                        + seconds
                     )
 
                     await autoPurgeInactiveDurationConfig.set(totalSeconds)
