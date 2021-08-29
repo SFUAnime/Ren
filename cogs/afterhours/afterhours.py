@@ -510,39 +510,6 @@ class AfterHours(commands.Cog):
                     f"The inactive duration for auto-purge is currently set to {humanize_timedelta(seconds=totalSeconds)}."
                 )
 
-    async def getAutoPurgeInactiveDuration(self, guild: discord.Guild) -> List[int]:
-        """Get the inactive duration for auto-purge.
-
-        Returns
-        -------
-        Returns a list of the values for each time unit, in the following order:
-        - Number of years.
-        - Number of months.
-        - Number of weeks.
-        - Number of days.
-        - Number of hours.
-        - Number of minutes.
-        - Number of seconds.
-        """
-        inactiveDurationConfig = await self.config.guild(guild).get_raw(
-            KEY_AUTO_PURGE, KEY_INACTIVE_DURATION
-        )
-        return [
-            int(x) if x else 0
-            for x in [
-                inactiveDurationConfig[key]
-                for key in [
-                    KEY_INACTIVE_DURATION_YEARS,
-                    KEY_INACTIVE_DURATION_MONTHS,
-                    KEY_INACTIVE_DURATION_WEEKS,
-                    KEY_INACTIVE_DURATION_DAYS,
-                    KEY_INACTIVE_DURATION_HOURS,
-                    KEY_INACTIVE_DURATION_MINUTES,
-                    KEY_INACTIVE_DURATION_SECONDS,
-                ]
-            ]
-        ]
-
     @staticmethod
     def strAutoPurgeInactiveDuration(
         years: int = 0,
