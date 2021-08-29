@@ -442,14 +442,14 @@ class AfterHours(commands.Cog):
         Parameters
         ----------
         duration: str
-            The duration string, containing none, some or all of the following non-negative numbers (max. 5 digits) **in order**:
-            - Num. of years (365-day equivalent), optionally followed by spaces, followed by `y`/`yr[s]`/`year[s]`.
-            - Num. of months (30-day equivalent), optionally followed by spaces, followed by `mo[s]`/`month[s]`.
-            - Num. of weeks, optionally followed by spaces, followed by `w`/`wk[s]`/`week[s]`.
-            - Num. of days, optionally followed by spaces, followed by `d`/`day[s]`.
-            - Num. of hours, optionally followed by spaces, followed by `h`/`hr[s]`/`hour[s]`.
-            - Num. of minutes, optionally followed by spaces, followed by `m`/`min[s]`/`minute[s]`.
-            - Num. of seconds, optionally followed by spaces, followed by `s`/`sec[s]`/`second[s]`.
+            The duration string, containing none, some or all of the following non-negative numbers (max. 5 digits), optionally separated by spaces, **in order**:
+            - Number of years (365-day equivalent), optionally followed by spaces, followed by `y`/`yr[s]`/`year[s]`.
+            - Number of months (30-day equivalent), optionally followed by spaces, followed by `mo[s]`/`month[s]`.
+            - Number of weeks, optionally followed by spaces, followed by `w`/`wk[s]`/`week[s]`.
+            - Number of days, optionally followed by spaces, followed by `d`/`day[s]`.
+            - Number of hours, optionally followed by spaces, followed by `h`/`hr[s]`/`hour[s]`.
+            - Number of minutes, optionally followed by spaces, followed by `m`/`min[s]`/`minute[s]`.
+            - Number of seconds, optionally followed by spaces, followed by `s`/`sec[s]`/`second[s]`.
             Set this to 0 or a duration equivalent to 0 to disable auto-purging based on inactive duration.
             Leave blank to check the current settings.
         """
