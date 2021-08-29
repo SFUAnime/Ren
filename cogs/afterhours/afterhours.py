@@ -167,15 +167,24 @@ class AfterHours(commands.Cog):
                                 lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
 
             # purge inactive members
-            async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
-                for inactiveMember in inactiveMembers:
-                    await inactiveMember.remove_roles(ahRole, reason="AfterHours auto-purge")
-                    self.logger.info(
-                        "Removed role %s from user %s due to inactivity", ahRole.name, memberId
-                    )
-                    # clean up dict entry for this member
-                    memberId = str(inactiveMember.id)
-                    del lastMsgTimestamps[memberId]
+            try:
+                async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                    for inactiveMember in inactiveMembers:
+                        await inactiveMember.remove_roles(ahRole, reason="AfterHours auto-purge")
+                        self.logger.info(
+                            "Removed role %s from user %s due to inactivity", ahRole.name, memberId
+                        )
+                        # clean up dict entry for this member
+                        memberId = str(inactiveMember.id)
+                        del lastMsgTimestamps[memberId]
+            except discord.Forbidden:
+                self.logger.error(
+                    "Auto-purge failed due to missing permissions for guild %s", guild.id
+                )
+            except discord.HTTPException:
+                self.logger.error(
+                    "Auto-purge failed due to HTTP error for guild %s", guild.id, exc_info=True
+                )
 
     async def getContext(self, channel: discord.TextChannel):
         """Get the Context object from a text channel.
@@ -401,6 +410,7 @@ class AfterHours(commands.Cog):
         """
 
     @checks.mod()
+    @checks.bot_has_permissions(manage_roles=True)
     @afterHoursAutoPurge.command(name="now")
     async def afterHoursAutoPurgeNow(self, ctx: Context):
         """Execute auto-purge immediately"""
