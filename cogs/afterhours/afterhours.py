@@ -457,19 +457,19 @@ class AfterHours(commands.Cog):
             else:
                 match = re.match(
                     r"^\s*"
-                    r"(?:(\d{1,5})\s*y(?:(?:ea)?r(?:s)?)?)?"  # years
+                    r"(?:(\d{1,5})\s*y(?:(?:ea)?rs?)?)?"  # years
                     r"\s*"
-                    r"(?:(\d{1,5})\s*mo(?:nth)?(?:s)?)?"  # months
+                    r"(?:(\d{1,5})\s*mo(?:nth)?s?)?"  # months
                     r"\s*"
-                    r"(?:(\d{1,5})\s*w(?:(?:ee)?k(?:s)?)?)?"  # weeks
+                    r"(?:(\d{1,5})\s*w(?:(?:ee)?ks?)?)?"  # weeks
                     r"\s*"
-                    r"(?:(\d{1,5})\s*d(?:ay(?:s)?)?)?"  # days
+                    r"(?:(\d{1,5})\s*d(?:ays?)?)?"  # days
                     r"\s*"
-                    r"(?:(\d{1,5})\s*h(?:(?:ou)?r(?:s)?)?)?"  # hours
+                    r"(?:(\d{1,5})\s*h(?:(?:ou)?rs?)?)?"  # hours
                     r"\s*"
-                    r"(?:(\d{1,5})\s*m(?:in(?:ute)?(?:s)?)?)?"  # minutes
+                    r"(?:(\d{1,5})\s*m(?:in(?:ute)?s?)?)?"  # minutes
                     r"\s*"
-                    r"(?:(\d{1,5})\s*s(?:ec(?:ond)?(?:s)?)?)?"  # seconds
+                    r"(?:(\d{1,5})\s*s(?:ec(?:ond)?s?)?)?"  # seconds
                     r"\s*$",
                     duration,
                     re.IGNORECASE,
