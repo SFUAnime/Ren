@@ -426,7 +426,7 @@ class AfterHours(commands.Cog):
 
     @checks.admin()
     @afterHoursAutoPurge.command(name="inactiveduration")
-    async def afterHoursAutoPurgeInactiveDuration(self, ctx: Context, duration: Optional[str]):
+    async def afterHoursAutoPurgeInactiveDuration(self, ctx: Context, *, duration: Optional[str]):
         """View or set the duration of inactivity for auto-purge.
 
         Parameters
@@ -442,7 +442,6 @@ class AfterHours(commands.Cog):
             - Num. of seconds, optionally followed by spaces, followed by `s`/`sec[s]`/`second[s]`.
             Set this to 0 or a duration equivalent to 0 to disable auto-purging based on inactive duration.
             Leave blank to check the current settings.
-            Duration containing spaces must be wrapped in double-quotes.
         """
 
         guildConfig = self.config.guild(ctx.guild)
