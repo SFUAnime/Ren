@@ -451,6 +451,7 @@ class AfterHours(commands.Cog):
 
         if duration:
             if duration == "0":
+                await autoPurgeInactiveDurationConfig.set(0)
                 await ctx.send("Disabled auto-purge on inactive duration.")
                 return
             else:
