@@ -8,7 +8,6 @@ import asyncio
 from typing import List, Optional
 from datetime import datetime, timedelta
 import discord
-from redbot.core.config import Group
 from discord.ext import commands
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
