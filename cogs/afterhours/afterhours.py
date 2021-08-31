@@ -145,28 +145,29 @@ class AfterHours(commands.Cog):
                 self.logger.debug(
                     "Auto-purge based on inactive duration is not enabled for guild %s", guild.id
                 )
-            else:
-                self.logger.debug(
-                    "Auto-purge based on inactive duration is enabled for guild %s (inactive duration %s)",
-                    guild.id,
-                    inactiveDurationTimeDelta,
-                )
+                continue
 
-                async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
-                    for member in ahRole.members:
-                        if not member.bot:
-                            memberId = str(member.id)
-                            if memberId in lastMsgTimestamps:
-                                lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
-                                if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
-                                    inactiveMembers.append(member)
-                            else:
-                                self.logger.debug(
-                                    "User %s has no AfterHours message timestamp recorded, "
-                                    "therefore assuming the last message timestamp is right now",
-                                    memberId,
-                                )
-                                lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
+            self.logger.debug(
+                "Auto-purge based on inactive duration is enabled for guild %s (inactive duration %s)",
+                guild.id,
+                inactiveDurationTimeDelta,
+            )
+
+            async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                for member in ahRole.members:
+                    if not member.bot:
+                        memberId = str(member.id)
+                        if memberId in lastMsgTimestamps:
+                            lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
+                            if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
+                                inactiveMembers.append(member)
+                        else:
+                            self.logger.debug(
+                                "User %s has no AfterHours message timestamp recorded, "
+                                "therefore assuming the last message timestamp is right now",
+                                memberId,
+                            )
+                            lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
 
             # purge inactive members
             try:
