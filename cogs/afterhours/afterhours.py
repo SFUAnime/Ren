@@ -122,14 +122,16 @@ class AfterHours(commands.Cog):
                 )
                 continue
 
-            # checking if the AfterHours role exists in this guild
+            # skip this guild if there is no AfterHours role
             ahRoleId: int = await guildConfig.get_attr(KEY_ROLE_ID)()
             if not ahRoleId:
                 self.logger.debug("No AfterHours role ID set for guild %s", guild.id)
+                continue
             else:
                 ahRole: discord.Role = discord.utils.get(guild.roles, id=int(ahRoleId))
                 if not ahRole:
                     self.logger.debug("AfterHours role does not exist in guild %s!", guild.id)
+                    continue
 
             # a list of members to be purged
             inactiveMembers: List[discord.Member] = []
