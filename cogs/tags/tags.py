@@ -6,27 +6,26 @@
 from .config import Config
 from .constants import *
 from .exceptions import *
+from .helpers import createSimplePages
 from .rolecheck import roles_or_mod_or_permissions
 
+from collections import defaultdict
 from copy import deepcopy
 import csv
-import json
-import re
 import datetime
-import discord
 import difflib
+import json
+import logging
 from threading import Lock
-from collections import defaultdict
 
 import asyncio
 import discord
 from os.path import isfile, join
-import logging
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.paginator import Pages
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 
 class TagInfo:
@@ -135,7 +134,7 @@ class Tags(commands.Cog):
     def removeAllowedRole(self, guild: discord.Guild, role: discord.Role):
         self.allowed_roles[guild.id].discard(str(role.id))
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.Tags")
@@ -1119,13 +1118,8 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
-            p.embed.colour = COLOUR_BLURPLE
-            p.embed.set_author(
-                name=owner.display_name,
-                icon_url=owner.avatar_url or owner.default_avatar_url,
-            )
-            await p.paginate()
+            pageList = await createSimplePages(items=tags, embedAuthor=owner)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
             await ctx.send("{0.name} has no tags.".format(owner))
 
@@ -1138,9 +1132,11 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
-            p.embed.colour = COLOUR_BLURPLE
-            await p.paginate()
+            pageList = await createSimplePages(
+                items=tags,
+                embedTitle="All Tags",
+            )
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
             await ctx.send("This server has no server-specific tags.")
 
@@ -1232,9 +1228,11 @@ class Tags(commands.Cog):
 
         if results:
             try:
-                p = Pages(ctx=ctx, entries=results, per_page=15, show_entry_count=True)
-                p.embed.colour = COLOUR_BLURPLE
-                await p.paginate()
+                pageList = await createSimplePages(
+                    items=results,
+                    embedTitle="Search Results",
+                )
+                await menu(ctx, pageList, DEFAULT_CONTROLS)
             except Exception as e:
                 await ctx.send(e)
         else:
