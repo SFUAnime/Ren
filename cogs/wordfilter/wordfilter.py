@@ -606,3 +606,69 @@ def _isAllFiltered(string):
 ############################################
 # COMMANDS - Usage Statistics #
 ############################################
+@commands.guild_only()
+@checks.mod_or_permissions(manage_messages=True)
+async def rawCensorUsageList(self, ctx):
+    """
+    displays a raw usage list of all the censored words that have been used
+    """
+    user = ctx.message.author
+    rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+
+    if rawUsageStats:
+        display = []
+        pageList = []
+        count = 1
+        for regex, timesUsed in rawUsageStats.items():
+            display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+            count += 1
+        msg = "\n".join(display)
+        pages = list(chat_formatting.pagify(msg, page_length=400))
+        totalPages = len(pages)
+        totalEntries = len(display)
+
+        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+            embed = discord.Embed(
+                title=f"Filtered words for **{ctx.guild.name}**", description=page
+            )
+            embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+            embed.colour = discord.Colour.red()
+            pageList.append(embed)
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
+    else:
+        await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+
+
+@commands.guild_only()
+@checks.mod_or_permissions(manage_messages=True)
+async def orderedCensorUsageList(self, ctx):
+    """
+    displays an ordered usage list of all the censored words that have been used
+    """
+    user = ctx.message.author
+    rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+
+    if rawUsageStats:
+        display = []
+        pageList = []
+        count = 1
+        for regex, timesUsed in dict(
+            reversed(sorted(rawUsageStats.items(), key=lambda item: item[1]))
+        ):
+            display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+            count += 1
+        msg = "\n".join(display)
+        pages = list(chat_formatting.pagify(msg, page_length=400))
+        totalPages = len(pages)
+        totalEntries = len(display)
+
+        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+            embed = discord.Embed(
+                title=f"Filtered words for **{ctx.guild.name}**", description=page
+            )
+            embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+            embed.colour = discord.Colour.red()
+            pageList.append(embed)
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
+    else:
+        await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
