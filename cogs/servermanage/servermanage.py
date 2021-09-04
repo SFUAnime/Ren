@@ -3,7 +3,7 @@ import logging
 import time
 import asyncio
 from datetime import date, datetime, timedelta
-from os.path import splitext
+from os.path import splitext, join as pathJoin
 from os import remove
 from pathlib import Path
 import discord
@@ -36,9 +36,8 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(self.dataFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = pathJoin(self.dataFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -175,12 +174,11 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
     ):
         if imageType not in ["icons", "banners"]:
             raise ValueError("Image type not defined!")
-        # TODO Make this OS-independent
-        directory = "{}/{}/{}/".format(str(self.dataFolder), guild.id, imageType)
+        directory = pathJoin(self.dataFolder, str(guild.id), imageType)
         if mkdir:
             Path(directory).mkdir(parents=True, exist_ok=True)
         filename = imageDetails["filename"]
-        filepath = f"{directory}{filename}"
+        filepath = pathJoin(directory, filename)
         return filepath
 
     async def imageAdd(self, ctx: Context, name: str, imageType="icons"):
