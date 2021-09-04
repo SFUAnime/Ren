@@ -343,7 +343,8 @@ class AfterHours(commands.Cog):
         if after.author.bot:
             return
 
-        await self.saveMessageTimestamp(after, after.edited_at.timestamp())
+        if after.edited_at:
+            await self.saveMessageTimestamp(after, after.edited_at.timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()
