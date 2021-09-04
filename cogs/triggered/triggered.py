@@ -2,8 +2,9 @@
 `triggered from spoopy.
 """
 
+import logging
 import os
-import urllib.request
+import aiohttp
 import discord
 from redbot.core import commands, data_manager
 from PIL import Image, ImageChops, ImageOps, ImageFilter, ImageEnhance
@@ -20,7 +21,11 @@ class Triggered(commands.Cog):
     # Class constructor
     def __init__(self, bot):
         self.bot = bot
+        self.logger = logging.getLogger("red.luicogs.Triggered")
         self.saveFolder = data_manager.cog_data_path(cog_instance=self)
+        self.session = aiohttp.ClientSession()
+        # We need a custom header or else we get a HTTP 403 Unauthorized
+        self.headers = {"User-agent": "Mozilla/5.0"}
 
     @commands.command(name="triggered")
     async def triggered(self, ctx, user: discord.Member = None):
@@ -75,18 +80,13 @@ class Triggered(commands.Cog):
         path = os.path.join(self.saveFolder, "{}.png".format(user.id))
         savePath = os.path.join(self.saveFolder, "{}-trig.gif".format(user.id))
 
-        opener = urllib.request.build_opener()
-        # We need a custom header or else we get a HTTP 403 Unauthorized
-        opener.addheaders = [("User-agent", "Mozilla/5.0")]
-        urllib.request.install_opener(opener)
-
         try:
-            urllib.request.urlretrieve(AVATAR_URL.format(user), path)
-        except urllib.request.ContentTooShortError:
-            return None
-        except urllib.error.HTTPError:
-            # Use the default.
-            urllib.request.urlretrieve(user.default_avatar_url, path)
+            async with self.session.get(AVATAR_URL.format(user), headers=self.headers) as resp:
+                with open(path, "wb") as fp:
+                    fp.write(await resp.read())
+        except aiohttp.ClientResponseError:
+            self.logger.error("Could not read the file!", exc_info=True)
+            return
 
         avatar = Image.open(path)
 
