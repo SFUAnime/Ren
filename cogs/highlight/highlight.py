@@ -4,6 +4,7 @@ Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) bu
 the time, that bot was closed source.
 """
 from datetime import timedelta, timezone
+import os
 import logging
 import re
 from threading import Lock
@@ -62,9 +63,8 @@ class Highlight(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
