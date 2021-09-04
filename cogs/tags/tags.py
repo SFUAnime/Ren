@@ -20,7 +20,7 @@ from threading import Lock
 
 import asyncio
 import discord
-from os.path import isfile, join
+from os.path import isfile, join as pathJoin
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
@@ -141,16 +141,15 @@ class Tags(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = pathJoin(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
             self.logger.addHandler(handler)
 
         # if tags.json doesnt exist, create it
-        universal_path = join(str(saveFolder), "tags.json")
+        universal_path = pathJoin(str(saveFolder), "tags.json")
         if not isfile(universal_path):
             with open(universal_path, "w+") as f:
                 empty = dict()
