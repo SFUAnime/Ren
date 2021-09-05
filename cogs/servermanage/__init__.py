@@ -1,8 +1,6 @@
 """servermanage module.
 
 Auto-assign server banner and icons on particular days.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 import json
 from pathlib import Path

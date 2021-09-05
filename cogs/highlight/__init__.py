@@ -1,8 +1,6 @@
 """highlight module.
 
 DM users based on a set of words that they are listening for.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 
 LOG_FOLDER = "log/lui-cogs/highlight/"

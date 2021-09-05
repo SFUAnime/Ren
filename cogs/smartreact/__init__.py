@@ -1,6 +1,4 @@
 """The smart reaction module.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 import json
 from pathlib import Path
