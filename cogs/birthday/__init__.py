@@ -1,8 +1,6 @@
 """birthday module.
 
 Auto-add guild members to a birthday role on their birthday.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 import json
 from pathlib import Path

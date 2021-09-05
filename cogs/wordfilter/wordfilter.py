@@ -1,8 +1,6 @@
 """Word Filter cog.
 To filter words in a more smart/useful way than simply detecting and
 deleting a message.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 import re
 from threading import Lock
