@@ -1,6 +1,7 @@
 """Download avatars when people change them."""
 from datetime import datetime
 import logging
+import os
 import pathlib
 import discord
 from redbot.core import checks, commands, data_manager
@@ -18,9 +19,8 @@ class Avatar(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(self.saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(self.saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -64,8 +64,8 @@ class Avatar(commands.Cog):
         """
         avatar = user.avatar_url_as(format="png")
         currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-        path = "{}/{}".format(self.saveFolder, user.id)
-        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-        filepath = "{}/{}_{}.png".format(path, user.id, currentTime)
-        await avatar.save(filepath)
-        self.logger.debug("Saved image to %s", filepath)
+        userPath = os.path.join(self.saveFolder, str(user.id))
+        pathlib.Path(userPath).mkdir(parents=True, exist_ok=True)
+        filePath = os.path.join(userPath, f"{user.id}_{currentTime}.png")
+        await avatar.save(filePath)
+        self.logger.debug("Saved image to %s", filePath)

@@ -3,6 +3,7 @@ Post updates from GSC's site.
 """
 
 import asyncio
+import os
 import aiohttp
 from bs4 import BeautifulSoup
 import discord
@@ -37,9 +38,8 @@ class GoodSmileInfo(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.DEBUG)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )

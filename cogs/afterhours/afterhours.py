@@ -2,6 +2,7 @@
 
 A special cog to handle the special cases for this channel.
 """
+import os
 import re
 import logging
 import asyncio
@@ -58,9 +59,8 @@ class AfterHours(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -343,7 +343,8 @@ class AfterHours(commands.Cog):
         if after.author.bot:
             return
 
-        await self.saveMessageTimestamp(after, after.edited_at.timestamp())
+        if after.edited_at:
+            await self.saveMessageTimestamp(after, after.edited_at.timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()
