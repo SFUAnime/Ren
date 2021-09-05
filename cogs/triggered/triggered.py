@@ -7,6 +7,7 @@ import os
 import aiohttp
 import discord
 from redbot.core import commands, data_manager
+from redbot.core.bot import Red
 from PIL import Image, ImageChops, ImageOps, ImageFilter, ImageEnhance
 from enum import Enum
 
@@ -19,13 +20,17 @@ class Triggered(commands.Cog):
     """We triggered, fam."""
 
     # Class constructor
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         self.logger = logging.getLogger("red.luicogs.Triggered")
         self.saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.session = aiohttp.ClientSession()
         # We need a custom header or else we get a HTTP 403 Unauthorized
         self.headers = {"User-agent": "Mozilla/5.0"}
+
+    def cog_unload(self):
+        self.logger.info("Closing session")
+        self.bot.loop.run_until_complete(self.session.close())
 
     @commands.command(name="triggered")
     async def triggered(self, ctx, user: discord.Member = None):
