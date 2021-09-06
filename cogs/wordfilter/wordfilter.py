@@ -4,6 +4,7 @@ deleting a message.
 
 This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
+from os import stat
 import re
 from threading import Lock
 import logging
@@ -65,6 +66,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         These commands allow you to manipulate the regex used to filter
         out messages.
+        """
+
+    @wordFilter.group(name="stat", aliases=["st"])
+    async def stat(self, ctx):
+        """
+        access censorship statistics
         """
 
     @regex.command(name="add")
@@ -498,7 +505,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             filterStats = await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS)()
 
             for word in filteredWords:
-                timesMatched = len(re.findall(word, _filterWord))
+                timesMatched = len(re.findall(word, filteredMsg))
                 filterStats.update({word: filterStats.get(word, 0) + timesMatched})
 
             await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
@@ -565,6 +572,77 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def on_message_edit(self, msg, newMsg):
         await self.checkWords(msg, newMsg)
 
+    ############################################
+    # COMMANDS - Usage Statistics #
+    ############################################
+    @stat.command(name="rawusage")
+    @commands.guild_only()
+    @checks.mod_or_permissions(manage_messages=True)
+    async def rawCensorUsageList(self, ctx):
+        """
+        displays a raw usage list of all the censored words that have been used
+        """
+        user = ctx.message.author
+        rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+
+        if rawUsageStats:
+            display = []
+            pageList = []
+            count = 1
+            for regex, timesUsed in rawUsageStats.items():
+                display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+                count += 1
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
+
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Filtered words for **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
+        else:
+            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+
+    @stat.command(name="orderedusage")
+    @commands.guild_only()
+    @checks.mod_or_permissions(manage_messages=True)
+    async def orderedCensorUsageList(self, ctx):
+        """
+        displays an ordered usage list of all the censored words that have been used
+        """
+        user = ctx.message.author
+        rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+
+        if rawUsageStats:
+            display = []
+            pageList = []
+            count = 1
+            for regex, timesUsed in dict(
+                reversed(sorted(rawUsageStats.items(), key=lambda item: item[1]))
+            ).items():
+                display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+                count += 1
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
+
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Filtered words for **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
+        else:
+            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+
 
 def _censorMatch(matchobj):
     matchLength = len(matchobj.group(0))
@@ -573,9 +651,9 @@ def _censorMatch(matchobj):
 
 def _filterWord(words, string):
     numWords = len(words)
-    if numWords < 1:
+    if not words:
         # if no filters added yet, do nothing
-        pass
+        return string
     else:
         # Combine all filter words into one regex
         numFilters = numWords - 1
@@ -601,74 +679,3 @@ def _isAllFiltered(string):
         if bool(re.search("[*]+", word)):
             cnt += 1
     return cnt == len(words)
-
-
-############################################
-# COMMANDS - Usage Statistics #
-############################################
-@commands.guild_only()
-@checks.mod_or_permissions(manage_messages=True)
-async def rawCensorUsageList(self, ctx):
-    """
-    displays a raw usage list of all the censored words that have been used
-    """
-    user = ctx.message.author
-    rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
-
-    if rawUsageStats:
-        display = []
-        pageList = []
-        count = 1
-        for regex, timesUsed in rawUsageStats.items():
-            display.append(f"{count}. `{regex}` : `{timesUsed}`,")
-            count += 1
-        msg = "\n".join(display)
-        pages = list(chat_formatting.pagify(msg, page_length=400))
-        totalPages = len(pages)
-        totalEntries = len(display)
-
-        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
-            embed = discord.Embed(
-                title=f"Filtered words for **{ctx.guild.name}**", description=page
-            )
-            embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
-            embed.colour = discord.Colour.red()
-            pageList.append(embed)
-        await menu(ctx, pageList, DEFAULT_CONTROLS)
-    else:
-        await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
-
-
-@commands.guild_only()
-@checks.mod_or_permissions(manage_messages=True)
-async def orderedCensorUsageList(self, ctx):
-    """
-    displays an ordered usage list of all the censored words that have been used
-    """
-    user = ctx.message.author
-    rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
-
-    if rawUsageStats:
-        display = []
-        pageList = []
-        count = 1
-        for regex, timesUsed in dict(
-            reversed(sorted(rawUsageStats.items(), key=lambda item: item[1]))
-        ):
-            display.append(f"{count}. `{regex}` : `{timesUsed}`,")
-            count += 1
-        msg = "\n".join(display)
-        pages = list(chat_formatting.pagify(msg, page_length=400))
-        totalPages = len(pages)
-        totalEntries = len(display)
-
-        async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
-            embed = discord.Embed(
-                title=f"Filtered words for **{ctx.guild.name}**", description=page
-            )
-            embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
-            embed.colour = discord.Colour.red()
-            pageList.append(embed)
-        await menu(ctx, pageList, DEFAULT_CONTROLS)
-    else:
-        await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
