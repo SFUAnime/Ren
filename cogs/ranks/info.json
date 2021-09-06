@@ -1,0 +1,12 @@
+{
+    "name" : "Ranks",
+    "author" : ["Injabie3#1660"],
+    "short" : "A Mee6-inspired guild rank management system.",
+    "description" : "This cog allows users to collect points and level up on a per-server basis.",
+    "hidden": true,
+    "install_msg" : "Thanks for installing Ranks. Please note that no support will be given.",
+    "requirements" : ["mysqlclient"],
+    "tags" : ["info", "ranks", "rankings"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog associates user experience with a user's discord ID."
+}

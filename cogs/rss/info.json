@@ -1,0 +1,12 @@
+{
+    "name" : "RSSFeed",
+    "author" : ["Injabie3#1660", "KaguneAstra#6000", "sedruk"],
+    "short" : "Post new entries from RSS feeds to a text channel.",
+    "description" : "This cog allows you to post new items from an RSS feed to a text channel of your choice.",
+    "hidden": true,
+    "install_msg" : "Thanks for installing RSSFeed. Please note that this cog is hidden because RSS feeds have to be manually configured right now.",
+    "requirements" : ["aiohttp", "bs4", "feedparser"],
+    "tags" : ["news", "rss"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog doesn't store any user specific information."
+}

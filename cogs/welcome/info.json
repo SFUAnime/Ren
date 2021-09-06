@@ -1,0 +1,11 @@
+{
+    "name" : "Welcome",
+    "author" : ["Injabie3#1660"],
+    "short" : "DM a user when they join the server, and log server join/leaves in a channel",
+    "description" : "This cog sends a server-configurable DM message to a user when they join. It also logs when a user joins or leaves a server in a configurable channel.",
+    "install_msg" : "Thanks for installing the Welcome cog. Please run `[p]welcomeset` to see the relevant commands.",
+    "requirements" : [],
+    "tags" : ["notifications", "dm"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog does not store user-specific settings."
+}

@@ -1,0 +1,11 @@
+{
+    "name" : "Tags",
+    "author" : ["Rapptz", "Injabie3#1660"],
+    "short" : "Save repetitive messages in a short tag for later access.",
+    "description" : "This cog is a port of the Danny bot's tags module by Rapptz from the async branch days, with addition modifications.",
+    "install_msg" : "Thanks for installing Tags. Please run `[p]tag` to see commands, and `[p]tag settings` to configure additional settings.",
+    "requirements" : [],
+    "tags" : ["fun", "tags"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog does not store user-specific settings."
+}

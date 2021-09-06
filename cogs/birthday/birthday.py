@@ -1,6 +1,7 @@
 """Birthday cog Automatically add users to a specified birthday role on their
 birthday."""
 import logging
+import os
 from random import choice
 import time  # To auto remove birthday role on the next day.
 import asyncio
@@ -29,13 +30,12 @@ class Birthday(commands.Cog):
 
         # Initialize logger, and save to cog folder.
         saveFolder = data_manager.cog_data_path(cog_instance=self)
+        logPath = os.path.join(saveFolder, "info.log")
         self.logger = logging.getLogger("red.luicogs.Birthday")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
