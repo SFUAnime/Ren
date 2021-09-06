@@ -1,0 +1,11 @@
+{
+    "name" : "SmartReact",
+    "author" : ["FlapJack#5505", "Injabie3#1660", "KamiCreed#7290"],
+    "short" : "Automatically react to messages with emojis.",
+    "description" : "A v2 port of flapjax's SmartReact cog, with the ability to refresh custom emojis.",
+    "install_msg" : "Thanks for installing SmartReact. Run [p]smartreact to configure.",
+    "requirements" : [],
+    "tags" : ["reactions"],
+    "permissions" : ["add_reactions"],
+    "end_user_data_statement": "This cog doesn't store private user information."
+}

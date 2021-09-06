@@ -1,0 +1,11 @@
+{
+    "name" : "ServerManage",
+    "author" : ["Injabie3#1660", "TheDarkBot#1677"],
+    "short" : "Manage your server's collection of banners and icons",
+    "description" : "This cog allows server owners to automatically change server icons and banners on given days by uploading relevant images in advance. Useful for themed events. Requires level 2 Server Boosts for banners.",
+    "install_msg" : "Thanks for installing the ServerManage cog. Please see `[p]servermanage` or visit https://u.sfuani.me/renservermanage for details.",
+    "requirements" : [],
+    "tags" : ["server", "management", "banner", "icon"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog stores server images and banners in order to change them on certain days."
+}

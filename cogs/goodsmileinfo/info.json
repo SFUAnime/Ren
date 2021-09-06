@@ -1,0 +1,10 @@
+{
+    "name" : "GoodSmileInfo",
+    "author" : ["Injabie3#1660"],
+    "short" : "Post news from Good Smile Company's (GSC) website to a channel",
+    "description" : "This cog checks GSC for news every hour and posts it to a configurable channel.",
+    "install_msg" : "Thanks for installing the GoodSmileInfo cog. Run [p]goodsmileinfo to configure.",
+    "requirements" : ["aiohttp", "bs4"],
+    "tags" : ["news"],
+    "end_user_data_statement": "This cog does not store user-specific settings."
+}

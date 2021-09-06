@@ -1,0 +1,12 @@
+{
+    "name" : "Catgirl",
+    "author" : ["Injabie3#1660"],
+    "short" : "Display cut images of catgirls.",
+    "description" : "This cog allows you to post cute, random catgirls from a local database.",
+    "hidden": true,
+    "install_msg" : "Thanks for installing Catgirl. Please note that no support will be provided for this cog",
+    "requirements" : ["requests"],
+    "tags" : ["catgirl", "images"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog doesn't store any user specific information."
+}
