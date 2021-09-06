@@ -499,7 +499,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     blacklistedCmd = True
 
         try:
-            # records which words where used and how often
+            # records which words were used and how often
             filterStats = await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS)()
 
             for word in filteredWords:
@@ -585,7 +585,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         Displays an ordered usage list of all the censored words that have been used
         """
-        await self.postUsageList(ctx, True)
+        await self.postUsageList(ctx, sorting=True)
 
     async def postUsageList(self, ctx, sorting=False):
         """
@@ -598,16 +598,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             display = []
             pageList = []
             count = 1
+            stats = rawUsageStats
             if sorting:
-                for regex, timesUsed in dict(
-                    reversed(sorted(rawUsageStats.items(), key=lambda item: item[1]))
-                ).items():
-                    display.append(f"{count}. `{regex}` : `{timesUsed}`,")
-                    count += 1
-            else:
-                for regex, timesUsed in rawUsageStats.items():
-                    display.append(f"{count}. `{regex}` : `{timesUsed}`,")
-                    count += 1
+                stats = dict(sorted(rawUsageStats.items(), key=lambda item: item[1], reverse=True))
+            for regex, timesUsed in stats.items():
+                display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+                count += 1
             msg = "\n".join(display)
             pages = list(chat_formatting.pagify(msg, page_length=400))
             totalPages = len(pages)
