@@ -1,0 +1,11 @@
+{
+    "name" : "Respects",
+    "author" : ["Injabie3#1660", "quachtridat・たつ#8232"],
+    "short" : "Press f to pay respects.",
+    "description" : "This cog allows users to pay respects, aggregating closely paid respects into one message. It supports replies.",
+    "install_msg" : "Thanks for installing Respects. Use `[p]f` to pay respects, and `[p]setf` to configure other settings.",
+    "requirements" : [],
+    "tags" : [],
+    "permissions" : [],
+    "end_user_data_statement": "This cog stores guild-defined settings, and a user's Discord ID for the purpose of aggregating respects into a single message."
+}

@@ -1,0 +1,11 @@
+{
+    "name" : "Heartbeat",
+    "author" : ["Injabie3#1660"],
+    "short" : "Punch a heartbeat to an uptime checker",
+    "description" : "This cog allows you to punch a heartbeat to an uptime checker like StatusCake.",
+    "install_msg" : "Thanks for installing Heartbeat. Please run [p]heartbeatset to configure your heartbeat.",
+    "requirements" : ["requests"],
+    "tags" : ["heartbeat", "uptime"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog only stores the URL to your uptime checker."
+}

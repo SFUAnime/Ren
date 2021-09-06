@@ -2,6 +2,7 @@
 
 A special cog to handle the special cases for this channel.
 """
+import os
 import re
 import logging
 import asyncio
@@ -58,9 +59,8 @@ class AfterHours(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -122,14 +122,16 @@ class AfterHours(commands.Cog):
                 )
                 continue
 
-            # checking if the AfterHours role exists in this guild
+            # skip this guild if there is no AfterHours role
             ahRoleId: int = await guildConfig.get_attr(KEY_ROLE_ID)()
             if not ahRoleId:
                 self.logger.debug("No AfterHours role ID set for guild %s", guild.id)
+                continue
             else:
                 ahRole: discord.Role = discord.utils.get(guild.roles, id=int(ahRoleId))
                 if not ahRole:
                     self.logger.debug("AfterHours role does not exist in guild %s!", guild.id)
+                    continue
 
             # a list of members to be purged
             inactiveMembers: List[discord.Member] = []
@@ -143,28 +145,29 @@ class AfterHours(commands.Cog):
                 self.logger.debug(
                     "Auto-purge based on inactive duration is not enabled for guild %s", guild.id
                 )
-            else:
-                self.logger.debug(
-                    "Auto-purge based on inactive duration is enabled for guild %s (inactive duration %s)",
-                    guild.id,
-                    inactiveDurationTimeDelta,
-                )
+                continue
 
-                async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
-                    for member in ahRole.members:
-                        if not member.bot:
-                            memberId = str(member.id)
-                            if memberId in lastMsgTimestamps:
-                                lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
-                                if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
-                                    inactiveMembers.append(member)
-                            else:
-                                self.logger.debug(
-                                    "User %s has no AfterHours message timestamp recorded, "
-                                    "therefore assuming the last message timestamp is right now",
-                                    memberId,
-                                )
-                                lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
+            self.logger.debug(
+                "Auto-purge based on inactive duration is enabled for guild %s (inactive duration %s)",
+                guild.id,
+                inactiveDurationTimeDelta,
+            )
+
+            async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
+                for member in ahRole.members:
+                    if not member.bot:
+                        memberId = str(member.id)
+                        if memberId in lastMsgTimestamps:
+                            lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
+                            if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
+                                inactiveMembers.append(member)
+                        else:
+                            self.logger.debug(
+                                "User %s has no AfterHours message timestamp recorded, "
+                                "therefore assuming the last message timestamp is right now",
+                                memberId,
+                            )
+                            lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
 
             # purge inactive members
             try:
@@ -233,11 +236,13 @@ class AfterHours(commands.Cog):
             starboard = sbCog.starboards[ctx.guild.id]["highlights"]
         except KeyError:
             self.logger.error("Cannot get the starboard!")
-
-        if remove:
-            await ctx.invoke(sbCog.blacklist_remove, starboard=starboard, channel_or_role=channel)
         else:
-            await ctx.invoke(sbCog.blacklist_add, starboard=starboard, channel_or_role=channel)
+            if remove:
+                await ctx.invoke(
+                    sbCog.blacklist_remove, starboard=starboard, channel_or_role=channel
+                )
+            else:
+                await ctx.invoke(sbCog.blacklist_add, starboard=starboard, channel_or_role=channel)
 
     async def notifyChannel(self, ctx, remove=False):
         if remove:
@@ -338,7 +343,8 @@ class AfterHours(commands.Cog):
         if after.author.bot:
             return
 
-        await self.saveMessageTimestamp(after, after.edited_at.timestamp())
+        if after.edited_at:
+            await self.saveMessageTimestamp(after, after.edited_at.timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()

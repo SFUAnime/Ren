@@ -1,0 +1,11 @@
+{
+    "name" : "Triggered",
+    "author" : ["Injabie3#1660", "くずま#0420"],
+    "short" : "Feeling triggered? Say no more, fam.",
+    "description" : "This cog is a custom rework of spoopy's triggered command, except with more :)",
+    "install_msg" : "Thanks for installing Triggered.",
+    "requirements" : ["Pillow"],
+    "tags" : ["fun"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog stores a user's avatar to create the triggered image."
+}

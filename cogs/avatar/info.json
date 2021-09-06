@@ -1,0 +1,8 @@
+{
+    "author": ["Injabie3#1660"],
+    "name": "Avatar",
+    "short": "Save avatar images of users",
+    "description": "This cog saves avatar images of users for year-end video making purposes",
+    "hidden": true,
+    "end_user_data_statement": "This cog will store users' avatar images"
+}

@@ -1,0 +1,11 @@
+{
+    "name" : "YOURLSClient",
+    "author" : ["Injabie3#1660"],
+    "short" : "Manage your YOURLS instance from Discord!",
+    "description" : "This cog allows you to manage a YOURLS instance on a per-guild basis. It requires the `yourls-api-edit-url` and `yourls-api-delete` plugins to be install on your YOURLS instance.",
+    "install_msg" : "Thanks for installing the YOURLS client. Before using this cog, be sure to install the `yourls-api-edit-url` and `yourls-api-delete` plugins on your YOURLS instance. Afterwards, please run [p]yourls to see all the relevant commands.",
+    "requirements" : ["yourls"],
+    "tags" : ["url-shortener"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog stores the API endpoint and signature in order to connect and authenticate to your YOURLS instance."
+}

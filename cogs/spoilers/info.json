@@ -1,0 +1,11 @@
+{
+    "name" : "Spoilers",
+    "author" : ["Injabie3#1660"],
+    "short" : "Legacy v2 cog to support emoji-based spoilers in v3.",
+    "description" : "This is a v2 port of our legacy spoiler cog. This was done to port over reaction-based spoilers before Discord had native support for them.",
+    "install_msg" : "Thanks for installing Spoilers. Please note that no support will be provided for this cog.",
+    "requirements" : [],
+    "tags" : ["spoilers"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog doesn't store private user information."
+}
