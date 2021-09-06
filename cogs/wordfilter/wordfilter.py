@@ -4,7 +4,6 @@ deleting a message.
 
 This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
-from os import stat
 import re
 from threading import Lock
 import logging
@@ -89,7 +88,6 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
-
         else:
             await user.send(
                 "`Word Filter:` The word `{0}` is already in the filter "
@@ -444,7 +442,6 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         filteredMsg = msg.content
         filters = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
-
         filteredMsg = _filterWord(filters, filteredMsg)
 
         if msg.content == filteredMsg:
@@ -495,7 +492,6 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         try:
             filteredMsg = _filterWord(filteredWords, filteredMsg)
-
         except re.error as error:  # pylint: disable=broad-except
             self.logger.error("Exception!")
             self.logger.error(error)
@@ -572,13 +568,6 @@ def _filterWord(words, string):
         numFilters = numWords - 1
         reFormat = r"\b(?:" + (r"{}|") * numFilters + r"{})\b"
         regex = reFormat.format(*words)
-
-        # sees how many times each filtered word appears in string and tallies them up in the config file
-        for word in words:
-            wordInstances = len(re.findall(regex, word))
-
-        # Replace the offending string with the correct number of stars.
-        return re.sub(regex, _censorMatch, string, flags=re.IGNORECASE)
 
 
 def _isOneWord(string):
