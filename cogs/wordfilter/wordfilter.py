@@ -503,7 +503,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             filterStats = await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS)()
 
             for word in filteredWords:
-                timesMatched = len(re.findall(word, filteredMsg))
+                timesMatched = len(re.findall(r"\b" + word + r"\b", filteredMsg))
                 filterStats.update({word: filterStats.get(word, 0) + timesMatched})
 
             await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
