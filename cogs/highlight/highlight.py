@@ -27,6 +27,7 @@ KEY_WORDS = "words"
 KEY_WORDS_IGNORE = "ignoreWords"
 KEY_IGNORE = "ignoreChannelID"
 KEY_CHANNEL_IGNORE = "userIgnoreChannelID"
+KEY_CHANNEL_DENYLIST = "denylistChannels"
 
 BASE_GUILD_MEMBER = {
     KEY_BLACKLIST: [],
@@ -38,7 +39,7 @@ BASE_GUILD_MEMBER = {
 
 BASE_GUILD = {
     KEY_IGNORE: None,
-    "denylistChannels": [],
+    KEY_CHANNEL_DENYLIST: [],
 }
 
 
