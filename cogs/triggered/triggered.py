@@ -3,7 +3,7 @@
 """
 
 import logging
-import os
+import io
 import aiohttp
 import discord
 from redbot.core import commands, data_manager
@@ -71,8 +71,9 @@ class Triggered(commands.Cog):
                 return
             await ctx.send(file=discord.File(savePath))
 
-    async def _createTrigger(self, user, mode=Modes.triggered):
+    async def _createTrigger(self, user: discord.User, mode=Modes.triggered):
         """Fetches the user's avatar, and creates a triggered GIF, applies additional PIL image transformations based on specified mode
+
         Parameters:
         -----------
         user: discord.Member
@@ -80,7 +81,7 @@ class Triggered(commands.Cog):
 
         Returns:
         --------
-        savePath: str, or None
+        A io.BytesIO object containing the data for the generated trigger image
         """
         avatarData: bytes
 
