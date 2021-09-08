@@ -82,43 +82,50 @@ class Triggered(commands.Cog):
         --------
         savePath: str, or None
         """
-        path = os.path.join(self.saveFolder, "{}.png".format(user.id))
-        savePath = os.path.join(self.saveFolder, "{}-trig.gif".format(user.id))
+        avatarData: bytes
 
         try:
             async with self.session.get(AVATAR_URL.format(user), headers=self.headers) as resp:
-                with open(path, "wb") as fp:
-                    fp.write(await resp.read())
+                avatarData = await resp.read()
         except aiohttp.ClientResponseError:
-            self.logger.error("Could not read the file!", exc_info=True)
+            self.logger.error("Reading user avatar response failed!", exc_info=True)
             return
 
-        avatar = Image.open(path)
-
-        if not avatar:
+        if not avatarData:
+            self.logger.error("No avatar data received!")
             return
 
-        offsets = [(15, 15), (5, 10), (-15, -15), (10, -10), (10, 0), (-15, 10), (10, -5)]
-        images = []
+        with Image.open(io.BytesIO(avatarData)) as avatar:
 
-        # if hyper mode is set
-        if mode == Modes.reallytriggered:
-            red_overlay = Image.new(mode="RGBA", size=avatar.size, color=(255, 0, 0, 255))
-            mask = Image.new(mode="RGBA", size=avatar.size, color=(255, 255, 255, 127))
-            avatar = Image.composite(avatar, red_overlay, mask)
+            if not avatar:
+                return
 
-        elif mode == Modes.hypertriggered:
-            avatar = ImageEnhance.Color(avatar).enhance(5)
-            avatar = ImageEnhance.Sharpness(avatar).enhance(24)
-            avatar = ImageEnhance.Contrast(avatar).enhance(4)
+            offsets = [(15, 15), (5, 10), (-15, -15), (10, -10), (10, 0), (-15, 10), (10, -5)]
+            images = []
 
-        for xcoord, ycoord in offsets:
-            image = ImageChops.offset(avatar, xcoord, ycoord)
-            image = ImageOps.crop(image, 15)
-            images.append(image)
-        avatar = ImageOps.crop(avatar, 15)
+            # if hyper mode is set
+            if mode == Modes.reallytriggered:
+                red_overlay = Image.new(mode="RGBA", size=avatar.size, color=(255, 0, 0, 255))
+                mask = Image.new(mode="RGBA", size=avatar.size, color=(255, 255, 255, 127))
+                avatar = Image.composite(avatar, red_overlay, mask)
 
-        avatar.save(
-            savePath, format="GIF", append_images=images, save_all=True, duration=25, loop=0
-        )
-        return savePath
+            elif mode == Modes.hypertriggered:
+                avatar = ImageEnhance.Color(avatar).enhance(5)
+                avatar = ImageEnhance.Sharpness(avatar).enhance(24)
+                avatar = ImageEnhance.Contrast(avatar).enhance(4)
+
+            for xcoord, ycoord in offsets:
+                image = ImageChops.offset(avatar, xcoord, ycoord)
+                image = ImageOps.crop(image, 15)
+                images.append(image)
+            avatar = ImageOps.crop(avatar, 15)
+
+            result = io.BytesIO()
+            avatar.save(
+                result, format="GIF", append_images=images, save_all=True, duration=25, loop=0
+            )
+
+            # IMPORTANT: rewind to beginning of the stream before returning
+            result.seek(0)
+
+            return result
