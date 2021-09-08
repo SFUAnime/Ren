@@ -14,6 +14,7 @@ from enum import Enum
 Modes = Enum("Modes", "triggered reallytriggered hypertriggered")
 
 AVATAR_URL = "https://cdn.discordapp.com/avatars/{0.id}/{0.avatar}.png?size=512"
+AVATAR_FILE_NAME = "{0.id}-triggered.gif"
 
 
 class Triggered(commands.Cog):
@@ -39,11 +40,11 @@ class Triggered(commands.Cog):
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, mode=Modes.triggered)
-            if not savePath:
+            data = await self._createTrigger(user, mode=Modes.triggered)
+            if not data:
                 await self.bot.say("Something went wrong, try again.")
                 return
-            await ctx.send(file=discord.File(savePath))
+            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     @commands.command(name="reallytriggered")
     async def hypertriggered(self, ctx, user: discord.Member = None):
@@ -52,11 +53,11 @@ class Triggered(commands.Cog):
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, mode=Modes.reallytriggered)
-            if not savePath:
+            data = await self._createTrigger(user, mode=Modes.reallytriggered)
+            if not data:
                 await self.bot.say("Something went wrong, try again.")
                 return
-            await ctx.send(file=discord.File(savePath))
+            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     @commands.command(name="hypertriggered")
     async def deepfry(self, ctx, user: discord.Member = None):
@@ -65,11 +66,11 @@ class Triggered(commands.Cog):
             user = ctx.message.author
         async with ctx.typing():
             # bot is typing here...
-            savePath = await self._createTrigger(user, mode=Modes.hypertriggered)
-            if not savePath:
+            data = await self._createTrigger(user, mode=Modes.hypertriggered)
+            if not data:
                 await self.bot.say("Something went wrong, try again.")
                 return
-            await ctx.send(file=discord.File(savePath))
+            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     async def _createTrigger(self, user: discord.User, mode=Modes.triggered):
         """Fetches the user's avatar, and creates a triggered GIF, applies additional PIL image transformations based on specified mode
