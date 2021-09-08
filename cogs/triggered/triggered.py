@@ -8,6 +8,7 @@ import aiohttp
 import discord
 from redbot.core import commands, data_manager
 from redbot.core.bot import Red
+from redbot.core.commands import Context
 from PIL import Image, ImageChops, ImageOps, ImageFilter, ImageEnhance
 from enum import Enum
 
@@ -34,7 +35,7 @@ class Triggered(commands.Cog):
         self.bot.loop.run_until_complete(self.session.close())
 
     @commands.command(name="triggered")
-    async def triggered(self, ctx, user: discord.Member = None):
+    async def triggered(self, ctx: Context, user: discord.Member = None):
         """Are you triggered? Say no more."""
         if not user:
             user = ctx.message.author
@@ -47,7 +48,7 @@ class Triggered(commands.Cog):
             await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     @commands.command(name="reallytriggered")
-    async def hypertriggered(self, ctx, user: discord.Member = None):
+    async def hypertriggered(self, ctx: Context, user: discord.Member = None):
         """Are you in an elevated state of triggered? Say no more."""
         if not user:
             user = ctx.message.author
@@ -60,7 +61,7 @@ class Triggered(commands.Cog):
             await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     @commands.command(name="hypertriggered")
-    async def deepfry(self, ctx, user: discord.Member = None):
+    async def deepfry(self, ctx: Context, user: discord.Member = None):
         """Are you incredibly triggered? Say no more."""
         if not user:
             user = ctx.message.author
