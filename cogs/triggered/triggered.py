@@ -78,12 +78,12 @@ class Triggered(commands.Cog):
 
         Parameters:
         -----------
-        user: discord.Member
-        mode: Mode
+        user: discord.User
+        mode: Modes
 
         Returns:
         --------
-        A io.BytesIO object containing the data for the generated trigger image
+        An io.BytesIO object containing the data for the generated trigger image
         """
         avatarData: bytes
 
