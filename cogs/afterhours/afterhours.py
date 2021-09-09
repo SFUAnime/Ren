@@ -173,12 +173,20 @@ class AfterHours(commands.Cog):
             try:
                 async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
                     for inactiveMember in inactiveMembers:
+                        # obtain information
+                        memberName = inactiveMember.name
+                        memberDiscriminator = inactiveMember.discriminator
+                        memberId = str(inactiveMember.id)
+                        # purge this inactive member
                         await inactiveMember.remove_roles(ahRole, reason="AfterHours auto-purge")
                         self.logger.info(
-                            "Removed role %s from user %s due to inactivity", ahRole.name, memberId
+                            "Removed role %s from %s#%s (%s) due to inactivity",
+                            ahRole.name,
+                            memberName,
+                            memberDiscriminator,
+                            memberId,
                         )
                         # clean up dict entry for this member
-                        memberId = str(inactiveMember.id)
                         del lastMsgTimestamps[memberId]
             except discord.Forbidden:
                 self.logger.error(
