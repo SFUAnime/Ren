@@ -14,35 +14,9 @@ from redbot.core.utils.chat_formatting import pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
 
+from .constants import *
+
 LOGGER = logging.getLogger("red.luicogs.Welcome")
-
-KEY_DM_ENABLED = "dmEnabled"
-KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
-KEY_LOG_JOIN_CHANNEL = "logJoinChannel"
-KEY_LOG_LEAVE_ENABLED = "logLeaveEnabled"
-KEY_LOG_LEAVE_CHANNEL = "logLeaveChannel"
-KEY_TITLE = "title"
-KEY_MESSAGE = "message"
-KEY_IMAGE = "image"
-KEY_GREETINGS = "greetings"
-KEY_WELCOME_CHANNEL = "welcomeChannel"
-KEY_WELCOME_CHANNEL_ENABLED = "welcomeChannelSet"
-
-MAX_MESSAGE_LENGTH = 2000
-
-DEFAULT_GUILD = {
-    KEY_DM_ENABLED: False,
-    KEY_LOG_JOIN_ENABLED: False,
-    KEY_LOG_JOIN_CHANNEL: None,
-    KEY_LOG_LEAVE_ENABLED: False,
-    KEY_LOG_LEAVE_CHANNEL: None,
-    KEY_TITLE: "Welcome!",
-    KEY_MESSAGE: "Welcome to the server! Hope you enjoy your stay!",
-    KEY_IMAGE: None,
-    KEY_GREETINGS: {},
-    KEY_WELCOME_CHANNEL: None,
-    KEY_WELCOME_CHANNEL_ENABLED: False,
-}
 
 
 class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
