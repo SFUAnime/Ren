@@ -338,6 +338,10 @@ class AfterHours(commands.Cog):
     @commands.Cog.listener("on_message")
     async def handleMessage(self, message: discord.Message):
         """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # Ignore on DMs.
+        if not isinstance(message.channel, discord.TextChannel):
+            return
+
         # ignore bot messages
         if message.author.bot:
             return
@@ -347,6 +351,10 @@ class AfterHours(commands.Cog):
     @commands.Cog.listener("on_message_edit")
     async def handleMessageEdit(self, before: discord.Message, after: discord.Message):
         """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # Ignore on DMs.
+        if not isinstance(after.channel, discord.TextChannel):
+            return
+
         # ignore bot messages
         if after.author.bot:
             return
