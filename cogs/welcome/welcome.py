@@ -580,15 +580,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
             descDict[userId] = description
-        # due to how pagify works, warn if there is a line feed character in the description
-        if "\n" in description:
-            await ctx.send(
-                warning(
-                    "The description has line feeds (line breaks). "
-                    "This may cause formatting issues with pagination. "
-                    "Consider removing them."
-                )
-            )
+
         await ctx.send(
             info(f"Description set for {user.mention}."),
             allowed_mentions=discord.AllowedMentions.none(),
