@@ -41,6 +41,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def on_member_join(self, newMember: discord.Member):
         await self.sendWelcomeMessageChannel(newMember)
         await self.sendWelcomeMessage(newMember)
+        await self.sendLogUserDescription(newMember)
 
     @commands.Cog.listener()
     async def on_member_remove(self, leaveMember: discord.Member):
@@ -141,6 +142,49 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                         newUser.discriminator,
                         newUser.id,
                     )
+
+    async def sendLogUserDescription(self, user: discord.User):
+        """Sends the user's tagged description to the log channel if it exists"""
+        currentGuild = user.guild
+        guildConfig = self.config.guild(currentGuild)
+
+        isLogJoinEnabled = await guildConfig.get_attr(KEY_LOG_JOIN_ENABLED)()
+        if not isLogJoinEnabled:
+            return
+
+        logChannel = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
+        logChannel: discord.TextChannel = discord.utils.get(
+            currentGuild.text_channels, id=logChannel
+        )
+
+        if not logChannel:
+            return
+
+        # check if there is a description entry for this user
+        # and if so, announce it to the log join channel
+        descDict: dict = await guildConfig.get_attr(KEY_DESCRIPTIONS)()
+        userId = str(user.id)
+        if userId in descDict:
+            descText: str = descDict[userId]
+            if descText:
+                await logChannel.send(
+                    "\n".join(
+                        [
+                            warning(
+                                f"User {user.name}#{user.discriminator} ({user.id}) "
+                                "was tagged with:"
+                            ),
+                            box(descText),
+                        ]
+                    )
+                )
+                LOGGER.info(
+                    "User %s#%s (%s) was tagged with a description. "
+                    "Posted description in the log channel.",
+                    user.name,
+                    user.discriminator,
+                    user.id,
+                )
 
     async def logServerLeave(self, leaveUser: discord.Member):
         """Logs the server leave to a channel, if enabled."""
