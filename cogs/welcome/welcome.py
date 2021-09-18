@@ -10,11 +10,12 @@ import random
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.chat_formatting import pagify, warning
+from redbot.core.utils.chat_formatting import box, info, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
 
 from .constants import *
+from .helpers import createTagListPages
 
 LOGGER = logging.getLogger("red.luicogs.Welcome")
 
