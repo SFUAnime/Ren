@@ -504,3 +504,56 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
         await ctx.send("If this server has been configured, you should have received a DM.")
+
+    # [p]welcome tag
+    @welcome.group(name="tag", aliases=["desc, description, descriptions"])
+    async def tag(self, ctx: Context):
+        """Manage user descriptions
+
+        When this user joins the server, the description associated with this user
+        will be printed out to the configured logging channel.
+        """
+
+    # [p]welcome tag add
+    @tag.command(name="add", aliases=["create", "new", "edit", "set"])
+    async def addTag(self, ctx: Context, user: discord.User, *, description: str):
+        """Add a description to a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to add a description to.
+        description: str
+            The description to add.
+        """
+        userId = str(user.id)
+        if len(description) > MAX_DESCRIPTION_LENGTH:
+            await ctx.send(
+                "The description is too long! "
+                f"Max length is {MAX_DESCRIPTION_LENGTH} characters."
+            )
+            return
+
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            descDict[userId] = description
+        # due to how pagify works, warn if there is a line feed character in the description
+        if "\n" in description:
+            await ctx.send(
+                warning(
+                    "The description has line feeds (line breaks). "
+                    "This may cause formatting issues with pagination. "
+                    "Consider removing them."
+                )
+            )
+        await ctx.send(
+            info(f"Description set for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been added for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+        LOGGER.debug(description)
+
