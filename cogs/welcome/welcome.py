@@ -93,7 +93,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         return
 
-    async def sendWelcomeMessage(self, newUser, test=False):
+    async def sendWelcomeMessage(self, newUser: discord.Member, test=False):
         """Sends the welcome message in DM."""
         async with self.config.guild(newUser.guild).all() as guildData:
             if not guildData[KEY_DM_ENABLED]:
@@ -143,18 +143,18 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                         newUser.id,
                     )
 
-    async def sendLogUserDescription(self, user: discord.User):
+    async def sendLogUserDescription(self, user: discord.Member):
         """Sends the user's tagged description to the log channel if it exists"""
-        currentGuild = user.guild
+        currentGuild: discord.Guild = user.guild
         guildConfig = self.config.guild(currentGuild)
 
         isLogJoinEnabled = await guildConfig.get_attr(KEY_LOG_JOIN_ENABLED)()
         if not isLogJoinEnabled:
             return
 
-        logChannel = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
+        logChannelId: int = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
         logChannel: discord.TextChannel = discord.utils.get(
-            currentGuild.text_channels, id=logChannel
+            currentGuild.text_channels, id=logChannelId
         )
 
         if not logChannel:
