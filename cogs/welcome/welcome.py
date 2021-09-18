@@ -647,12 +647,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if userId in descDict:
             description = descDict[userId]
             if description:
-                descText = "\n".join(
-                    [
-                        "**{}:**".format(user.mention),
-                        box(description),
-                    ]
-                )
+                descText = "\n".join([f"**{user.mention}:**", box(description)])
                 embed = discord.Embed(
                     title=f"Description for {user.name}#{user.discriminator}", description=descText
                 )
