@@ -557,3 +557,70 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         )
         LOGGER.debug(description)
 
+    # [p]welcome tag remove
+    @tag.command(name="remove", aliases=["delete", "del", "rm"])
+    async def removeTag(self, ctx: Context, user: discord.User):
+        """Remove a description from a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to remove a description from.
+        """
+        userId = str(user.id)
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            if userId in descDict:
+                del descDict[userId]
+        await ctx.send(
+            info(f"Description removed for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been removed for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+
+    # [p]welcome tag list
+    @tag.command(name="list", aliases=["ls"])
+    async def listTags(self, ctx: Context):
+        """List all descriptions."""
+        currentGuild: discord.Guild = ctx.guild
+        descDict: dict = await self.config.guild(currentGuild).get_attr(KEY_DESCRIPTIONS)()
+        if not descDict:
+            await ctx.send(info("No descriptions have been added."))
+            return
+        pageList = await createTagListPages(
+            descDict, embedTitle=f"Welcome descriptions for {currentGuild.name}"
+        )
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
+
+    # [p]welcome tag get
+    @tag.command(name="get", aliases=["show"])
+    async def getTag(self, ctx: Context, user: discord.User):
+        """Get a description for a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to get a description for.
+        """
+        userId = str(user.id)
+        descDict: dict = await self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)()
+        if userId in descDict:
+            description = descDict[userId]
+            if description:
+                descText = "\n".join(
+                    [
+                        "**{}:**".format(user.mention),
+                        box(description),
+                    ]
+                )
+                embed = discord.Embed(
+                    title=f"Description for {user.name}#{user.discriminator}", description=descText
+                )
+                await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+                return
+
+        await ctx.send(info("No description found for that user."))
