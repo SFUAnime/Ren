@@ -327,8 +327,11 @@ class Respects(commands.Cog):
             if newReference:
                 newReference.fail_if_not_exists = False
 
+            messageEmbed = discord.Embed(description=message)
+            messageEmbed.set_footer(text=f"Use {ctx.clean_prefix}f to pay respects")
+
             messageObj = await ctx.send(
-                message,
+                embed=messageEmbed,
                 reference=newReference,
                 mention_author=False,
             )
