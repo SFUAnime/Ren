@@ -46,6 +46,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @commands.Cog.listener()
     async def on_member_remove(self, leaveMember: discord.Member):
         await self.logServerLeave(leaveMember)
+        await self.sendLogUserDescription(leaveMember)
 
     # This async function is to look for if the welcome channel was removed
     @commands.Cog.listener()
