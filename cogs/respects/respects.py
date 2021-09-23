@@ -12,6 +12,7 @@ import discord.utils
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
+from redbot.core.utils.chat_formatting import humanize_list
 
 KEY_USERS = "users"
 KEY_TIME = "time"
@@ -297,31 +298,17 @@ class Respects(commands.Cog):
                 finally:
                     chData[KEY_MSG] = None
 
-            message = None
             confUserIds = chData[KEY_USERS]
+            currentGuild: discord.Guild = ctx.guild
+            members = filter(
+                lambda member: member, (currentGuild.get_member(uid) for uid in confUserIds)
+            )
 
-            if len(confUserIds) == 1:
-                message = "**{}** has paid their respects {}".format(
-                    ctx.author.name,
-                    choice(HEARTS),
-                )
-            elif len(confUserIds) == 2:  # 2 users, no comma.
-                user1 = ctx.author
-                uid2 = confUserIds[0]
-                user2 = discord.utils.get(ctx.guild.members, id=uid2)
-                users = "**{} and {}**".format(user1.name, user2.name)
-                message = "{} have paid their respects {}".format(users, choice(HEARTS))
-            else:
-                first = True
-                users = ""
-                for userId in confUserIds:
-                    userObj = discord.utils.get(ctx.guild.members, id=userId)
-                    if first:
-                        users = "and {}".format(userObj.name)
-                        first = False
-                    else:
-                        users = "{}, {}".format(userObj.name, users)
-                message = "**{}** have paid their respects {}".format(users, choice(HEARTS))
+            message = "{memberNames} {haveHas} paid their respects {heartEmote}".format(
+                memberNames=humanize_list([member.name for member in members]),
+                haveHas=("has" if len(members) == 1 else "have"),
+                heartEmote=choice(HEARTS),
+            )
 
             newReference = ctx.message.reference if ctx.message.reference else oldReference
             if newReference:

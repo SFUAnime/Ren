@@ -1,4 +1,5 @@
 from .constants import COLOUR_BLURPLE
+from .data import TagAlias, TagInfo
 
 import discord
 from redbot.core.utils import AsyncIter, chat_formatting
@@ -53,3 +54,11 @@ async def createSimplePages(
         pageList.append(embed)
 
     return pageList
+
+
+def tagDecoder(obj):
+    if "__tag__" in obj:
+        return TagInfo(**obj)
+    if "__tag_alias__" in obj:
+        return TagAlias(**obj)
+    return obj

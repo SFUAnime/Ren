@@ -4,6 +4,7 @@ Control Your Own URL Shortener instance.
 """
 import asyncio
 from datetime import timezone
+from functools import partial
 import logging
 import os
 import discord
@@ -78,6 +79,7 @@ class YOURLS(commands.Cog):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**BASE_GUILD)
+        self.loop = asyncio.get_running_loop()
 
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.YOURLS")
@@ -102,7 +104,9 @@ class YOURLS(commands.Cog):
         """Get instance-wide statistics."""
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            urls, stats = shortener.stats("top", limit=3)
+            urls, stats = await self.loop.run_in_executor(
+                None, partial(shortener.stats, "top", limit=3)
+            )
             embed = discord.Embed()
             emoji = 129351  # first_place
             for url in urls:
@@ -140,7 +144,9 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            url = shortener.shorten(longUrl, keyword=keyword)
+            url = await self.loop.run_in_executor(
+                None, partial(shortener.shorten, longUrl, keyword=keyword)
+            )
             self.logger.info(
                 "%s (%s) added a short URL at %s for %s (%s)",
                 ctx.author.name,
@@ -210,7 +216,7 @@ class YOURLS(commands.Cog):
 
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            url = shortener.delete(keyword)
+            await self.loop.run_in_executor(None, shortener.delete, keyword)
             self.logger.info(
                 "%s (%s) deleted the short URL %s for %s (%s)",
                 ctx.author.name,
@@ -254,7 +260,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            shortener.rename(oldKeyword, newKeyword)
+            await self.loop.run_in_executor(None, shortener.rename, oldKeyword, newKeyword)
         except YOURLSNotConfigured as error:
             await ctx.send(error)
         except HTTPError as error:
@@ -315,7 +321,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            shortener.edit(keyword, newLongUrl)
+            await self.loop.run_in_executor(None, shortener.edit, keyword, newLongUrl)
         except YOURLSNotConfigured as error:
             await ctx.send(error)
         except HTTPError as error:
@@ -361,7 +367,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            urlStats = shortener.url_stats(keyword)
+            urlStats = await self.loop.run_in_executor(None, shortener.url_stats, keyword)
             urlDate = urlStats.date.replace(tzinfo=timezone.utc).astimezone(tz=None)
             urlDate = urlDate.strftime("%a, %d %b %Y %I:%M%p %Z")
             embed = discord.Embed()

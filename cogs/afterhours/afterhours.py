@@ -159,7 +159,7 @@ class AfterHours(commands.Cog):
                         memberId = str(member.id)
                         if memberId in lastMsgTimestamps:
                             lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
-                            if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
+                            if datetime.now() - lastMsgTime > inactiveDurationTimeDelta:
                                 inactiveMembers.append((member, lastMsgTime))
                         else:
                             self.logger.debug(
@@ -167,7 +167,7 @@ class AfterHours(commands.Cog):
                                 "therefore assuming the last message timestamp is right now",
                                 memberId,
                             )
-                            lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
+                            lastMsgTimestamps[memberId] = datetime.now().timestamp()
 
             # purge inactive members
             try:
@@ -348,7 +348,7 @@ class AfterHours(commands.Cog):
         if message.author.bot:
             return
 
-        await self.saveMessageTimestamp(message, message.created_at.timestamp())
+        await self.saveMessageTimestamp(message, datetime.now().timestamp())
 
     @commands.Cog.listener("on_message_edit")
     async def handleMessageEdit(self, before: discord.Message, after: discord.Message):
@@ -362,7 +362,7 @@ class AfterHours(commands.Cog):
             return
 
         if after.edited_at:
-            await self.saveMessageTimestamp(after, after.edited_at.timestamp())
+            await self.saveMessageTimestamp(after, datetime.now().timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()
