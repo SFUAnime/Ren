@@ -302,12 +302,13 @@ class Respects(commands.Cog):
             currentGuild: discord.Guild = ctx.guild
             members = list(
                 filter(
-                    lambda member: member, (currentGuild.get_member(uid) for uid in confUserIds)
+                    lambda member: member,
+                    (currentGuild.get_member(uid) for uid in confUserIds),
                 )
             )
 
             message = "{memberNames} {haveHas} paid their respects {heartEmote}".format(
-                memberNames=humanize_list([member.name for member in members]),
+                memberNames=humanize_list([member.mention for member in members]),
                 haveHas=("has" if len(members) == 1 else "have"),
                 heartEmote=choice(HEARTS),
             )
