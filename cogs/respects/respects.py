@@ -303,7 +303,7 @@ class Respects(commands.Cog):
             members = list(
                 filter(
                     lambda member: member,
-                    (currentGuild.get_member(uid) for uid in confUserIds),
+                    (currentGuild.get_member(uid) for uid in reversed(confUserIds)),
                 )
             )
 
