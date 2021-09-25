@@ -46,6 +46,10 @@ WEBCAM_UDN = (
     "http://ns-webcams.its.sfu.ca/public/images/udn-current.jpg"
     "?nocache=1&update=15000&timeout=1800000&offset=4"
 )
+WEBCAM_WMC = (
+    "http://ns-webcams.its.sfu.ca/public/images/wmcroof-current.jpg"
+    "?nocache=1&update=15000&timeout=1800000"
+)
 
 ROAD_API = "http://www.sfu.ca/security/sfuroadconditions/api/3/current"
 
@@ -74,6 +78,7 @@ class SFURoads(SFUBase):
             "trn": WEBCAM_TRN,
             "trs": WEBCAM_TRS,
             "udn": WEBCAM_UDN,
+            "wmc": WEBCAM_WMC,
         }
         # We need a custom header or else we get a HTTP 403 Unauthorized
         self.headers = {"User-agent": "Mozilla/5.0"}
@@ -101,6 +106,7 @@ class SFURoads(SFUBase):
             trn:    Tower Road North
             trs:    Tower Road South
             udn:    University Drive North
+            wmc:    West Mall Centre (WMC) Roof
         """
         await ctx.trigger_typing()
 
