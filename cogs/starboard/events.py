@@ -170,11 +170,10 @@ class StarboardEvents:
             return
         if not starboard.enabled:
             return
-        if not starboard.check_roles(member):
-            log.debug("User not in allowlist")
-            return
-        if not starboard.check_channel(self.bot, channel):
-            log.debug("Channel not in allowlist")
+        allowed = starboard.check_roles(member)
+        allowed |= starboard.check_channel(self.bot, channel)
+        if not allowed:
+            log.debug("User or channel not in allowlist")
             return
 
         star_channel = guild.get_channel(starboard.channel)

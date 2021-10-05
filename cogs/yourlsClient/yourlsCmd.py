@@ -11,12 +11,14 @@ import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from requests.exceptions import HTTPError, RequestException
 import yourls
 from yourls import YOURLSClientBase, YOURLSAPIMixin
 
 from .exceptions import *
+from .helpers import createSimplePages
 
 KEY_API = "api"
 KEY_SIGNATURE = "signature"
@@ -69,7 +71,16 @@ class YOURLSEditMixin(object):
         self._api_request(params=data)
 
 
-class YOURLSClient(YOURLSDeleteMixin, YOURLSEditMixin, YOURLSAPIMixin, YOURLSClientBase):
+class YOURLSSearchKeywordsMixin(object):
+    def search(self, searchTerm: str):
+        data = dict(action="search_keywords", search_term=searchTerm)
+        results = self._api_request(params=data)
+        return results["keywords"]
+
+
+class YOURLSClient(
+    YOURLSDeleteMixin, YOURLSEditMixin, YOURLSSearchKeywordsMixin, YOURLSAPIMixin, YOURLSClientBase
+):
     """YOURLS client with API delete support."""
 
 
@@ -354,6 +365,36 @@ class YOURLS(commands.Cog):
                 ctx.guild.id,
             )
             await ctx.send(f"Short URL {keyword} now points to {newLongUrl}")
+
+    @yourlsBase.command(name="search")
+    async def search(self, ctx: Context, searchTerm: str):
+        """Get a list of keywords that resemble `searchTerm`.
+
+        Parameters
+        ----------
+        searchTerm: str
+            The search term to look for in YOURLS.
+            e.g. The keyword of `https://example.com/discord` is `discord`.
+        """
+        try:
+            shortener = await self.fetchYourlsClient(ctx.guild)
+            results = await self.loop.run_in_executor(None, shortener.search, searchTerm)
+        except RuntimeError as error:
+            await ctx.send(error)
+        except HTTPError as error:
+            if error.response.status_code == 404:
+                await ctx.send(
+                    "Did not find any matches, please try again with different parameters!"
+                )
+            else:
+                self.logger.error(error, exc_info=True)
+                await ctx.send(DEFAULT_ERROR)
+        except RequestException as error:
+            self.logger.error(error)
+            await ctx.send(DEFAULT_ERROR)
+        else:
+            pageList = await createSimplePages(results, "Found the following keywords:")
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
 
     @yourlsBase.command(name="info")
     async def urlInfo(self, ctx: Context, keyword: str):
