@@ -124,6 +124,9 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             filters.remove(word)
             await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
+            filterStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+            del filterStats[word]
+            await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
             await user.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -503,7 +506,9 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             filterStats = await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS)()
 
             for word in filteredWords:
-                timesMatched = len(re.findall(r"\b" + word + r"\b", filteredMsg))
+                timesMatched = len(
+                    re.findall(r"\b" + word + r"\b", originalMsg, flags=re.IGNORECASE)
+                )
                 filterStats.update({word: filterStats.get(word, 0) + timesMatched})
 
             await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
