@@ -133,9 +133,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        f":o: ``Server Welcome:`` User {newUser.name}#"
-                        f"{newUser.discriminator} ({newUser.id}) has "
-                        "joined. DM sent."
+                        f":o: ``Server Welcome:`` User {newUser.mention} "
+                        f"{newUser.name}#{newUser.discriminator} "
+                        f"({newUser.id}) has joined. DM sent."
                     )
                     LOGGER.info(
                         "User %s#%s (%s) has joined. DM sent.",
@@ -196,9 +196,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 )
                 if channel:
                     await channel.send(
-                        f":x: ``Server Leave  :`` User {leaveUser.name}#"
-                        f"{leaveUser.discriminator} ({leaveUser.id}) has "
-                        "left the server."
+                        f":x: ``Server Leave  :`` User {leaveUser.mention} "
+                        f"{leaveUser.name}#{leaveUser.discriminator} "
+                        f"({leaveUser.id}) has left the server."
                     )
                 LOGGER.info(
                     "User %s#%s (%s) has left the server.",
