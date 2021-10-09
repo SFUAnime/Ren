@@ -1,11 +1,14 @@
+from typing import List
+
 from .constants import COLOUR_BLURPLE
+from .data import TagAlias, TagInfo
 
 import discord
 from redbot.core.utils import AsyncIter, chat_formatting
 
 
 async def createSimplePages(
-    items: [str], embedTitle: str = "", embedAuthor: discord.Member = None
+    items: List[str], embedTitle: str = "", embedAuthor: discord.Member = None
 ):
     """Create embed pages for the redbot menu coroutine.
 
@@ -16,17 +19,17 @@ async def createSimplePages(
 
     Parameters
     ----------
-    items: [ str ]
+    items: List[ str ]
         A list of strings you wish to display to the user.
     embedTitle: Optional[ str ]
         The title for all the embed pages
-    embedAuthor : Optional[ discord.Member ]
+    embedAuthor: Optional[ discord.Member ]
         The author. If passed in, it will set the footer author's name and
         avatar
 
     Returns
     -------
-    [ discord.Embed ]
+    List[ discord.Embed ]
         A list of `discord.Embed`s, which can be passed directly into Red's
         menu coroutine.
     """
@@ -53,3 +56,11 @@ async def createSimplePages(
         pageList.append(embed)
 
     return pageList
+
+
+def tagDecoder(obj):
+    if "__tag__" in obj:
+        return TagInfo(**obj)
+    if "__tag_alias__" in obj:
+        return TagAlias(**obj)
+    return obj

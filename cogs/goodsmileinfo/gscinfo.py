@@ -37,7 +37,7 @@ class GoodSmileInfo(commands.Cog):
         self.logger = logging.getLogger("red.luicogs.GoodSmileInfo")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
-            self.logger.setLevel(logging.DEBUG)
+            self.logger.setLevel(logging.INFO)
             logPath = os.path.join(saveFolder, "info.log")
             handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(

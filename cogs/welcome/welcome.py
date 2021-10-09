@@ -10,39 +10,14 @@ import random
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.chat_formatting import pagify, warning
+from redbot.core.utils.chat_formatting import box, info, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
 
+from .constants import *
+from .helpers import createTagListPages
+
 LOGGER = logging.getLogger("red.luicogs.Welcome")
-
-KEY_DM_ENABLED = "dmEnabled"
-KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
-KEY_LOG_JOIN_CHANNEL = "logJoinChannel"
-KEY_LOG_LEAVE_ENABLED = "logLeaveEnabled"
-KEY_LOG_LEAVE_CHANNEL = "logLeaveChannel"
-KEY_TITLE = "title"
-KEY_MESSAGE = "message"
-KEY_IMAGE = "image"
-KEY_GREETINGS = "greetings"
-KEY_WELCOME_CHANNEL = "welcomeChannel"
-KEY_WELCOME_CHANNEL_ENABLED = "welcomeChannelSet"
-
-MAX_MESSAGE_LENGTH = 2000
-
-DEFAULT_GUILD = {
-    KEY_DM_ENABLED: False,
-    KEY_LOG_JOIN_ENABLED: False,
-    KEY_LOG_JOIN_CHANNEL: None,
-    KEY_LOG_LEAVE_ENABLED: False,
-    KEY_LOG_LEAVE_CHANNEL: None,
-    KEY_TITLE: "Welcome!",
-    KEY_MESSAGE: "Welcome to the server! Hope you enjoy your stay!",
-    KEY_IMAGE: None,
-    KEY_GREETINGS: {},
-    KEY_WELCOME_CHANNEL: None,
-    KEY_WELCOME_CHANNEL_ENABLED: False,
-}
 
 
 class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
@@ -66,10 +41,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def on_member_join(self, newMember: discord.Member):
         await self.sendWelcomeMessageChannel(newMember)
         await self.sendWelcomeMessage(newMember)
+        await self.sendLogUserDescription(newMember)
 
     @commands.Cog.listener()
     async def on_member_remove(self, leaveMember: discord.Member):
         await self.logServerLeave(leaveMember)
+        await self.sendLogUserDescription(leaveMember)
 
     # This async function is to look for if the welcome channel was removed
     @commands.Cog.listener()
@@ -117,7 +94,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         return
 
-    async def sendWelcomeMessage(self, newUser, test=False):
+    async def sendWelcomeMessage(self, newUser: discord.Member, test=False):
         """Sends the welcome message in DM."""
         async with self.config.guild(newUser.guild).all() as guildData:
             if not guildData[KEY_DM_ENABLED]:
@@ -156,9 +133,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        f":o: ``Server Welcome:`` User {newUser.name}#"
-                        f"{newUser.discriminator} ({newUser.id}) has "
-                        "joined. DM sent."
+                        f":o: ``Server Welcome:`` User {newUser.mention} "
+                        f"{newUser.name}#{newUser.discriminator} "
+                        f"({newUser.id}) has joined. DM sent."
                     )
                     LOGGER.info(
                         "User %s#%s (%s) has joined. DM sent.",
@@ -166,6 +143,49 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                         newUser.discriminator,
                         newUser.id,
                     )
+
+    async def sendLogUserDescription(self, user: discord.Member):
+        """Sends the user's tagged description to the log channel if it exists"""
+        currentGuild: discord.Guild = user.guild
+        guildConfig = self.config.guild(currentGuild)
+
+        isLogJoinEnabled = await guildConfig.get_attr(KEY_LOG_JOIN_ENABLED)()
+        if not isLogJoinEnabled:
+            return
+
+        logChannelId: int = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
+        logChannel: discord.TextChannel = discord.utils.get(
+            currentGuild.text_channels, id=logChannelId
+        )
+
+        if not logChannel:
+            return
+
+        # check if there is a description entry for this user
+        # and if so, announce it to the log join channel
+        descDict: dict = await guildConfig.get_attr(KEY_DESCRIPTIONS)()
+        userId = str(user.id)
+        if userId in descDict:
+            descText: str = descDict[userId]
+            if descText:
+                await logChannel.send(
+                    "\n".join(
+                        [
+                            warning(
+                                f"User {user.name}#{user.discriminator} ({user.id}) "
+                                "was tagged with:"
+                            ),
+                            box(descText),
+                        ]
+                    )
+                )
+                LOGGER.info(
+                    "User %s#%s (%s) was tagged with a description. "
+                    "Posted description in the log channel.",
+                    user.name,
+                    user.discriminator,
+                    user.id,
+                )
 
     async def logServerLeave(self, leaveUser: discord.Member):
         """Logs the server leave to a channel, if enabled."""
@@ -176,9 +196,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 )
                 if channel:
                     await channel.send(
-                        f":x: ``Server Leave  :`` User {leaveUser.name}#"
-                        f"{leaveUser.discriminator} ({leaveUser.id}) has "
-                        "left the server."
+                        f":x: ``Server Leave  :`` User {leaveUser.mention} "
+                        f"{leaveUser.name}#{leaveUser.discriminator} "
+                        f"({leaveUser.id}) has left the server."
                     )
                 LOGGER.info(
                     "User %s#%s (%s) has left the server.",
@@ -529,3 +549,110 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
         await ctx.send("If this server has been configured, you should have received a DM.")
+
+    # [p]welcome tag
+    @welcome.group(name="tag", aliases=["desc, description, descriptions"])
+    async def tag(self, ctx: Context):
+        """Manage user descriptions
+
+        When this user joins the server, the description associated with this user
+        will be printed out to the configured logging channel.
+        """
+
+    # [p]welcome tag add
+    @tag.command(name="add", aliases=["create", "new", "edit", "set"])
+    async def addTag(self, ctx: Context, user: discord.User, *, description: str):
+        """Add a description to a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to add a description to.
+        description: str
+            The description to add.
+        """
+        userId = str(user.id)
+        if len(description) > MAX_DESCRIPTION_LENGTH:
+            await ctx.send(
+                "The description is too long! "
+                f"Max length is {MAX_DESCRIPTION_LENGTH} characters."
+            )
+            return
+
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            descDict[userId] = description
+
+        await ctx.send(
+            info(f"Description set for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been added for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+        LOGGER.debug(description)
+
+    # [p]welcome tag remove
+    @tag.command(name="remove", aliases=["delete", "del", "rm"])
+    async def removeTag(self, ctx: Context, user: discord.User):
+        """Remove a description from a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to remove a description from.
+        """
+        userId = str(user.id)
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            if userId in descDict:
+                del descDict[userId]
+        await ctx.send(
+            info(f"Description removed for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been removed for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+
+    # [p]welcome tag list
+    @tag.command(name="list", aliases=["ls"])
+    async def listTags(self, ctx: Context):
+        """List all descriptions."""
+        currentGuild: discord.Guild = ctx.guild
+        descDict: dict = await self.config.guild(currentGuild).get_attr(KEY_DESCRIPTIONS)()
+        if not descDict:
+            await ctx.send(info("No descriptions have been added."))
+            return
+        pageList = await createTagListPages(
+            descDict, embedTitle=f"Welcome descriptions for {currentGuild.name}"
+        )
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
+
+    # [p]welcome tag get
+    @tag.command(name="get", aliases=["show"])
+    async def getTag(self, ctx: Context, user: discord.User):
+        """Get a description for a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to get a description for.
+        """
+        userId = str(user.id)
+        descDict: dict = await self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)()
+        if userId in descDict:
+            description = descDict[userId]
+            if description:
+                descText = "\n".join([f"**{user.mention}:**", box(description)])
+                embed = discord.Embed(
+                    title=f"Description for {user.name}#{user.discriminator}", description=descText
+                )
+                await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+                return
+
+        await ctx.send(info("No description found for that user."))

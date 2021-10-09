@@ -6,7 +6,7 @@ import os
 import re
 import logging
 import asyncio
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
@@ -134,7 +134,7 @@ class AfterHours(commands.Cog):
                     continue
 
             # a list of members to be purged
-            inactiveMembers: List[discord.Member] = []
+            inactiveMembers: List[Tuple[discord.Member, datetime]] = []
 
             # check for inactive members based on a set inactive duration
             inactiveDuration: int = await autoPurgeInactiveDurationConfig()
@@ -159,26 +159,36 @@ class AfterHours(commands.Cog):
                         memberId = str(member.id)
                         if memberId in lastMsgTimestamps:
                             lastMsgTime = datetime.fromtimestamp(lastMsgTimestamps[memberId])
-                            if datetime.utcnow() - lastMsgTime > inactiveDurationTimeDelta:
-                                inactiveMembers.append(member)
+                            if datetime.now() - lastMsgTime > inactiveDurationTimeDelta:
+                                inactiveMembers.append((member, lastMsgTime))
                         else:
                             self.logger.debug(
-                                "User %s has no AfterHours message timestamp recorded, "
+                                "Member %s has no AfterHours message timestamp recorded, "
                                 "therefore assuming the last message timestamp is right now",
                                 memberId,
                             )
-                            lastMsgTimestamps[memberId] = int(datetime.utcnow().timestamp())
+                            lastMsgTimestamps[memberId] = datetime.now().timestamp()
 
             # purge inactive members
             try:
                 async with guildConfig.get_attr(KEY_LAST_MSG_TIMESTAMPS)() as lastMsgTimestamps:
-                    for inactiveMember in inactiveMembers:
+                    for inactiveMember, lastMsgTime in inactiveMembers:
+                        # obtain information
+                        memberName = inactiveMember.name
+                        memberDiscriminator = inactiveMember.discriminator
+                        memberId = str(inactiveMember.id)
+                        # purge this inactive member
                         await inactiveMember.remove_roles(ahRole, reason="AfterHours auto-purge")
                         self.logger.info(
-                            "Removed role %s from user %s due to inactivity", ahRole.name, memberId
+                            "Removed role %s from %s#%s (%s) due to inactivity. Last message time: %s (%s)",
+                            ahRole.name,
+                            memberName,
+                            memberDiscriminator,
+                            memberId,
+                            lastMsgTime.timestamp(),
+                            lastMsgTime.strftime("%d/%m/%Y %H:%M:%S"),
                         )
                         # clean up dict entry for this member
-                        memberId = str(inactiveMember.id)
                         del lastMsgTimestamps[memberId]
             except discord.Forbidden:
                 self.logger.error(
@@ -330,21 +340,29 @@ class AfterHours(commands.Cog):
     @commands.Cog.listener("on_message")
     async def handleMessage(self, message: discord.Message):
         """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # Ignore on DMs.
+        if not isinstance(message.channel, discord.TextChannel):
+            return
+
         # ignore bot messages
         if message.author.bot:
             return
 
-        await self.saveMessageTimestamp(message, message.created_at.timestamp())
+        await self.saveMessageTimestamp(message, datetime.now().timestamp())
 
     @commands.Cog.listener("on_message_edit")
     async def handleMessageEdit(self, before: discord.Message, after: discord.Message):
         """Listener to save every AfterHours member's latest message's timestamp for purging purposes"""
+        # Ignore on DMs.
+        if not isinstance(after.channel, discord.TextChannel):
+            return
+
         # ignore bot messages
         if after.author.bot:
             return
 
         if after.edited_at:
-            await self.saveMessageTimestamp(after, after.edited_at.timestamp())
+            await self.saveMessageTimestamp(after, datetime.now().timestamp())
 
     @commands.group(name="afterhours")
     @commands.guild_only()
