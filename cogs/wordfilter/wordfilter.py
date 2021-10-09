@@ -2,7 +2,6 @@
 To filter words in a more smart/useful way than simply detecting and
 deleting a message.
 """
-from os import stat
 import re
 from threading import Lock
 import logging
@@ -125,8 +124,9 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             filters.remove(word)
             await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
             filterStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
-            del filterStats[word]
-            await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
+            if word in filterStats:
+                del filterStats[word]
+                await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
             await user.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -607,7 +607,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if sorting:
                 stats = dict(sorted(rawUsageStats.items(), key=lambda item: item[1], reverse=True))
             for regex, timesUsed in stats.items():
-                display.append(f"{count}. `{regex}` : `{timesUsed}`,")
+                display.append(f"{count}. `{regex}`: `{timesUsed}`")
                 count += 1
             msg = "\n".join(display)
             pages = list(chat_formatting.pagify(msg, page_length=400))
