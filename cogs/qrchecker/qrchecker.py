@@ -36,6 +36,11 @@ class QRChecker(commands.Cog):
             return
         # check if enabled
         if not await self.config.guild(message.guild).get_attr(KEY_ENABLED)():
+            self.logger.debug(
+                "QR Checker disabled for %s (%s); return early",
+                message.guild.name,
+                message.guild.id,
+            )
             return
         if not message.attachments:
             self.logger.debug("No attachments, return early")
@@ -123,6 +128,7 @@ class QRChecker(commands.Cog):
     @commands.guild_only()
     @commands.admin_or_permissions(manage_guild=True)
     async def qrchecker(self, ctx: commands.Context):
+        """Configure QR code checker"""
         pass
 
     # toggle command
@@ -140,4 +146,4 @@ class QRChecker(commands.Cog):
             await ctx.send("QR code checking is now **disabled** for this guild.")
         else:
             await guildConfig.get_attr(KEY_ENABLED).set(True)
-            await ctx.send("QR code checking is now **enabled ** for this guild.")
+            await ctx.send("QR code checking is now **enabled** for this guild.")
