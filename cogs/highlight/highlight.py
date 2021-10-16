@@ -644,7 +644,7 @@ class Highlight(commands.Cog):
 
         guildConfig = self.config.guild(msg.channel.guild)
         # Prevent messages in a denylist channel from triggering highlight words
-        if msg.channel.name in await guildConfig.get_attr(KEY_CHANNEL_DENYLIST)():
+        if msg.channel.id in await guildConfig.get_attr(KEY_CHANNEL_DENYLIST)():
             self.logger.debug("Message is from a denylist channel, returning")
             return
 
