@@ -17,9 +17,8 @@ from redbot.core.utils.chat_formatting import pagify
 
 KEY_ENABLED = "enabled"
 
-BASE_GUILD = {
-    KEY_ENABLED: False
-}
+BASE_GUILD = {KEY_ENABLED: False}
+
 
 class QRChecker(commands.Cog):
     """A QR code checker for attachments"""
