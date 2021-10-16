@@ -8,6 +8,7 @@ import os
 import logging
 import re
 from threading import Lock
+from typing import List
 import asyncio
 import aiohttp
 import discord
@@ -92,10 +93,23 @@ class Highlight(commands.Cog):
     async def guildChannelsDenyList(self, ctx: Context):
         """List the channels in the denylist."""
         dlChannels = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)()
+        channelMentions: List[str] = []
 
         if dlChannels:
+            channelMentions = [
+                channelObject.mention
+                for channelObject in list(
+                    map(
+                        lambda chId: discord.utils.get(ctx.guild.text_channels, id=chId),
+                        dlChannels,
+                    )
+                )
+                if channelObject
+            ]
+
+        if channelMentions:
             pageList = []
-            msg = "\n".join(dlChannels)
+            msg = "\n".join(channelMentions)
             pages = list(chat_formatting.pagify(msg, page_length=300))
             totalPages = len(pages)
             totalEntries = len(dlChannels)
@@ -111,40 +125,40 @@ class Highlight(commands.Cog):
             await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
 
     @guildChannels.command(name="add")
-    async def guildChannelsDenyAdd(self, ctx: Context, channelName: str):
+    async def guildChannelsDenyAdd(self, ctx: Context, channel: discord.TextChannel):
         """Add a channel to the denylist.
 
         Channels in this list will NOT trigger user highlights.
 
         Parameters:
         -----------
-        channelName: str
-            The channel name you wish to not trigger user highlights for.
+        channel: discord.TextChannel
+            The channel you wish to not trigger user highlights for.
         """
         async with self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
-            if channelName in dlChannels:
-                await ctx.send(f"**{channelName}** is already on the denylist.")
+            if channel.id in dlChannels:
+                await ctx.send(f"**{channel.mention}** is already on the denylist.")
             else:
-                dlChannels.append(channelName)
+                dlChannels.append(channel.id)
                 await ctx.send(
-                    f"Messages in **{channelName}** will no longer trigger highlights for users"
+                    f"Messages in **{channel.mention}** will no longer trigger highlights for users"
                 )
 
     @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
-    async def guildChannelsDenyDelete(self, ctx: Context, channelName: str):
+    async def guildChannelsDenyDelete(self, ctx: Context, channel: discord.TextChannel):
         """Remove a channel from the denylist.
 
         Parameters:
         -----------
-        channelName: str
-            The channel name you wish to remove from the denylist.
+        channel: discord.TextChannel
+            The channel you wish to remove from the denylist.
         """
         async with self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
-            if channelName in dlChannels:
-                dlChannels.remove(channelName)
-                await ctx.send(f"**{channelName}** removed from the denylist.")
+            if channel.id in dlChannels:
+                dlChannels.remove(channel.id)
+                await ctx.send(f"**{channel.mention}** removed from the denylist.")
             else:
-                await ctx.send(f"**{channelName}** is not on the denylist.")
+                await ctx.send(f"**{channel.mention}** is not on the denylist.")
 
     @highlight.command(name="add")
     @commands.guild_only()
