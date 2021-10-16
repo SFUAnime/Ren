@@ -26,7 +26,7 @@ KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 KEY_WORDS_IGNORE = "ignoreWords"
 KEY_CHANNEL_IGNORE = "userIgnoreChannelID"
-KEY_CHANNEL_DENYLIST = "denylistChannels"
+KEY_CHANNEL_DENYLIST = "denylistChannelID"
 
 BASE_GUILD_MEMBER = {
     KEY_BLACKLIST: [],
