@@ -190,6 +190,7 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
         self, guild: discord.Guild, mod: discord.Member, user: discord.Member
     ):
         is_special = mod == guild.owner or await self.bot.is_owner(mod)
+        is_special |= await self.bot.is_mod(mod)
         return mod.top_role > user.top_role or is_special
 
     async def _handle_automatic_unmute(self):
