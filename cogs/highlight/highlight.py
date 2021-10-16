@@ -12,6 +12,7 @@ from typing import List
 import asyncio
 import aiohttp
 import discord
+from discord.ext import tasks
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
@@ -69,6 +70,12 @@ class Highlight(commands.Cog):
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
             self.logger.addHandler(handler)
+
+        self.guildDenyListCleanup.start()
+
+    def cog_unload(self):
+        self.logger.info("Cancelling background task")
+        self.guildDenyListCleanup.cancel()
 
     @commands.group(name="highlight", aliases=["hl"])
     @commands.guild_only()
@@ -771,6 +778,25 @@ class Highlight(commands.Cog):
                 user.discriminator,
                 user.id,
             )
+
+    @tasks.loop(minutes=60)
+    async def guildDenyListCleanup(self):
+        self.logger.info("Checking for stale channel IDs...")
+        for guild in self.bot.guilds:
+            self.logger.debug("Checking guild %s (%s)", guild.name, guild.id)
+            channelsToRemove = []
+            async with self.config.guild(guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
+                for channelId in dlChannels:
+                    if not discord.utils.get(guild.text_channels, id=channelId):
+                        channelsToRemove.append(channelId)
+                for channelId in channelsToRemove:
+                    self.logger.info("Removing non-existent channel ID %s", channelId)
+                    dlChannels.remove(channelId)
+
+    @guildDenyListCleanup.before_loop
+    async def guildDenyListCleanupWaitForBot(self):
+        self.logger.debug("Waiting for bot to be ready...")
+        await self.bot.wait_until_ready()
 
     # Event listeners
     @commands.Cog.listener("on_message")
