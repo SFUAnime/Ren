@@ -124,10 +124,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 LOGGER.error(errorMsg)
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        ":bangbang: ``Server Welcome:`` User "
+                        f":bangbang: ``Server Welcome:`` User {newUser.mention} "
                         f"{newUser.name}#{newUser.discriminator} "
-                        f"({newUser.id}) has joined. Could not send "
-                        "DM!"
+                        f"({newUser.id}) has joined. Could not send DM!"
                     )
                     await channel.send(errorMsg)
             else:
