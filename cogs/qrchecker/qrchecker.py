@@ -11,9 +11,13 @@ import logging
 import discord
 from pyzbar.pyzbar import Decoded, decode
 from PIL import Image
-from redbot.core import commands
+from redbot.core import commands, Config
 from redbot.core.bot import Red
 from redbot.core.utils.chat_formatting import pagify
+
+KEY_ENABLED = "enabled"
+
+BASE_GUILD = {KEY_ENABLED: False}
 
 
 class QRChecker(commands.Cog):
@@ -22,10 +26,22 @@ class QRChecker(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.logger = logging.getLogger("red.luicogs.QRChecker")
+        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+        self.config.register_guild(**BASE_GUILD)
 
     @commands.Cog.listener("on_message")
     async def listener(self, message: discord.Message):
         """Find QR code in message attachments"""
+        if not message.guild:
+            return
+        # check if enabled
+        if not await self.config.guild(message.guild).get_attr(KEY_ENABLED)():
+            self.logger.debug(
+                "QR Checker disabled for %s (%s); return early",
+                message.guild.name,
+                message.guild.id,
+            )
+            return
         if not message.attachments:
             self.logger.debug("No attachments, return early")
             return
@@ -107,3 +123,27 @@ class QRChecker(commands.Cog):
                     else:
                         await ctx.send(textToSend, allowed_mentions=discord.AllowedMentions.none())
                     sentMessages += 1
+
+    @commands.group(name="qrchecker", aliases=["qr"])
+    @commands.guild_only()
+    @commands.admin_or_permissions(manage_guild=True)
+    async def qrchecker(self, ctx: commands.Context):
+        """Configure QR code checker"""
+        pass
+
+    # toggle command
+    @qrchecker.command(name="toggle")
+    async def qrcheckerToggle(self, ctx: commands.Context):
+        """Toggle QR code checking"""
+        guild = ctx.guild
+        if not guild:
+            return
+        guildConfig = self.config.guild(guild)
+
+        enabled = await guildConfig.get_attr(KEY_ENABLED)()
+        if enabled:
+            await guildConfig.get_attr(KEY_ENABLED).set(False)
+            await ctx.send("QR code checking is now **disabled** for this guild.")
+        else:
+            await guildConfig.get_attr(KEY_ENABLED).set(True)
+            await ctx.send("QR code checking is now **enabled** for this guild.")
