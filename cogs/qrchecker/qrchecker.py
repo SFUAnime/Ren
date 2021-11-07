@@ -9,7 +9,7 @@ from typing import List
 import logging
 
 import discord
-from pyzbar.pyzbar import Decoded, decode
+from pyzbar.pyzbar import Decoded, decode, ZBarSymbol
 from PIL import Image
 from redbot.core import commands, Config
 from redbot.core.bot import Red
@@ -58,7 +58,7 @@ class QRChecker(commands.Cog):
             try:
                 fp = io.BytesIO(await attachment.read())
                 image = Image.open(fp)
-                codes: List[Decoded] = decode(image)
+                codes: List[Decoded] = decode(image, symbols=[ZBarSymbol.QRCODE])
                 self.logger.debug("Found %s codes", len(codes))
             except Exception:
                 self.logger.error("Couldn't check file.", exc_info=True)
