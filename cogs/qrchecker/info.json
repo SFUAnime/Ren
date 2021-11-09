@@ -4,7 +4,7 @@
     "short" : "Scan image attachments for QR codes, and post its contents",
     "description" : "This cog scans for QR codes in image attachments, and posts their contents in a reply.",
     "hidden": false,
-    "install_msg" : "Thanks for installing the QRChecker cog. You may need to install the `zbar` shared library in your machine. Please see https://pypi.org/project/pyzbar/ for more details. There is nothing to configure, just load the cog and you're good to go!",
+    "install_msg" : "Thanks for installing the QRChecker cog. You may need to install the `zbar` shared library in your machine. Please see https://pypi.org/project/pyzbar/ for more details. By default, the cog disables QR code scanning on a per-guild basis until explicitly enabled. You may use `[p]qrchecker toggle` to enable the behaviour for a guild.",
     "requirements" : ["pyzbar", "Pillow"],
     "tags" : ["qrcode", "image"],
     "end_user_data_statement": "This cog does not store user-specific settings."
