@@ -13,7 +13,7 @@ from pyzbar.pyzbar import Decoded, decode, ZBarSymbol
 from PIL import Image
 from redbot.core import commands, Config
 from redbot.core.bot import Red
-from redbot.core.utils.chat_formatting import pagify
+from redbot.core.utils.chat_formatting import box, pagify
 
 KEY_ENABLED = "enabled"
 
@@ -90,7 +90,7 @@ class QRChecker(commands.Cog):
                     contents = data
                 msg = (
                     f"Found a QR code from {message.author.mention}, "
-                    f"the contents are: ```{contents}```"
+                    f"the contents are: {box(contents)}"
                 )
                 await message.reply(
                     msg, mention_author=False, allowed_mentions=discord.AllowedMentions.none()
@@ -107,9 +107,9 @@ class QRChecker(commands.Cog):
                         self.logger.debug("No data in QR code.")
                         continue
                     if len(data) > 1990:
-                        contents = f"```{data[:1990]}...```"
+                        contents = f"{box(data[:1990])}..."
                     else:
-                        contents = f"```{data}```"
+                        contents = f"{box(data)}"
                     pages.append(contents)
                     has_data |= True
 
