@@ -81,6 +81,9 @@ class QRChecker(commands.Cog):
             if numQrCodes == 1:
                 code = codes[0]
                 data = code.data.decode()
+                if len(data) == 0:
+                    self.logger.debug("No data in QR code.")
+                    return
                 if len(data) > 1900:
                     contents = f"{data[:1900]}..."
                 else:
@@ -93,20 +96,29 @@ class QRChecker(commands.Cog):
                     msg, mention_author=False, allowed_mentions=discord.AllowedMentions.none()
                 )
             else:
+                has_data = False
                 pages: List[str] = []
                 pages.append(
                     f"Found several QR codes from {message.author.mention}, their contents are:"
                 )
                 for code in codes:
                     data = code.data.decode()
+                    if len(data) == 0:
+                        self.logger.debug("No data in QR code.")
+                        continue
                     if len(data) > 1990:
                         contents = f"```{data[:1990]}...```"
                     else:
                         contents = f"```{data}```"
                     pages.append(contents)
+                    has_data |= True
 
                 firstMessage = True
                 sentMessages = 0
+
+                if not has_data:
+                    self.logger.debug("No data in %s QR codes.", numQrCodes)
+                    return
 
                 ctx = await self.bot.get_context(message)
                 for textToSend in pagify("\n".join(pages), escape_mass_mentions=True):
