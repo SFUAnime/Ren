@@ -882,6 +882,7 @@ class Tags(commands.Cog):
             return
 
         db[newName] = deepcopy(db[oldName])
+        db[newName].name = newName
         del db[oldName]
 
         await self.config.put(location, db)
