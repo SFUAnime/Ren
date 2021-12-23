@@ -848,7 +848,7 @@ class Tags(commands.Cog):
             The new tag name.
         """
         try:
-            aliasCog = self.checkAliasCog(newName)
+            aliasCog = await self.checkAliasCog(ctx, newName)
             self.checkValidCommandName(newName)
         except RuntimeError as error:
             return await ctx.send(error)
