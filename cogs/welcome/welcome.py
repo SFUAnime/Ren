@@ -33,6 +33,17 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def getRandomMessage(
         self, guild: discord.Guild, pool: typing.Optional[GreetingPools] = None
     ):
+        """Gets a random message from a greeting pool.
+
+        If no pool is specified, the default pool is used.
+
+        Parameters
+        ----------
+        guild: discord.Guild
+            The guild to get a random greeting from.
+        pool: typing.Optional[GreetingPools]
+            The pool to get a random greeting from.
+        """
         if pool is None:
             pool = GreetingPools.DEFAULT
 
@@ -75,6 +86,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         return
 
     async def addToJoinedUserIds(self, newUser: discord.Member):
+        """Adds the user's id to the list of joined users."""
         async with self.config.guild(newUser.guild).get_attr(
             KEY_JOINED_USER_IDS
         )() as joinedUserIds:
@@ -82,9 +94,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 joinedUserIds.append(newUser.id)
 
     async def isReturningUser(self, user: discord.Member):
+        """Checks if the user is a returning user."""
         return user.id in await self.config.guild(user.guild).get_attr(KEY_JOINED_USER_IDS)()
 
     async def sendWelcomeMessageChannel(self, newUser: discord.Member):
+        """Sends a welcome message to the welcome channel if it is set."""
         guild = newUser.guild
         channelID = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL)()
         isSet = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED)()
@@ -254,12 +268,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions()
     @greetings.command(name="channel")
     async def welcomeChannelSet(self, ctx: Context, channel: discord.TextChannel = None):
-        """
-        Set the welcome channel
+        """Set the welcome channel
 
         Parameters:
         -----------
-        channel: The text channel to set welcome's to. If not passed anything, will remove the welcome channel
+        channel: discord.TextChannel
+            The text channel to set welcome's to. If not passed anything, will remove the welcome channel
         """
         if not channel:
             # channel == None
@@ -276,14 +290,21 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions()
     @greetings.command(name="add")
     async def greetAdd(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
-        """
-        Add a new greeting
+        """Add a new greeting entry.
 
-        Including {USER} in the message will have that replaced with a ping to the new user
+        If no pool is specified, the entry will be added to the default greeting pool.
+        I will ask for the greeting message after you run this command.
+
+        Including {USER} in the message will have that replaced with a ping to the new user.
 
         Parameters:
         -----------
-        name: name of the greeting
+        name: str
+            Name of the greeting
+        pool: str
+            A greeting pool to add to; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
 
         greetingPool = GreetingPools.DEFAULT
@@ -336,12 +357,18 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions()
     @greetings.command(name="remove", aliases=["delete", "del", "rm"])
     async def greetRemove(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
-        """
-        Remove a greeting
+        """Remove a greeting entry.
+
+        If no pool is specified, the entry will be removed from the default greeting pool.
 
         Parameters:
         -----------
-        name: name of the greeting to remove
+        name: str
+            Name of the greeting to remove
+        pool: str
+            A greeting pool to remove from; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
 
         greetingPool = GreetingPools.DEFAULT
@@ -381,8 +408,16 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @checks.mod_or_permissions()
     @greetings.command(name="list", aliases=["ls"])
     async def greetList(self, ctx: Context, pool: typing.Optional[str] = None):
-        """
-        List all greetings on the server
+        """List all greetings on the server.
+
+        If no pool is specified, those from the default pool will be listed.
+
+        Parameters:
+        -----------
+        pool: str
+            A greeting pool to list; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
 
         greetingPool = GreetingPools.DEFAULT
