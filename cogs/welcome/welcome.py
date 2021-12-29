@@ -36,6 +36,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Gets a random message from a greeting pool.
 
         If no pool is specified, the default pool is used.
+        If the specified pool is empty, the default pool is used.
 
         Parameters
         ----------
@@ -52,6 +53,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             key = KEY_RETURNING_GREETINGS
 
         greetings = await self.config.guild(guild).get_attr(key)()
+
+        if not greetings:
+            greetings = await self.config.guild(guild).get_attr(KEY_GREETINGS)()
 
         if not greetings:
             return "Welcome to the server {USER}"
