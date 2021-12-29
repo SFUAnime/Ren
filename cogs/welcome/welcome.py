@@ -6,6 +6,7 @@ import asyncio
 import discord
 import logging
 import random
+import typing
 
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
@@ -29,8 +30,18 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**DEFAULT_GUILD)
 
-    async def getRandomMessage(self, guild):
-        greetings = await self.config.guild(guild).get_attr(KEY_GREETINGS)()
+    async def getRandomMessage(
+        self, guild: discord.Guild, pool: typing.Optional[GreetingPools] = None
+    ):
+        if pool is None:
+            pool = GreetingPools.DEFAULT
+
+        key = KEY_GREETINGS
+        if pool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(guild).get_attr(key)()
+
         if not greetings:
             return "Welcome to the server {USER}"
         else:
@@ -42,6 +53,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await self.sendWelcomeMessageChannel(newMember)
         await self.sendWelcomeMessage(newMember)
         await self.sendLogUserDescription(newMember)
+        await self.addToJoinedUserIds(newMember)
 
     @commands.Cog.listener()
     async def on_member_remove(self, leaveMember: discord.Member):
@@ -62,6 +74,16 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             LOGGER.info("Changed guild's welcomeChannelSetFlag to false as channel was deleted")
         return
 
+    async def addToJoinedUserIds(self, newUser: discord.Member):
+        async with self.config.guild(newUser.guild).get_attr(
+            KEY_JOINED_USER_IDS
+        )() as joinedUserIds:
+            if newUser.id not in joinedUserIds:
+                joinedUserIds.append(newUser.id)
+
+    async def isReturningUser(self, user: discord.Member):
+        return user.id in await self.config.guild(user.guild).get_attr(KEY_JOINED_USER_IDS)()
+
     async def sendWelcomeMessageChannel(self, newUser: discord.Member):
         guild = newUser.guild
         channelID = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL)()
@@ -70,7 +92,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if not isSet:
             return
         channel = discord.utils.get(guild.channels, id=channelID)
-        rawMessage = await self.getRandomMessage(guild)
+
+        greetingPool = GreetingPools.DEFAULT
+        if await self.isReturningUser(newUser):
+            greetingPool = GreetingPools.RETURNING
+
+        rawMessage = await self.getRandomMessage(guild, pool=greetingPool)
 
         message = rawMessage.replace("{USER}", newUser.mention)
 
@@ -248,7 +275,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     @checks.mod_or_permissions()
     @greetings.command(name="add")
-    async def greetAdd(self, ctx: Context, name: str):
+    async def greetAdd(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
         """
         Add a new greeting
 
@@ -258,6 +285,10 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         -----------
         name: name of the greeting
         """
+
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
 
         def check(message: discord.Message):
             return message.author == ctx.message.author and message.channel == ctx.message.channel
@@ -275,8 +306,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await ctx.send("Your message is too long!")
             return
 
-        greetings = await self.config.guild(ctx.guild).get_attr(KEY_GREETINGS)()
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
 
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
         if name in greetings:
             await ctx.send(
                 warning(
@@ -296,12 +330,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         # save the greetings
         greetings[name] = greeting.content
         await greeting.add_reaction("✅")
-        await self.config.guild(ctx.guild).get_attr(KEY_GREETINGS).set(greetings)
+        await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
 
     @checks.mod_or_permissions()
     @greetings.command(name="remove", aliases=["delete", "del", "rm"])
-    async def greetRemove(self, ctx: Context, name: str):
+    async def greetRemove(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
         """
         Remove a greeting
 
@@ -310,10 +344,18 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         name: name of the greeting to remove
         """
 
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
+
         def check(message: discord.Message):
             return message.author == ctx.message.author and message.channel == ctx.message.channel
 
-        greetings = await self.config.guild(ctx.guild).get_attr(KEY_GREETINGS)()
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
         if name in greetings:
             await ctx.send(
                 warning("Are you sure you wish to delete this greeting? Respond with 'yes' if yes")
@@ -329,20 +371,29 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 return
 
             # delete the greeting
-            del greetings[name]
+            greetings.pop(name, None)
             await ctx.send(f"{name} removed from list")
-            await self.config.guild(ctx.guild).get_attr(KEY_GREETINGS).set(greetings)
+            await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         else:
             ctx.send(f"{name} not in list of greetings")
         return
 
     @checks.mod_or_permissions()
     @greetings.command(name="list", aliases=["ls"])
-    async def greetList(self, ctx: Context):
+    async def greetList(self, ctx: Context, pool: typing.Optional[str] = None):
         """
         List all greetings on the server
         """
-        greetings = await self.config.guild(ctx.guild).get_attr(KEY_GREETINGS)()
+
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
+
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
 
         if not greetings:
             await ctx.send("There are no greetings, please add some first!")
@@ -360,7 +411,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             embed = discord.Embed(
                 title=f"Welcome greetings changes for {ctx.guild.name}", description=page
             )
-            embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
+            embed.set_footer(text=f"Pool {greetingPool.name} | Page {pageNumber}/{totalPages}")
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
