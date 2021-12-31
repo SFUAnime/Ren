@@ -6,7 +6,6 @@ import asyncio
 import discord
 import logging
 import random
-import typing
 
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
@@ -14,6 +13,7 @@ from redbot.core.commands.context import Context
 from redbot.core.utils.chat_formatting import box, info, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
+from typing import Optional
 
 from .constants import *
 from .helpers import createTagListPages
@@ -31,7 +31,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config.register_guild(**DEFAULT_GUILD)
 
     async def getRandomMessage(
-        self, guild: discord.Guild, pool: typing.Optional[GreetingPools] = None
+        self, guild: discord.Guild, pool: Optional[GreetingPools] = None
     ):
         """Gets a random message from a greeting pool.
 
@@ -42,7 +42,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         ----------
         guild: discord.Guild
             The guild to get a random greeting from.
-        pool: typing.Optional[GreetingPools]
+        pool: Optional[GreetingPools]
             The pool to get a random greeting from.
         """
         if pool is None:
@@ -302,7 +302,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     @checks.mod_or_permissions()
     @greetings.command(name="add")
-    async def greetAdd(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
+    async def greetAdd(self, ctx: Context, name: str, pool: Optional[str] = None):
         """Add a new greeting entry.
 
         If no pool is specified, the entry will be added to the default greeting pool.
@@ -369,7 +369,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     @checks.mod_or_permissions()
     @greetings.command(name="remove", aliases=["delete", "del", "rm"])
-    async def greetRemove(self, ctx: Context, name: str, pool: typing.Optional[str] = None):
+    async def greetRemove(self, ctx: Context, name: str, pool: Optional[str] = None):
         """Remove a greeting entry.
 
         If no pool is specified, the entry will be removed from the default greeting pool.
@@ -420,7 +420,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     @checks.mod_or_permissions()
     @greetings.command(name="list", aliases=["ls"])
-    async def greetList(self, ctx: Context, pool: typing.Optional[str] = None):
+    async def greetList(self, ctx: Context, pool: Optional[str] = None):
         """List all greetings on the server.
 
         If no pool is specified, those from the default pool will be listed.

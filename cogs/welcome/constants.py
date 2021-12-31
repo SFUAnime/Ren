@@ -1,4 +1,4 @@
-import enum
+from enum import IntEnum
 
 KEY_DM_ENABLED = "dmEnabled"
 KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
@@ -36,6 +36,6 @@ DEFAULT_GUILD = {
 }
 
 
-class GreetingPools(enum.IntEnum):
+class GreetingPools(IntEnum):
     DEFAULT = 0
     RETURNING = 1
