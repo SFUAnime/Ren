@@ -30,9 +30,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**DEFAULT_GUILD)
 
-    async def getRandomMessage(
-        self, guild: discord.Guild, pool: Optional[GreetingPools] = None
-    ):
+    async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
 
         If no pool is specified, the default pool is used.
