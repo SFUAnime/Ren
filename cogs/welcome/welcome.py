@@ -267,7 +267,16 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @commands.guild_only()
     @checks.mod_or_permissions()
     async def greetings(self, ctx: Context):
-        """Server greetings message settings."""
+        """Server greetings message settings.
+
+        Greetings are seperated by pools.
+        A pool can be specified as an extra argument for subcommands under this command.
+        If not specified, the default pool will be used.
+
+        Currently available greeting pools are:
+        - `default`: default pool, containing greetings that are sent to new users
+        - `returning`: pool of greetings that are sent to returning users
+        """
 
     @checks.mod_or_permissions()
     @greetings.command(name="channel")
