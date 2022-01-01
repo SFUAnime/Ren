@@ -43,9 +43,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         pool: Optional[GreetingPools]
             The pool to get a random greeting from.
         """
-        if pool is None:
-            pool = GreetingPools.DEFAULT
-
         key = KEY_GREETINGS
         if pool == GreetingPools.RETURNING:
             key = KEY_RETURNING_GREETINGS
