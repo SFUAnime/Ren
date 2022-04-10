@@ -78,10 +78,10 @@ class SFURoads(SFUBase):
         self.headers = {"User-agent": "Mozilla/5.0"}
 
         # Add commands to the sfu group defined in the base class
-        self.camCommand = commands.Command(self.cam, name="cam")
-        self.sfuGroup.add_command(self.camCommand)
-        self.sfuGroup.add_command(commands.Command(self.report, name="report"))
+        self.sfuGroup.add_command(self.cam)
+        self.sfuGroup.add_command(self.report)
 
+    @commands.command()
     @commands.guild_only()
     async def cam(self, ctx: Context, cam: str = ""):
         """Show a SFU webcam image.
@@ -105,7 +105,7 @@ class SFURoads(SFUBase):
 
         camera = self.cameras.get(cam.lower(), "help")
         if camera == "help":
-            await self.bot.send_help_for(ctx, self.camCommand)
+            await self.bot.send_help_for(ctx, self.cam)
             return
 
         try:
@@ -124,6 +124,7 @@ class SFURoads(SFUBase):
         camPhoto = discord.File(BytesIO(fetchedData.content), filename="cam.jpg")
         await ctx.send(file=camPhoto)
 
+    @commands.command()
     @commands.guild_only()
     async def report(self, ctx: Context):
         """Show the SFU Campus Report."""

@@ -14,10 +14,11 @@ class SFUCourses(SFUBase):
         super().__init__(bot)
 
         # Add commands to the sfu group defined in the base class
-        self.sfuGroup.add_command(commands.Command(self.lookup, name="course"))
+        self.sfuGroup.add_command(self.course)
 
+    @commands.command()
     @commands.guild_only()
-    async def lookup(
+    async def course(
         self,
         ctx: Context,
         department: str,
