@@ -1,0 +1,11 @@
+{
+    "name" : "AfterHours",
+    "author" : ["Injabie3#1660","KaguneAstra#6000","TheDarkBot#1677","quachtridat・たつ#8232"],
+    "short" : "SAD's exception cog handling for #after-hours",
+    "description" : "This cog applies cog-specific exceptions for the #after-hours channel in SAD. Its use is limited outside of the club.",
+    "hidden": true,
+    "install_msg" : "Thanks for installing the AfterHours cog. Run [p]afterhours to configure.",
+    "requirements" : [],
+    "tags" : [],
+    "end_user_data_statement": "This cog does not store user-specific settings."
+}

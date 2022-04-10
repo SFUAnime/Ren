@@ -4,12 +4,15 @@ Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) bu
 the time, that bot was closed source.
 """
 from datetime import timedelta, timezone
+import os
 import logging
 import re
 from threading import Lock
+from typing import List
 import asyncio
 import aiohttp
 import discord
+from discord.ext import tasks
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
@@ -24,8 +27,8 @@ KEY_BLACKLIST = "blacklist"
 KEY_TIMEOUT = "timeout"
 KEY_WORDS = "words"
 KEY_WORDS_IGNORE = "ignoreWords"
-KEY_IGNORE = "ignoreChannelID"
 KEY_CHANNEL_IGNORE = "userIgnoreChannelID"
+KEY_CHANNEL_DENYLIST = "denylistChannelID"
 
 BASE_GUILD_MEMBER = {
     KEY_BLACKLIST: [],
@@ -36,8 +39,7 @@ BASE_GUILD_MEMBER = {
 }
 
 BASE_GUILD = {
-    KEY_IGNORE: None,
-    "denylistChannels": [],
+    KEY_CHANNEL_DENYLIST: [],
 }
 
 
@@ -62,13 +64,18 @@ class Highlight(commands.Cog):
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
             self.logger.addHandler(handler)
+
+        self.guildDenyListCleanup.start()
+
+    def cog_unload(self):
+        self.logger.info("Cancelling background task")
+        self.guildDenyListCleanup.cancel()
 
     @commands.group(name="highlight", aliases=["hl"])
     @commands.guild_only()
@@ -92,11 +99,24 @@ class Highlight(commands.Cog):
     @guildChannels.command(name="show", aliases=["ls"])
     async def guildChannelsDenyList(self, ctx: Context):
         """List the channels in the denylist."""
-        dlChannels = await self.config.guild(ctx.guild).denylistChannels()
+        dlChannels = await self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)()
+        channelMentions: List[str] = []
 
         if dlChannels:
+            channelMentions = [
+                channelObject.mention
+                for channelObject in list(
+                    map(
+                        lambda chId: discord.utils.get(ctx.guild.text_channels, id=chId),
+                        dlChannels,
+                    )
+                )
+                if channelObject
+            ]
+
+        if channelMentions:
             pageList = []
-            msg = "\n".join(dlChannels)
+            msg = "\n".join(channelMentions)
             pages = list(chat_formatting.pagify(msg, page_length=300))
             totalPages = len(pages)
             totalEntries = len(dlChannels)
@@ -112,40 +132,40 @@ class Highlight(commands.Cog):
             await ctx.send(f"There are no channels on the denylist for **{ctx.guild.name}**!")
 
     @guildChannels.command(name="add")
-    async def guildChannelsDenyAdd(self, ctx: Context, channelName: str):
+    async def guildChannelsDenyAdd(self, ctx: Context, channel: discord.TextChannel):
         """Add a channel to the denylist.
 
         Channels in this list will NOT trigger user highlights.
 
         Parameters:
         -----------
-        channelName: str
-            The channel name you wish to not trigger user highlights for.
+        channel: discord.TextChannel
+            The channel you wish to not trigger user highlights for.
         """
-        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
-            if channelName in dlChannels:
-                await ctx.send(f"**{channelName}** is already on the denylist.")
+        async with self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
+            if channel.id in dlChannels:
+                await ctx.send(f"**{channel.mention}** is already on the denylist.")
             else:
-                dlChannels.append(channelName)
+                dlChannels.append(channel.id)
                 await ctx.send(
-                    f"Messages in **{channelName}** will no longer trigger highlights for users"
+                    f"Messages in **{channel.mention}** will no longer trigger highlights for users"
                 )
 
     @guildChannels.command(name="del", aliases=["delete", "remove", "rm"])
-    async def guildChannelsDenyDelete(self, ctx: Context, channelName: str):
+    async def guildChannelsDenyDelete(self, ctx: Context, channel: discord.TextChannel):
         """Remove a channel from the denylist.
 
         Parameters:
         -----------
-        channelName: str
-            The channel name you wish to remove from the denylist.
+        channel: discord.TextChannel
+            The channel you wish to remove from the denylist.
         """
-        async with self.config.guild(ctx.guild).denylistChannels() as dlChannels:
-            if channelName in dlChannels:
-                dlChannels.remove(channelName)
-                await ctx.send(f"**{channelName}** removed from the denylist.")
+        async with self.config.guild(ctx.guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
+            if channel.id in dlChannels:
+                dlChannels.remove(channel.id)
+                await ctx.send(f"**{channel.mention}** removed from the denylist.")
             else:
-                await ctx.send(f"**{channelName}** is not on the denylist.")
+                await ctx.send(f"**{channel.mention}** is not on the denylist.")
 
     @highlight.command(name="add")
     @commands.guild_only()
@@ -153,7 +173,7 @@ class Highlight(commands.Cog):
         """Add a word to be highlighted in the current guild."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).words() as userWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS)() as userWords:
             if len(userWords) < MAX_WORDS_HIGHLIGHT and word not in userWords:
                 # user can only have MAX_WORDS_HIGHLIGHT words
                 userWords.append(word)
@@ -174,7 +194,7 @@ class Highlight(commands.Cog):
         """Remove a highlighted word in the current guild."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).words() as userWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS)() as userWords:
             if word in userWords:
                 userWords.remove(word)
                 await ctx.send(
@@ -193,7 +213,7 @@ class Highlight(commands.Cog):
         """List your highlighted words for the current guild."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).words() as userWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS)() as userWords:
             if userWords:
                 msg = ""
                 for word in userWords:
@@ -237,7 +257,7 @@ class Highlight(commands.Cog):
         """
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).blacklist() as userBl:
+        async with self.config.member(ctx.author).get_attr(KEY_BLACKLIST)() as userBl:
             if user.id not in userBl:
                 userBl.append(user.id)
                 await ctx.send(
@@ -260,7 +280,7 @@ class Highlight(commands.Cog):
         """
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).blacklist() as userBl:
+        async with self.config.member(ctx.author).get_attr(KEY_BLACKLIST)() as userBl:
             if user.id in userBl:
                 userBl.remove(user.id)
                 await ctx.send(
@@ -292,7 +312,7 @@ class Highlight(commands.Cog):
             pass
         else:
             if response.content.lower() == "yes":
-                async with self.config.member(ctx.author).blacklist() as userBl:
+                async with self.config.member(ctx.author).get_attr(KEY_BLACKLIST)() as userBl:
                     userBl.clear()
                 await ctx.send("Your highlight blacklist was cleared.")
                 return
@@ -304,7 +324,7 @@ class Highlight(commands.Cog):
         """List the users on your blacklist."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).blacklist() as userBl:
+        async with self.config.member(ctx.author).get_attr(KEY_BLACKLIST)() as userBl:
             if userBl:
                 msg = ""
                 for userId in userBl:
@@ -359,7 +379,7 @@ class Highlight(commands.Cog):
         """
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS_IGNORE)() as ignoreWords:
             if len(ignoreWords) < MAX_WORDS_IGNORE and word not in ignoreWords:
                 ignoreWords.append(word)
                 await ctx.send(
@@ -380,7 +400,7 @@ class Highlight(commands.Cog):
         """Remove an ignored word from the list."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).ignoreWords() as ignoreWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS_IGNORE)() as ignoreWords:
             if word in ignoreWords:
                 ignoreWords.remove(word)
                 await ctx.send(
@@ -399,7 +419,7 @@ class Highlight(commands.Cog):
         """List ignored words."""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).ignoreWords() as userWords:
+        async with self.config.member(ctx.author).get_attr(KEY_WORDS_IGNORE)() as userWords:
             if userWords:
                 msg = ""
                 for word in userWords:
@@ -446,7 +466,7 @@ class Highlight(commands.Cog):
             await ctx.send("Please specify a timeout between 0 and 3600 seconds!")
             return
 
-        await self.config.member(ctx.author).timeout.set(seconds)
+        await self.config.member(ctx.author).get_attr(KEY_TIMEOUT).set(seconds)
 
         await ctx.send("Timeout set to {} seconds.".format(seconds), delete_after=DELETE_TIME)
         await ctx.message.delete()
@@ -470,7 +490,7 @@ class Highlight(commands.Cog):
         userId = ctx.author.id
         channelId = channel.id
 
-        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+        async with self.config.member(ctx.author).get_attr(KEY_CHANNEL_IGNORE)() as channelList:
             if channelId in channelList:
                 await ctx.send("Channel is already being ignored!", delete_after=DELETE_TIME)
                 await ctx.message.delete()
@@ -493,7 +513,7 @@ class Highlight(commands.Cog):
         userId = ctx.author.id
         channelId = channel.id
 
-        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+        async with self.config.member(ctx.author).get_attr(KEY_CHANNEL_IGNORE)() as channelList:
             if channelId not in channelList:
                 await ctx.send("This channel wasn't previously blocked!", delete_after=DELETE_TIME)
                 await ctx.message.delete()
@@ -510,7 +530,7 @@ class Highlight(commands.Cog):
         """Sends a DM with all of the channels you've stopped from triggering your highlights"""
         userName = ctx.message.author.name
 
-        async with self.config.member(ctx.author).userIgnoreChannelID() as channelList:
+        async with self.config.member(ctx.author).get_attr(KEY_CHANNEL_IGNORE)() as channelList:
             if channelList:
                 msg = ""
                 serverChList = ctx.guild.channels
@@ -629,8 +649,9 @@ class Highlight(commands.Cog):
         if user.bot:
             return
 
+        guildConfig = self.config.guild(msg.channel.guild)
         # Prevent messages in a denylist channel from triggering highlight words
-        if msg.channel.name in await self.config.guild(msg.channel.guild).denylistChannels():
+        if msg.channel.id in await guildConfig.get_attr(KEY_CHANNEL_DENYLIST)():
             self.logger.debug("Message is from a denylist channel, returning")
             return
 
@@ -757,6 +778,25 @@ class Highlight(commands.Cog):
                 user.discriminator,
                 user.id,
             )
+
+    @tasks.loop(minutes=60)
+    async def guildDenyListCleanup(self):
+        self.logger.info("Checking for stale channel IDs...")
+        for guild in self.bot.guilds:
+            self.logger.debug("Checking guild %s (%s)", guild.name, guild.id)
+            channelsToRemove = []
+            async with self.config.guild(guild).get_attr(KEY_CHANNEL_DENYLIST)() as dlChannels:
+                for channelId in dlChannels:
+                    if not discord.utils.get(guild.text_channels, id=channelId):
+                        channelsToRemove.append(channelId)
+                for channelId in channelsToRemove:
+                    self.logger.info("Removing non-existent channel ID %s", channelId)
+                    dlChannels.remove(channelId)
+
+    @guildDenyListCleanup.before_loop
+    async def guildDenyListCleanupWaitForBot(self):
+        self.logger.debug("Waiting for bot to be ready...")
+        await self.bot.wait_until_ready()
 
     # Event listeners
     @commands.Cog.listener("on_message")

@@ -10,39 +10,15 @@ import random
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.chat_formatting import error, pagify, warning
+from redbot.core.utils.chat_formatting import box, info, pagify, warning
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
+from typing import Optional
+
+from .constants import *
+from .helpers import createTagListPages
 
 LOGGER = logging.getLogger("red.luicogs.Welcome")
-
-KEY_DM_ENABLED = "dmEnabled"
-KEY_LOG_JOIN_ENABLED = "logJoinEnabled"
-KEY_LOG_JOIN_CHANNEL = "logJoinChannel"
-KEY_LOG_LEAVE_ENABLED = "logLeaveEnabled"
-KEY_LOG_LEAVE_CHANNEL = "logLeaveChannel"
-KEY_TITLE = "title"
-KEY_MESSAGE = "message"
-KEY_IMAGE = "image"
-KEY_GREETINGS = "greetings"
-KEY_WELCOME_CHANNEL = "welcomeChannel"
-KEY_WELCOME_CHANNEL_ENABLED = "welcomeChannelSet"
-
-MAX_MESSAGE_LENGTH = 2000
-
-DEFAULT_GUILD = {
-    KEY_DM_ENABLED: False,
-    KEY_LOG_JOIN_ENABLED: False,
-    KEY_LOG_JOIN_CHANNEL: None,
-    KEY_LOG_LEAVE_ENABLED: False,
-    KEY_LOG_LEAVE_CHANNEL: None,
-    KEY_TITLE: "Welcome!",
-    KEY_MESSAGE: "Welcome to the server! Hope you enjoy your stay!",
-    KEY_IMAGE: None,
-    KEY_GREETINGS: {},
-    KEY_WELCOME_CHANNEL: None,
-    KEY_WELCOME_CHANNEL_ENABLED: False,
-}
 
 
 class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
@@ -54,9 +30,28 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**DEFAULT_GUILD)
 
-    async def getRandomMessage(self, guild):
-        greetings = await self.config.guild(guild).greetings()
-        numGreetings = len(greetings)
+    async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
+        """Gets a random message from a greeting pool.
+
+        If no pool is specified, the default pool is used.
+        If the specified pool is empty, the default pool is used.
+
+        Parameters
+        ----------
+        guild: discord.Guild
+            The guild to get a random greeting from.
+        pool: Optional[GreetingPools]
+            The pool to get a random greeting from.
+        """
+        key = KEY_GREETINGS
+        if pool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(guild).get_attr(key)()
+
+        if not greetings:
+            greetings = await self.config.guild(guild).get_attr(KEY_GREETINGS)()
+
         if not greetings:
             return "Welcome to the server {USER}"
         else:
@@ -67,10 +62,15 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def on_member_join(self, newMember: discord.Member):
         await self.sendWelcomeMessageChannel(newMember)
         await self.sendWelcomeMessage(newMember)
+        await self.sendLogUserDescription(newMember)
+        await self.addToJoinedUserIds(newMember)
 
     @commands.Cog.listener()
     async def on_member_remove(self, leaveMember: discord.Member):
         await self.logServerLeave(leaveMember)
+        await self.sendLogUserDescription(leaveMember)
+        # for those who were not encountered by the cog on joining the guild
+        await self.addToJoinedUserIds(leaveMember)
 
     # This async function is to look for if the welcome channel was removed
     @commands.Cog.listener()
@@ -79,25 +79,42 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             return
         guild = removedChannel.guild
         # the channel to post welcome stuff in
-        welcomeIDSet = await self.config.guild(guild).welcomeChannelSet()
-        welcomeID = await self.config.guild(guild).welcomeChannel()
+        welcomeIDSet = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED)()
+        welcomeID = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL)()
         if welcomeIDSet and removedChannel.id == welcomeID:
-            await self.config.guild(guild).welcomeChannelSet.set(False)
+            await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED).set(False)
             LOGGER.info("Changed guild's welcomeChannelSetFlag to false as channel was deleted")
         return
 
+    async def addToJoinedUserIds(self, newUser: discord.Member):
+        """Adds the user's id to the list of joined users."""
+        async with self.config.guild(newUser.guild).get_attr(
+            KEY_JOINED_USER_IDS
+        )() as joinedUserIds:
+            if newUser.id not in joinedUserIds:
+                joinedUserIds.append(newUser.id)
+
+    async def isReturningUser(self, user: discord.Member):
+        """Checks if the user is a returning user."""
+        return user.id in await self.config.guild(user.guild).get_attr(KEY_JOINED_USER_IDS)()
+
     async def sendWelcomeMessageChannel(self, newUser: discord.Member):
+        """Sends a welcome message to the welcome channel if it is set."""
         guild = newUser.guild
-        channelID = await self.config.guild(guild).welcomeChannel()
-        isSet = await self.config.guild(guild).welcomeChannelSet()
+        channelID = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL)()
+        isSet = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED)()
         # if channel isn't set
         if not isSet:
             return
         channel = discord.utils.get(guild.channels, id=channelID)
-        rawMessage = await self.getRandomMessage(guild)
+
+        greetingPool = GreetingPools.DEFAULT
+        if await self.isReturningUser(newUser):
+            greetingPool = GreetingPools.RETURNING
+
+        rawMessage = await self.getRandomMessage(guild, pool=greetingPool)
 
         message = rawMessage.replace("{USER}", newUser.mention)
-        splitMessage = rawMessage.split("{USER}")
 
         try:
             await channel.send(message)
@@ -119,7 +136,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         return
 
-    async def sendWelcomeMessage(self, newUser, test=False):
+    async def sendWelcomeMessage(self, newUser: discord.Member, test=False):
         """Sends the welcome message in DM."""
         async with self.config.guild(newUser.guild).all() as guildData:
             if not guildData[KEY_DM_ENABLED]:
@@ -149,25 +166,67 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 LOGGER.error(errorMsg)
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        ":bangbang: ``Server Welcome:`` User "
+                        f":bangbang: ``Server Welcome:`` User {newUser.mention} "
                         f"{newUser.name}#{newUser.discriminator} "
-                        f"({newUser.id}) has joined. Could not send "
-                        "DM!"
+                        f"({newUser.id}) has joined. Could not send DM!"
                     )
                     await channel.send(errorMsg)
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        f":o: ``Server Welcome:`` User {newUser.name}#"
-                        f"{newUser.discriminator} ({newUser.id}) has "
-                        "joined. DM sent."
+                        f":o: ``Server Welcome:`` User {newUser.mention} "
+                        f"{newUser.name}#{newUser.discriminator} "
+                        f"({newUser.id}) has joined. DM sent."
                     )
                     LOGGER.info(
-                        "User %s#%s (%s) has joined.  DM sent.",
+                        "User %s#%s (%s) has joined. DM sent.",
                         newUser.name,
                         newUser.discriminator,
                         newUser.id,
                     )
+
+    async def sendLogUserDescription(self, user: discord.Member):
+        """Sends the user's tagged description to the log channel if it exists"""
+        currentGuild: discord.Guild = user.guild
+        guildConfig = self.config.guild(currentGuild)
+
+        isLogJoinEnabled = await guildConfig.get_attr(KEY_LOG_JOIN_ENABLED)()
+        if not isLogJoinEnabled:
+            return
+
+        logChannelId: int = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
+        logChannel: discord.TextChannel = discord.utils.get(
+            currentGuild.text_channels, id=logChannelId
+        )
+
+        if not logChannel:
+            return
+
+        # check if there is a description entry for this user
+        # and if so, announce it to the log join channel
+        descDict: dict = await guildConfig.get_attr(KEY_DESCRIPTIONS)()
+        userId = str(user.id)
+        if userId in descDict:
+            descText: str = descDict[userId]
+            if descText:
+                await logChannel.send(
+                    "\n".join(
+                        [
+                            warning(
+                                f"User {user.name}#{user.discriminator} ({user.id}) "
+                                "was tagged with:"
+                            ),
+                            box(descText),
+                        ]
+                    )
+                )
+                LOGGER.info(
+                    "User %s#%s (%s) was tagged with a description. "
+                    "Posted description in the log channel.",
+                    user.name,
+                    user.discriminator,
+                    user.id,
+                )
 
     async def logServerLeave(self, leaveUser: discord.Member):
         """Logs the server leave to a channel, if enabled."""
@@ -178,9 +237,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 )
                 if channel:
                     await channel.send(
-                        f":x: ``Server Leave  :`` User {leaveUser.name}#"
-                        f"{leaveUser.discriminator} ({leaveUser.id}) has "
-                        "left the server."
+                        f":x: ``Server Leave  :`` User {leaveUser.mention} "
+                        f"{leaveUser.name}#{leaveUser.discriminator} "
+                        f"({leaveUser.id}) has left the server."
                     )
                 LOGGER.info(
                     "User %s#%s (%s) has left the server.",
@@ -205,42 +264,62 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @commands.guild_only()
     @checks.mod_or_permissions()
     async def greetings(self, ctx: Context):
-        """Server greetings message settings."""
+        """Server greetings message settings.
+
+        Greetings are seperated by pools.
+        A pool can be specified as an extra argument for subcommands under this command.
+        If not specified, the default pool will be used.
+
+        Currently available greeting pools are:
+        - `default`: default pool, containing greetings that are sent to new users
+        - `returning`: pool of greetings that are sent to returning users
+        """
 
     @checks.mod_or_permissions()
     @greetings.command(name="channel")
     async def welcomeChannelSet(self, ctx: Context, channel: discord.TextChannel = None):
-        """
-        Set the welcome channel
+        """Set the welcome channel
 
         Parameters:
         -----------
-        channel: The text channel to set welcome's to. If not passed anything, will remove the welcome channel
+        channel: discord.TextChannel
+            The text channel to set welcome's to. If not passed anything, will remove the welcome channel
         """
         if not channel:
             # channel == None
-            await self.config.guild(ctx.guild).welcomeChannelSet.set(False)
+            await self.config.guild(ctx.guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED).set(False)
             await ctx.send("Welcome channel has been removed")
             return
 
-        await self.config.guild(ctx.guild).welcomeChannel.set(channel.id)
-        await self.config.guild(ctx.guild).welcomeChannelSet.set(True)
+        await self.config.guild(ctx.guild).get_attr(KEY_WELCOME_CHANNEL).set(channel.id)
+        await self.config.guild(ctx.guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED).set(True)
         await ctx.send(f"Channel set to {channel}")
 
         return
 
     @checks.mod_or_permissions()
     @greetings.command(name="add")
-    async def greetAdd(self, ctx: Context, name: str):
-        """
-        Add a new greeting
+    async def greetAdd(self, ctx: Context, name: str, pool: Optional[str] = None):
+        """Add a new greeting entry.
 
-        Including {USER} in the message will have that replaced with a ping to the new user
+        If no pool is specified, the entry will be added to the default greeting pool.
+        I will ask for the greeting message after you run this command.
+
+        Including {USER} in the message will have that replaced with a ping to the new user.
 
         Parameters:
         -----------
-        name: name of the greeting
+        name: str
+            Name of the greeting
+        pool: str
+            A greeting pool to add to; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
+
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
 
         def check(message: discord.Message):
             return message.author == ctx.message.author and message.channel == ctx.message.channel
@@ -258,8 +337,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await ctx.send("Your message is too long!")
             return
 
-        greetings = await self.config.guild(ctx.guild).greetings()
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
 
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
         if name in greetings:
             await ctx.send(
                 warning(
@@ -279,24 +361,38 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         # save the greetings
         greetings[name] = greeting.content
         await greeting.add_reaction("✅")
-        await self.config.guild(ctx.guild).greetings.set(greetings)
+        await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
 
     @checks.mod_or_permissions()
     @greetings.command(name="remove", aliases=["delete", "del", "rm"])
-    async def greetRemove(self, ctx: Context, name: str):
-        """
-        Remove a greeting
+    async def greetRemove(self, ctx: Context, name: str, pool: Optional[str] = None):
+        """Remove a greeting entry.
+
+        If no pool is specified, the entry will be removed from the default greeting pool.
 
         Parameters:
         -----------
-        name: name of the greeting to remove
+        name: str
+            Name of the greeting to remove
+        pool: str
+            A greeting pool to remove from; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
+
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
 
         def check(message: discord.Message):
             return message.author == ctx.message.author and message.channel == ctx.message.channel
 
-        greetings = await self.config.guild(ctx.guild).greetings()
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
         if name in greetings:
             await ctx.send(
                 warning("Are you sure you wish to delete this greeting? Respond with 'yes' if yes")
@@ -312,20 +408,37 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 return
 
             # delete the greeting
-            del greetings[name]
+            greetings.pop(name, None)
             await ctx.send(f"{name} removed from list")
-            await self.config.guild(ctx.guild).greetings.set(greetings)
+            await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         else:
             ctx.send(f"{name} not in list of greetings")
         return
 
     @checks.mod_or_permissions()
     @greetings.command(name="list", aliases=["ls"])
-    async def greetList(self, ctx: Context):
+    async def greetList(self, ctx: Context, pool: Optional[str] = None):
+        """List all greetings on the server.
+
+        If no pool is specified, those from the default pool will be listed.
+
+        Parameters:
+        -----------
+        pool: str
+            A greeting pool to list; leave blank for the default pool
+            - `default`: default pool, containing greetings that are sent to new users
+            - `returning`: pool of greetings that are sent to returning users
         """
-        List all greetings on the server
-        """
-        greetings = await self.config.guild(ctx.guild).greetings()
+
+        greetingPool = GreetingPools.DEFAULT
+        if pool and pool.lower() == "returning":
+            greetingPool = GreetingPools.RETURNING
+
+        key = KEY_GREETINGS
+        if greetingPool == GreetingPools.RETURNING:
+            key = KEY_RETURNING_GREETINGS
+
+        greetings = await self.config.guild(ctx.guild).get_attr(key)()
 
         if not greetings:
             await ctx.send("There are no greetings, please add some first!")
@@ -343,7 +456,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             embed = discord.Embed(
                 title=f"Welcome greetings changes for {ctx.guild.name}", description=page
             )
-            embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
+            embed.set_footer(text=f"Pool {greetingPool.name} | Page {pageNumber}/{totalPages}")
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
@@ -366,7 +479,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await ctx.send("Your message is too long!")
             return
 
-        await self.config.guild(ctx.guild).message.set(message.content)
+        await self.config.guild(ctx.guild).get_attr(KEY_MESSAGE).set(message.content)
         await ctx.send("Message set to:")
         await ctx.send(f"```{message.content}```")
         LOGGER.info(
@@ -488,7 +601,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await ctx.send("The title is too long!")
             return
 
-        await self.config.guild(ctx.guild).title.set(title.content)
+        await self.config.guild(ctx.guild).get_attr(KEY_TITLE).set(title.content)
         await ctx.send("Title set to:")
         await ctx.send(f"```{title.content}```")
         LOGGER.info(
@@ -512,7 +625,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         if imageUrl == "":
             imageUrl = None
 
-        await self.config.guild(ctx.guild).image.set(imageUrl)
+        await self.config.guild(ctx.guild).get_attr(KEY_IMAGE).set(imageUrl)
         if imageUrl:
             await ctx.send(f"Welcome image set to `{imageUrl}`. Be sure to test it!")
         else:
@@ -531,3 +644,110 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Test the welcome DM by sending a DM to you."""
         await self.sendWelcomeMessage(ctx.message.author, test=True)
         await ctx.send("If this server has been configured, you should have received a DM.")
+
+    # [p]welcome tag
+    @welcome.group(name="tag", aliases=["desc, description, descriptions"])
+    async def tag(self, ctx: Context):
+        """Manage user descriptions
+
+        When this user joins the server, the description associated with this user
+        will be printed out to the configured logging channel.
+        """
+
+    # [p]welcome tag add
+    @tag.command(name="add", aliases=["create", "new", "edit", "set"])
+    async def addTag(self, ctx: Context, user: discord.User, *, description: str):
+        """Add a description to a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to add a description to.
+        description: str
+            The description to add.
+        """
+        userId = str(user.id)
+        if len(description) > MAX_DESCRIPTION_LENGTH:
+            await ctx.send(
+                "The description is too long! "
+                f"Max length is {MAX_DESCRIPTION_LENGTH} characters."
+            )
+            return
+
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            descDict[userId] = description
+
+        await ctx.send(
+            info(f"Description set for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been added for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+        LOGGER.debug(description)
+
+    # [p]welcome tag remove
+    @tag.command(name="remove", aliases=["delete", "del", "rm"])
+    async def removeTag(self, ctx: Context, user: discord.User):
+        """Remove a description from a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to remove a description from.
+        """
+        userId = str(user.id)
+        async with self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)() as descDict:
+            if userId in descDict:
+                del descDict[userId]
+        await ctx.send(
+            info(f"Description removed for {user.mention}."),
+            allowed_mentions=discord.AllowedMentions.none(),
+        )
+        LOGGER.info(
+            "A welcome description has been removed for %s#%s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+        )
+
+    # [p]welcome tag list
+    @tag.command(name="list", aliases=["ls"])
+    async def listTags(self, ctx: Context):
+        """List all descriptions."""
+        currentGuild: discord.Guild = ctx.guild
+        descDict: dict = await self.config.guild(currentGuild).get_attr(KEY_DESCRIPTIONS)()
+        if not descDict:
+            await ctx.send(info("No descriptions have been added."))
+            return
+        pageList = await createTagListPages(
+            descDict, embedTitle=f"Welcome descriptions for {currentGuild.name}"
+        )
+        await menu(ctx, pageList, DEFAULT_CONTROLS)
+
+    # [p]welcome tag get
+    @tag.command(name="get", aliases=["show"])
+    async def getTag(self, ctx: Context, user: discord.User):
+        """Get a description for a user.
+
+        Parameters:
+        -----------
+        user: discord.User
+            The user to get a description for.
+        """
+        userId = str(user.id)
+        descDict: dict = await self.config.guild(ctx.guild).get_attr(KEY_DESCRIPTIONS)()
+        if userId in descDict:
+            description = descDict[userId]
+            if description:
+                descText = "\n".join([f"**{user.mention}:**", box(description)])
+                embed = discord.Embed(
+                    title=f"Description for {user.name}#{user.discriminator}", description=descText
+                )
+                await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
+                return
+
+        await ctx.send(info("No description found for that user."))

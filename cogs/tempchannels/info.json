@@ -1,0 +1,11 @@
+{
+    "name" : "TempChannels",
+    "author" : ["Injabie3#1660", "KaguneAstra#6000"],
+    "short" : "Create a temporary text channel.",
+    "description" : "This cog helps create a temporary text channel for a certain duration, and is automatically deleted afterwards. Supports role locking and more",
+    "install_msg" : "Thanks for installing TempChannels. Please run `[p]tempchannels` to configure its settings.",
+    "requirements" : [],
+    "tags" : ["temporary"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog does not store user-related information."
+}

@@ -1,0 +1,10 @@
+{
+    "author": ["Injabie3#1660"],
+    "name": "RoleAssigner",
+    "short": "Randomly assign roles to certain users from a pool of roles.",
+    "description": "This cog allows you to assign random roles from a pool to all users or users of a particular role.",
+    "end_user_data_statement": "This cog does not store user data.",
+    "install_msg": "Thanks for installing RoleAssigner. Please run [p]roleassigner or [p]ra to see all the relevant commands.",
+    "requirements": [],
+    "tags": ["roles"]
+}

@@ -1,0 +1,11 @@
+{
+    "name" : "Highlight",
+    "author" : ["Injabie3#1660", "sedruk"],
+    "short" : "DM a user on words they care about.",
+    "description" : "This cog is a Slack-like feature that allows users to be notified based on specific words outside of at-mentions",
+    "install_msg" : "Thanks for installing Highlight. Please run [p]highlight to see all the relevant commands.",
+    "requirements" : [],
+    "tags" : ["notifications", "dm"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog stores user-defined settings, including their Discord ID in order to associate their preferences."
+}

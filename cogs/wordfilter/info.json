@@ -1,0 +1,11 @@
+{
+    "name" : "WordFilter",
+    "author" : ["Injabie3#1660", "sedruk"],
+    "short" : "Smarter word filtering",
+    "description" : "This cog allows you to filter messages in text-channel. It uses regex, and allows you to disable filtering in certain text channels, among other things. For developers, it exposes a public API for other cogs to hook into to see if a text blob contains a filtered word.",
+    "install_msg" : "Thanks for installing WordFilter. Use `[p]wordfilter` or `[p]wf` to see the configurable settings.",
+    "requirements" : [],
+    "tags" : [],
+    "permissions" : [],
+    "end_user_data_statement": "This cog does not store user data."
+}

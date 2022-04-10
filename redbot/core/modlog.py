@@ -283,11 +283,14 @@ class Case:
         .. note::
             This attribute will be of type `int`
             if the Discord user can no longer be found.
-    modified_at: Optional[int]
+    modified_at: Optional[float]
         The UNIX time of the last change to the case.
         `None` if the case was never edited.
-    message: Optional[discord.Message]
+    message: Optional[Union[discord.PartialMessage, discord.Message]]
         The message created by Modlog for this case.
+        Instance of `discord.Message` *if* the Case object was returned from
+        `modlog.create_case()`, otherwise `discord.PartialMessage`.
+
         `None` if we know that the message no longer exists
         (note: it might not exist regardless of whether this attribute is `None`)
         or if it has never been created.
@@ -310,8 +313,8 @@ class Case:
         until: Optional[int] = None,
         channel: Optional[Union[discord.abc.GuildChannel, int]] = None,
         amended_by: Optional[Union[discord.Object, discord.abc.User, int]] = None,
-        modified_at: Optional[int] = None,
-        message: Optional[discord.Message] = None,
+        modified_at: Optional[float] = None,
+        message: Optional[Union[discord.PartialMessage, discord.Message]] = None,
         last_known_username: Optional[str] = None,
     ):
         self.bot = bot
@@ -432,9 +435,9 @@ class Case:
         until = None
         duration = None
         if self.until:
-            start = datetime.utcfromtimestamp(self.created_at)
-            end = datetime.utcfromtimestamp(self.until)
-            end_fmt = end.strftime("%Y-%m-%d %H:%M:%S UTC")
+            start = datetime.fromtimestamp(self.created_at, tz=timezone.utc)
+            end = datetime.fromtimestamp(self.until, tz=timezone.utc)
+            end_fmt = f"<t:{int(end.timestamp())}>"
             duration = end - start
             dur_fmt = _strfdelta(duration)
             until = end_fmt
@@ -454,9 +457,7 @@ class Case:
 
         last_modified = None
         if self.modified_at:
-            last_modified = "{}".format(
-                datetime.utcfromtimestamp(self.modified_at).strftime("%Y-%m-%d %H:%M:%S UTC")
-            )
+            last_modified = f"<t:{int(self.modified_at)}>"
 
         if isinstance(self.user, int):
             if self.user == 0xDE1:
@@ -466,10 +467,21 @@ class Case:
                 translated = _("Unknown or Deleted User")
                 user = f"[{translated}] ({self.user})"
             else:
-                user = f"{self.last_known_username} ({self.user})"
+                # See usage explanation here: https://www.unicode.org/reports/tr9/#Formatting
+                name = self.last_known_username[:-5]
+                discriminator = self.last_known_username[-4:]
+                user = (
+                    f"\N{FIRST STRONG ISOLATE}{name}"
+                    f"\N{POP DIRECTIONAL ISOLATE}#{discriminator} ({self.user})"
+                )
         else:
+            # isolate the name so that the direction of the discriminator and ID do not get changed
+            # See usage explanation here: https://www.unicode.org/reports/tr9/#Formatting
             user = escape_spoilers(
-                filter_invites(f"{self.user} ({self.user.id})")
+                filter_invites(
+                    f"\N{FIRST STRONG ISOLATE}{self.user.name}"
+                    f"\N{POP DIRECTIONAL ISOLATE}#{self.user.discriminator} ({self.user.id})"
+                )
             )  # Invites and spoilers get rendered even in embeds.
 
         if embed:
@@ -619,14 +631,7 @@ class Case:
         if message is None:
             message_id = data.get("message")
             if message_id is not None:
-                message = discord.utils.get(bot.cached_messages, id=message_id)
-                if message is None:
-                    try:
-                        message = await mod_channel.fetch_message(message_id)
-                    except discord.HTTPException:
-                        message = None
-            else:
-                message = None
+                message = mod_channel.get_partial_message(message_id)
 
         user_objects = {"user": None, "moderator": None, "amended_by": None}
         for user_key in tuple(user_objects):

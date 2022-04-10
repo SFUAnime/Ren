@@ -5,123 +5,28 @@
 
 from .config import Config
 from .constants import *
+from .data import TagAlias, TagEncoder, TagInfo
 from .exceptions import *
+from .helpers import createSimplePages, tagDecoder
 from .rolecheck import roles_or_mod_or_permissions
 
+from collections import defaultdict
 from copy import deepcopy
 import csv
-import json
-import re
 import datetime
-import discord
 import difflib
+import json
+import logging
 from threading import Lock
-from collections import defaultdict
 
 import asyncio
 import discord
-from os.path import isfile, join
-import logging
+from os.path import isfile, join as pathJoin
 
 from redbot.core import Config as ConfigV3, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.paginator import Pages
-
-
-class TagInfo:
-    __slots__ = ("name", "content", "owner_id", "uses", "location", "created_at")
-
-    def __init__(self, name, content, owner_id, **kwargs):
-        self.name = name
-        self.content = content
-        self.owner_id = owner_id
-        self.uses = kwargs.pop("uses", 0)
-        self.location = kwargs.pop("location")
-        self.created_at = kwargs.pop("created_at", 0.0)
-
-    @property
-    def is_generic(self):
-        return self.location == "generic"
-
-    def __str__(self):
-        return self.content
-
-    async def embed(self, ctx, db):
-        e = discord.Embed(title=self.name)
-        e.add_field(name="Owner", value="<@!%s>" % self.owner_id)
-        e.add_field(name="Uses", value=self.uses)
-
-        popular = sorted(db.values(), key=lambda t: t.uses, reverse=True)
-        try:
-            e.add_field(name="Rank", value=popular.index(self) + 1)
-        except:
-            e.add_field(name="Rank", value="Unknown")
-
-        if self.created_at:
-            e.timestamp = datetime.datetime.fromtimestamp(self.created_at)
-
-        owner = discord.utils.find(lambda m: m.id == self.owner_id, ctx.bot.get_all_members())
-        if owner is None:
-            owner = await ctx.bot.fetch_user(self.owner_id)
-
-        e.set_author(name=str(owner), icon_url=owner.avatar_url or owner.default_avatar_url)
-        e.set_footer(text="Generic" if self.is_generic else "Server-specific")
-        return e
-
-
-class TagAlias:
-    __slots__ = ("name", "original", "owner_id", "created_at")
-
-    def __init__(self, **kwargs):
-        self.name = kwargs.pop("name")
-        self.original = kwargs.pop("original")
-        self.owner_id = kwargs.pop("owner_id")
-        self.created_at = kwargs.pop("created_at", 0.0)
-
-    @property
-    def is_generic(self):
-        return False
-
-    @property
-    def uses(self):
-        return 0  # compatibility with TagInfo
-
-    async def embed(self, ctx, db):
-        e = discord.Embed(title=self.name)
-        e.add_field(name="Owner", value="<@!%s>" % self.owner_id)
-        e.add_field(name="Original Tag", value=self.original)
-
-        if self.created_at:
-            e.timestamp = datetime.datetime.fromtimestamp(self.created_at)
-
-        owner = discord.utils.find(lambda m: m.id == self.owner_id, ctx.bot.get_all_members())
-        if owner is None:
-            owner = await ctx.bot.get_user(self.owner_id)
-
-        e.set_author(name=str(owner), icon_url=owner.avatar_url or owner.default_avatar_url)
-        return e
-
-
-class TagEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, TagInfo):
-            payload = {attr: getattr(obj, attr) for attr in TagInfo.__slots__}
-            payload["__tag__"] = True
-            return payload
-        if isinstance(obj, TagAlias):
-            payload = {attr: getattr(obj, attr) for attr in TagAlias.__slots__}
-            payload["__tag_alias__"] = True
-            return payload
-        return json.JSONEncoder.default(self, obj)
-
-
-def tag_decoder(obj):
-    if "__tag__" in obj:
-        return TagInfo(**obj)
-    if "__tag_alias__" in obj:
-        return TagAlias(**obj)
-    return obj
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 
 class Tags(commands.Cog):
@@ -135,23 +40,22 @@ class Tags(commands.Cog):
     def removeAllowedRole(self, guild: discord.Guild, role: discord.Role):
         self.allowed_roles[guild.id].discard(str(role.id))
 
-    def __init__(self, bot):
+    def __init__(self, bot: Red):
         self.bot = bot
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.Tags")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = pathJoin(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
             self.logger.addHandler(handler)
 
         # if tags.json doesnt exist, create it
-        universal_path = join(str(saveFolder), "tags.json")
+        universal_path = pathJoin(str(saveFolder), "tags.json")
         if not isfile(universal_path):
             with open(universal_path, "w+") as f:
                 empty = dict()
@@ -161,7 +65,7 @@ class Tags(commands.Cog):
             str(saveFolder),
             "tags.json",
             encoder=TagEncoder,
-            object_hook=tag_decoder,
+            object_hook=tagDecoder,
             loop=bot.loop,
             load_later=True,
         )
@@ -944,7 +848,7 @@ class Tags(commands.Cog):
             The new tag name.
         """
         try:
-            aliasCog = self.checkAliasCog(newName)
+            aliasCog = await self.checkAliasCog(ctx, newName)
             self.checkValidCommandName(newName)
         except RuntimeError as error:
             return await ctx.send(error)
@@ -978,6 +882,7 @@ class Tags(commands.Cog):
             return
 
         db[newName] = deepcopy(db[oldName])
+        db[newName].name = newName
         del db[oldName]
 
         await self.config.put(location, db)
@@ -1119,13 +1024,8 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            p = Pages(ctx=ctx, entries=tags, show_entry_count=True)
-            p.embed.colour = COLOUR_BLURPLE
-            p.embed.set_author(
-                name=owner.display_name,
-                icon_url=owner.avatar_url or owner.default_avatar_url,
-            )
-            await p.paginate()
+            pageList = await createSimplePages(items=tags, embedAuthor=owner)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
             await ctx.send("{0.name} has no tags.".format(owner))
 
@@ -1138,9 +1038,11 @@ class Tags(commands.Cog):
         tags.sort()
 
         if tags:
-            p = Pages(ctx=ctx, entries=tags, per_page=15, show_entry_count=True)
-            p.embed.colour = COLOUR_BLURPLE
-            await p.paginate()
+            pageList = await createSimplePages(
+                items=tags,
+                embedTitle="All Tags",
+            )
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
             await ctx.send("This server has no server-specific tags.")
 
@@ -1232,9 +1134,11 @@ class Tags(commands.Cog):
 
         if results:
             try:
-                p = Pages(ctx=ctx, entries=results, per_page=15, show_entry_count=True)
-                p.embed.colour = COLOUR_BLURPLE
-                await p.paginate()
+                pageList = await createSimplePages(
+                    items=results,
+                    embedTitle="Search Results",
+                )
+                await menu(ctx, pageList, DEFAULT_CONTROLS)
             except Exception as e:
                 await ctx.send(e)
         else:

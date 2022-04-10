@@ -1,12 +1,15 @@
 """tempchannels module.
 
-DM users based on a set of words that they are listening for.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
+Creates a temporary channel.
 """
+import json
+from pathlib import Path
 
 from redbot.core.bot import Red
 from .tempchannels import TempChannels
+
+with open(Path(__file__).parent / "info.json") as fp:
+    __red_end_user_data_statement__ = json.load(fp)["end_user_data_statement"]
 
 
 def setup(bot: Red):

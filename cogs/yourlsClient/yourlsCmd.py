@@ -4,17 +4,21 @@ Control Your Own URL Shortener instance.
 """
 import asyncio
 from datetime import timezone
+from functools import partial
 import logging
+import os
 import discord
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
+from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 
 from requests.exceptions import HTTPError, RequestException
 import yourls
-from yourls import YOURLSClientBase, YOURLSAPIMixin
 
-from .exceptions import *
+from .api import YOURLSClient
+from .exceptions import YOURLSNotConfigured
+from .helpers import createSimplePages
 
 KEY_API = "api"
 KEY_SIGNATURE = "signature"
@@ -26,66 +30,21 @@ BASE_GUILD = {
 DEFAULT_ERROR = "Something went wrong, please try again later, or check your console for details."
 
 
-class YOURLSDeleteMixin(object):
-    def delete(self, short):
-        data = dict(action="delete", shorturl=short)
-        self._api_request(params=data)
-
-
-class YOURLSEditMixin(object):
-    def edit(self, shortUrl: str, newLongUrl: str):
-        """Edit the long URL for a particular short URL.
-
-        Parameters
-        ----------
-        short: str
-            The short URL for which you wish to update the long URL for.
-        newLongUrl: str
-            The new long URL you wish the short URL to point to.
-        """
-        data = dict(action="update", shorturl=shortUrl, url=newLongUrl)
-        self._api_request(params=data)
-
-    def rename(self, oldShortUrl: str, newShortUrl: str):
-        """Rename the short URL to a new one.
-
-        Parameters
-        ----------
-        short: str
-            The short URL for which you wish to update the long URL for.
-        newLongUrl: str
-            The new long URL you wish the short URL to point to.
-        """
-        urlStats = self.url_stats(oldShortUrl)
-        data = dict(
-            action="change_keyword",
-            oldshorturl=oldShortUrl,
-            newshorturl=newShortUrl,
-            url=urlStats.url,
-            title=urlStats.title,
-        )
-        self._api_request(params=data)
-
-
-class YOURLSClient(YOURLSDeleteMixin, YOURLSEditMixin, YOURLSAPIMixin, YOURLSClientBase):
-    """YOURLS client with API delete support."""
-
-
 class YOURLS(commands.Cog):
     def __init__(self, bot: Red):
         super().__init__()
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**BASE_GUILD)
+        self.loop = asyncio.get_running_loop()
 
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.YOURLS")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -102,7 +61,9 @@ class YOURLS(commands.Cog):
         """Get instance-wide statistics."""
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            urls, stats = shortener.stats("top", limit=3)
+            urls, stats = await self.loop.run_in_executor(
+                None, partial(shortener.stats, "top", limit=3)
+            )
             embed = discord.Embed()
             emoji = 129351  # first_place
             for url in urls:
@@ -140,7 +101,9 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            url = shortener.shorten(longUrl, keyword=keyword)
+            url = await self.loop.run_in_executor(
+                None, partial(shortener.shorten, longUrl, keyword=keyword)
+            )
             self.logger.info(
                 "%s (%s) added a short URL at %s for %s (%s)",
                 ctx.author.name,
@@ -210,7 +173,7 @@ class YOURLS(commands.Cog):
 
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            url = shortener.delete(keyword)
+            await self.loop.run_in_executor(None, shortener.delete, keyword)
             self.logger.info(
                 "%s (%s) deleted the short URL %s for %s (%s)",
                 ctx.author.name,
@@ -254,7 +217,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            shortener.rename(oldKeyword, newKeyword)
+            await self.loop.run_in_executor(None, shortener.rename, oldKeyword, newKeyword)
         except YOURLSNotConfigured as error:
             await ctx.send(error)
         except HTTPError as error:
@@ -315,7 +278,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            shortener.edit(keyword, newLongUrl)
+            await self.loop.run_in_executor(None, shortener.edit, keyword, newLongUrl)
         except YOURLSNotConfigured as error:
             await ctx.send(error)
         except HTTPError as error:
@@ -349,6 +312,36 @@ class YOURLS(commands.Cog):
             )
             await ctx.send(f"Short URL {keyword} now points to {newLongUrl}")
 
+    @yourlsBase.command(name="search")
+    async def search(self, ctx: Context, searchTerm: str):
+        """Get a list of keywords that resemble `searchTerm`.
+
+        Parameters
+        ----------
+        searchTerm: str
+            The search term to look for in YOURLS.
+            e.g. The keyword of `https://example.com/discord` is `discord`.
+        """
+        try:
+            shortener = await self.fetchYourlsClient(ctx.guild)
+            results = await self.loop.run_in_executor(None, shortener.search, searchTerm)
+        except RuntimeError as error:
+            await ctx.send(error)
+        except HTTPError as error:
+            if error.response.status_code == 404:
+                await ctx.send(
+                    "Did not find any matches, please try again with different parameters!"
+                )
+            else:
+                self.logger.error(error, exc_info=True)
+                await ctx.send(DEFAULT_ERROR)
+        except RequestException as error:
+            self.logger.error(error)
+            await ctx.send(DEFAULT_ERROR)
+        else:
+            pageList = await createSimplePages(results, "Found the following keywords:")
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
+
     @yourlsBase.command(name="info")
     async def urlInfo(self, ctx: Context, keyword: str):
         """Get keyword-specific information.
@@ -361,7 +354,7 @@ class YOURLS(commands.Cog):
         """
         try:
             shortener = await self.fetchYourlsClient(ctx.guild)
-            urlStats = shortener.url_stats(keyword)
+            urlStats = await self.loop.run_in_executor(None, shortener.url_stats, keyword)
             urlDate = urlStats.date.replace(tzinfo=timezone.utc).astimezone(tz=None)
             urlDate = urlDate.strftime("%a, %d %b %Y %I:%M%p %Z")
             embed = discord.Embed()
@@ -419,7 +412,7 @@ class YOURLS(commands.Cog):
 
     @settingsBase.command(name="signature", aliases=["sig"])
     async def sig(self, ctx: Context, signature: str):
-        """Configure the API endpoint for YOURLS.
+        """Configure the API signature for YOURLS.
 
         Parameters
         ----------

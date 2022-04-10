@@ -1,12 +1,11 @@
 """Word Filter cog.
 To filter words in a more smart/useful way than simply detecting and
 deleting a message.
-
-This cog requires paginator.py, obtainable from Rapptz/RoboDanny.
 """
 import re
 from threading import Lock
 import logging
+import os
 import asyncio
 import random
 import discord
@@ -21,6 +20,7 @@ from .constants import (
     KEY_FILTERS,
     KEY_CMD_DENIED,
     KEY_TOGGLE_MOD,
+    KEY_USAGE_STATS,
 )
 
 
@@ -35,13 +35,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # Initialize logger, and save to cog folder.
         saveFolder = data_manager.cog_data_path(cog_instance=self)
-        self.logger = logging.getLogger("red.WordFilter")
+        self.logger = logging.getLogger("red.luicogs.WordFilter")
         if self.logger.level == 0:
             # Prevents the self.logger from being loaded again in case of module reload.
             self.logger.setLevel(logging.INFO)
-            handler = logging.FileHandler(
-                filename=str(saveFolder) + "/info.log", encoding="utf-8", mode="a"
-            )
+            logPath = os.path.join(saveFolder, "info.log")
+            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
                 logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
@@ -66,6 +65,12 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         out messages.
         """
 
+    @wordFilter.group(name="stat", aliases=["st"])
+    async def stat(self, ctx):
+        """
+        Access censorship statistics
+        """
+
     @regex.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(manage_messages=True)
@@ -88,6 +93,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
+
         else:
             await user.send(
                 "`Word Filter:` The word `{0}` is already in the filter "
@@ -117,6 +123,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         else:
             filters.remove(word)
             await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
+            filterStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+            if word in filterStats:
+                del filterStats[word]
+                await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
             await user.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
@@ -442,6 +452,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         filteredMsg = msg.content
         filters = await self.config.guild(msg.guild).get_attr(KEY_FILTERS)()
+
         filteredMsg = _filterWord(filters, filteredMsg)
 
         if msg.content == filteredMsg:
@@ -491,7 +502,19 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     blacklistedCmd = True
 
         try:
+            # records which words were used and how often
+            filterStats = await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS)()
+
+            for word in filteredWords:
+                timesMatched = len(
+                    re.findall(r"\b" + word + r"\b", originalMsg, flags=re.IGNORECASE)
+                )
+                filterStats.update({word: filterStats.get(word, 0) + timesMatched})
+
+            await self.config.guild(msg.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
+
             filteredMsg = _filterWord(filteredWords, filteredMsg)
+
         except re.error as error:  # pylint: disable=broad-except
             self.logger.error("Exception!")
             self.logger.error(error)
@@ -552,6 +575,56 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def on_message_edit(self, msg, newMsg):
         await self.checkWords(msg, newMsg)
 
+    ############################################
+    # COMMANDS - Usage Statistics #
+    ############################################
+    @stat.command(name="rawusage")
+    async def rawCensorUsageList(self, ctx):
+        """
+        Displays a raw usage list of all the censored words that have been used
+        """
+        await self.postUsageList(ctx)
+
+    @stat.command(name="orderedusage")
+    async def orderedCensorUsageList(self, ctx):
+        """
+        Displays an ordered usage list of all the censored words that have been used
+        """
+        await self.postUsageList(ctx, sorting=True)
+
+    async def postUsageList(self, ctx, sorting=False):
+        """
+        Displays the usage stats for all triggered filter words. If sorting is false, shows them unordered, otherwise in descending order of usage
+        """
+        user = ctx.message.author
+        rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
+
+        if rawUsageStats:
+            display = []
+            pageList = []
+            count = 1
+            stats = rawUsageStats
+            if sorting:
+                stats = dict(sorted(rawUsageStats.items(), key=lambda item: item[1], reverse=True))
+            for regex, timesUsed in stats.items():
+                display.append(f"{count}. `{regex}`: `{timesUsed}`")
+                count += 1
+            msg = "\n".join(display)
+            pages = list(chat_formatting.pagify(msg, page_length=400))
+            totalPages = len(pages)
+            totalEntries = len(display)
+
+            async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
+                embed = discord.Embed(
+                    title=f"Filtered words for **{ctx.guild.name}**", description=page
+                )
+                embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
+                embed.colour = discord.Colour.red()
+                pageList.append(embed)
+            await menu(ctx, pageList, DEFAULT_CONTROLS)
+        else:
+            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+
 
 def _censorMatch(matchobj):
     matchLength = len(matchobj.group(0))
@@ -559,13 +632,17 @@ def _censorMatch(matchobj):
 
 
 def _filterWord(words, string):
-    # Combine all filter words into one regex
-    numFilters = len(words) - 1
-    reFormat = r"\b(?:" + (r"{}|") * numFilters + r"{})\b"
-    regex = reFormat.format(*words)
-
-    # Replace the offending string with the correct number of stars.
-    return re.sub(regex, _censorMatch, string, flags=re.IGNORECASE)
+    numWords = len(words)
+    if not words:
+        # if no filters added yet, do nothing
+        return string
+    else:
+        # Combine all filter words into one regex
+        numFilters = numWords - 1
+        reFormat = r"\b(?:" + (r"{}|") * numFilters + r"{})\b"
+        regex = reFormat.format(*words)
+        # Replace the offending string with the correct number of stars.
+        return re.sub(regex, _censorMatch, string, flags=re.IGNORECASE)
 
 
 def _isOneWord(string):

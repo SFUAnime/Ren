@@ -1,0 +1,11 @@
+{
+    "name" : "SFU",
+    "author" : ["brenfan#9943", "Injabie3#1660"],
+    "short" : "Access Simon Fraser University (SFU) public information.",
+    "description" : "This cog allows users to query SFU's public information, such as webcams, course information, and road reports.",
+    "install_msg" : "Thanks for installing the SFU cog. Please see `[p]cam`, `[p]report`, and `[p]course` for the relevant queries.",
+    "requirements" : ["bs4", "requests"],
+    "tags" : ["sfu", "info"],
+    "permissions" : [],
+    "end_user_data_statement": "This cog does not store any user information."
+}
