@@ -80,20 +80,19 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         word: str
             The regex string you would like to add to the filter.
         """
-        user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if word not in filters:
             filters.append(word)
             await self.config.guild(ctx.guild).get_attr(KEY_FILTERS).set(filters)
-            await user.send(
+            await ctx.send(
                 "`Word Filter:` `{0}` was added to the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
 
         else:
-            await user.send(
+            await ctx.send(
                 "`Word Filter:` The word `{0}` is already in the filter "
                 "for guild **{1}**".format(word, guildName)
             )
@@ -109,12 +108,11 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         word: str
             The regex string you would like to remove from the filter.
         """
-        user = ctx.message.author
         guildName = ctx.message.guild.name
         filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if not filters or word not in filters:
-            await user.send(
+            await ctx.send(
                 "`Word Filter:` The word `{0}` is not in the filter for "
                 "guild **{1}**".format(word, guildName)
             )
@@ -125,7 +123,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if word in filterStats:
                 del filterStats[word]
                 await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS).set(filterStats)
-            await user.send(
+            await ctx.send(
                 "`Word Filter:` `{0}` removed from the filter in the "
                 "guild **{1}**".format(word, guildName)
             )
@@ -137,7 +135,6 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """List the regex used to filter messages in raw format.
         NOTE: do this in a channel outside of the viewing public
         """
-        user = ctx.message.author
         filters = await self.config.guild(ctx.guild).get_attr(KEY_FILTERS)()
 
         if filters:
@@ -159,7 +156,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 pageList.append(embed)
             await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
-            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+            await ctx.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
 
     @wordFilter.command(name="togglemod")
     @commands.guild_only()
@@ -594,7 +591,6 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         Displays the usage stats for all triggered filter words. If sorting is false, shows them unordered, otherwise in descending order of usage
         """
-        user = ctx.message.author
         rawUsageStats = await self.config.guild(ctx.guild).get_attr(KEY_USAGE_STATS)()
 
         if rawUsageStats:
@@ -621,7 +617,7 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 pageList.append(embed)
             await menu(ctx, pageList, DEFAULT_CONTROLS)
         else:
-            await user.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
+            await ctx.send("Sorry you have no filtered words in **{}**".format(ctx.guild.name))
 
 
 def _censorMatch(matchobj):
