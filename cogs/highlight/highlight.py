@@ -3,7 +3,7 @@
 Credit: This idea was first implemented by Danny (https://github.com/Rapptz/) but at
 the time, that bot was closed source.
 """
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 import os
 import logging
 import re
@@ -611,30 +611,32 @@ class Highlight(commands.Cog):
         # applicable.
         return False
 
-    def _triggeredUpdate(self, msg, uid):
+    def _triggeredUpdate(
+        self, channel: discord.TextChannel, user: discord.User, timestamp: datetime
+    ):
         """Updates the last time a user had their words triggered in a channel.
+
+        This sets self.lastTriggered[sid][cid][uid] to the specified datetime.
 
         Parameters:
         -----------
-        msg: discord.Message
-            The message that triggered an update for a user.  Should contain the
-            timestamp, guild ID, and channel ID to update.
-        uid: int
-            The user ID of the user we want to update.
-
-        Returns:
-        --------
-        None, updates self.lastTriggered[sid][cid][uid] with the newest datetime.
+        channel: discord.TextChannel
+            The trigger channel for the user we want to update.
+        user: discord.User
+            The user that we wish to update.
+        timestamp: datetime.datetime
+            The timestamp we wish to update.
         """
-        sid = msg.guild.id
-        cid = msg.channel.id
+        sid = channel.guild.id
+        cid = channel.id
+        uid = user.id
 
         with self.triggeredLock:
             if sid not in self.lastTriggered.keys():
                 self.lastTriggered[sid] = {}
             if cid not in self.lastTriggered[sid].keys():
                 self.lastTriggered[sid][cid] = {}
-            self.lastTriggered[sid][cid][uid] = msg.created_at
+            self.lastTriggered[sid][cid][uid] = timestamp
 
     async def checkHighlights(self, msg: discord.Message):
         """Background listener to check if a highlight has been triggered."""
@@ -717,7 +719,7 @@ class Highlight(commands.Cog):
                 timeout = data[KEY_TIMEOUT] if KEY_TIMEOUT in data.keys() else DEFAULT_TIMEOUT
                 triggeredRecently = self._triggeredRecently(msg, currentUserId, timeout)
                 if match and not active and not triggeredRecently and user.id != currentUserId:
-                    self._triggeredUpdate(msg, currentUserId)
+                    self._triggeredUpdate(msg.channel, hiliteUser, msg.created_at)
                     tasks.append(self._notifyUser(hiliteUser, msg, word))
 
         await asyncio.gather(*tasks)  # pylint: disable=no-member
@@ -799,6 +801,20 @@ class Highlight(commands.Cog):
         await self.bot.wait_until_ready()
 
     # Event listeners
+    @commands.Cog.listener("on_typing")
+    async def onTyping(self, channel: discord.abc.Messageable, user: discord.User, when: datetime):
+        if not isinstance(channel, discord.TextChannel) or user.bot:
+            return
+        self.logger.debug(
+            "%s#%s (%s) started typing in %s (%s)",
+            user.name,
+            user.discriminator,
+            user.id,
+            channel.name,
+            channel.id,
+        )
+        self._triggeredUpdate(channel, user, when)
+
     @commands.Cog.listener("on_message")
     async def onMessage(self, msg):
         """Background listener to check messages for highlight DMs."""

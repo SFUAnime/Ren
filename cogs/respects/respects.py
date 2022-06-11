@@ -48,7 +48,7 @@ class Respects(commands.Cog):
         # Initialize logger and save to cog folder.
         saveFolder = data_manager.cog_data_path(cog_instance=self)
         self.logger = logging.getLogger("red.luicogs.Respects")
-        if not self.logging.handlers:
+        if not self.logger.handlers:
             logPath = os.path.join(saveFolder, "info.log")
             handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
