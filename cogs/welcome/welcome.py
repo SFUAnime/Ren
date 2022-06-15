@@ -86,6 +86,50 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             LOGGER.info("Changed guild's welcomeChannelSetFlag to false as channel was deleted")
         return
 
+    async def sendToWelcomeChannel(self, guild: discord.Guild, *args, **kwargs):
+        """
+        Sends a message to the welcome channel of a guild.
+
+        Parameters
+        ----------
+        guild: discord.Guild
+            The guild to send the message to
+        *args:
+            The arguments to pass to the `discord.TextChannel.send()` method
+        **kwargs:
+            Keyword arguments to be passed to the `discord.TextChannel.send()` method
+
+        Returns
+        -------
+        discord.Message
+            The message sent
+
+        Raises
+        ------
+        discord.Forbidden
+            If the bot doesn't have permissions to send messages to the channel
+        discord.HTTPException
+            If the message couldn't be sent
+        discord.InvalidArgument
+            If keyword arguments are invalid
+        ValueError
+            If the welcome channel for the specified guild is not found.
+        """
+
+        welcomeChannelId: int = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL)()
+
+        if welcomeChannelId is None:
+            raise ValueError(f"No welcome channel set for guild {guild.name} ({guild.id}).")
+
+        welcomeChannel: discord.TextChannel = discord.utils.get(
+            guild.text_channels, id=welcomeChannelId
+        )
+
+        if not welcomeChannel:
+            raise ValueError(f"Welcome channel not found for guild {guild.name} ({guild.id})")
+
+        return await welcomeChannel.send(*args, **kwargs)
+
     async def addToJoinedUserIds(self, newUser: discord.Member):
         """Adds the user's id to the list of joined users."""
         async with self.config.guild(newUser.guild).get_attr(
@@ -164,6 +208,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     exc_info=True,
                 )
                 LOGGER.error(errorMsg)
+
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
                         f":bangbang: ``Server Welcome:`` User {newUser.mention} "
@@ -171,6 +216,31 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                         f"({newUser.id}) has joined. Could not send DM!"
                     )
                     await channel.send(errorMsg)
+
+                doPostFailedDm = guildData[KEY_WELCOME_CHANNEL_SETTINGS][KEY_POST_FAILED_DM]
+                if doPostFailedDm and not test:
+                    infoMsg = (
+                        f"Hey {newUser.mention}, we couldn't reach your DMs.\n"
+                        "The following is what we wanted to send to you."
+                    )
+                    try:
+                        await self.sendToWelcomeChannel(newUser.guild, infoMsg, embed=welcomeEmbed)
+                    except ValueError as errorMsg:
+                        LOGGER.error(
+                            "Could not send messages to the welcome channel! "
+                            "Please make sure welcome channel settings are "
+                            "well configured!",
+                            exc_info=True,
+                        )
+                        LOGGER.error(errorMsg)
+                    except (discord.Forbidden, discord.HTTPException) as errorMsg:
+                        LOGGER.error(
+                            "Could not send message, please make sure the bot "
+                            "has enough permissions to send messages to this "
+                            "channel!",
+                            exc_info=True,
+                        )
+                        LOGGER.error(errorMsg)
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
@@ -389,9 +459,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings
     @welcome.group(name="greetings")
     async def greetings(self, ctx: Context):
-        """Server greetings message settings.
+        """Server greeting channel and greeting messages settings.
 
-        Greetings are seperated by pools.
+        Greetings are separated by pools.
         A pool can be specified as an extra argument for subcommands under this command.
         If not specified, the default pool will be used.
 
@@ -467,9 +537,14 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
 
-    # [p]welcomeset greetings channel
-    @greetings.command(name="channel")
-    async def welcomeChannelSet(self, ctx: Context, channel: discord.TextChannel = None):
+    # [p]welcomeset greetings channelset
+    @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
+    async def greetChannelConfig(self, ctx: Context):
+        """Manage server welcome channel settings."""
+
+    # [p]welcomeset greetings channelset channel
+    @greetChannelConfig.command(name="channel")
+    async def greetChannelSet(self, ctx: Context, channel: discord.TextChannel = None):
         """Set the welcome channel
 
         Parameters:
@@ -488,6 +563,27 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await ctx.send(f"Channel set to {channel}")
 
         return
+
+    # [p]welcomeset greetings channelset postfaileddm
+    @greetChannelConfig.command(name="postfaileddm", aliases=["faileddm", "togglefaileddm"])
+    async def greetChannelSetPostFailedDm(self, ctx: Context):
+        """Toggle whether to post failed DM's to the welcome channel."""
+
+        doPostFailedDmConfig = (
+            self.config.guild(ctx.guild)
+            .get_attr(KEY_WELCOME_CHANNEL_SETTINGS)
+            .get_attr(KEY_POST_FAILED_DM)
+        )
+
+        doPostFailedDm = await doPostFailedDmConfig()
+        await doPostFailedDmConfig.set(not doPostFailedDm)
+        doPostFailedDm = await doPostFailedDmConfig()
+
+        await ctx.send(
+            info("Failed DM's will now be posted to the welcome channel.")
+            if doPostFailedDm
+            else info("Failed DM's will **not** be posted to the welcome channel.")
+        )
 
     # [p]welcomeset greetings list
     @greetings.command(name="list", aliases=["ls"])

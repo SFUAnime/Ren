@@ -13,6 +13,8 @@ KEY_RETURNING_GREETINGS = "returningGreetings"
 KEY_WELCOME_CHANNEL = "welcomeChannel"
 KEY_WELCOME_CHANNEL_ENABLED = "welcomeChannelSet"
 KEY_DESCRIPTIONS = "descriptions"
+KEY_WELCOME_CHANNEL_SETTINGS = "welcomeChannelSettings"
+KEY_POST_FAILED_DM = "postFailedDm"
 KEY_JOINED_USER_IDS = "joinedUserIds"
 
 MAX_MESSAGE_LENGTH = 2000
@@ -32,6 +34,9 @@ DEFAULT_GUILD = {
     KEY_WELCOME_CHANNEL: None,
     KEY_WELCOME_CHANNEL_ENABLED: False,
     KEY_DESCRIPTIONS: {},
+    KEY_WELCOME_CHANNEL_SETTINGS: {
+        KEY_POST_FAILED_DM: False,
+    },
     KEY_JOINED_USER_IDS: [],
 }
 
