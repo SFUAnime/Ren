@@ -43,7 +43,7 @@ class Triggered(commands.Cog):
             # bot is typing here...
             data = await self._createTrigger(user, mode=Modes.triggered)
             if not data:
-                await self.bot.say("Something went wrong, try again.")
+                await ctx.send("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
@@ -56,7 +56,7 @@ class Triggered(commands.Cog):
             # bot is typing here...
             data = await self._createTrigger(user, mode=Modes.reallytriggered)
             if not data:
-                await self.bot.say("Something went wrong, try again.")
+                await ctx.send("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
@@ -69,7 +69,7 @@ class Triggered(commands.Cog):
             # bot is typing here...
             data = await self._createTrigger(user, mode=Modes.hypertriggered)
             if not data:
-                await self.bot.say("Something went wrong, try again.")
+                await ctx.send("Something went wrong, try again.")
                 return
             await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
