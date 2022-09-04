@@ -470,6 +470,8 @@ class Birthday(commands.Cog):
         administrator or a moderator in case you want to have your birthday erased and/or set.
 
         Specify your birth month and birth day in numbers.
+        
+        For your privacy, you can delete the command message right away after sending it.
 
         Parameters
         ----------
@@ -524,30 +526,25 @@ class Birthday(commands.Cog):
 
             if birthdayConfig:
                 confirmationStr = (
-                    f"Are you sure you want to set your birthday to {spoiler(birthdayStr)}? "
-                    "Only administrators and moderators can reset your birthday afterwards."
-                )
-                confirmationStrNoBirthday = (
-                    "Are you sure you want to set your birthday to the specified month and day? "
-                    "Only administrators and moderators can reset your birthday afterwards."
+                    f"Are you sure you want to set your birthday to {spoiler(bold(birthdayStr))}? "
+                    "Only administrators and moderators can reset your birthday afterwards. "
+                    f"Type {bold('`yes`')} to confirm."
                 )
 
-                sentReplyMsg = await ctx.send(f"{headerWarn}: {confirmationStr}")
+                await ctx.author.send(f"{headerWarn}: {confirmationStr}")
 
                 def check(msg: discord.Message):
-                    return msg.author == ctx.author and msg.channel == ctx.channel
+                    return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
 
                 try:
                     response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
                     # hide the birthday portion within the previous message
-                    await sentReplyMsg.edit(content=f"{headerWarn}: {confirmationStrNoBirthday}")
-                    await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
+                    await ctx.author.send(f"{headerBad}: You took too long. Not setting your birthday.")
                     return
 
                 if response.content.lower() != "yes":
-                    await sentReplyMsg.edit(content=f"{headerWarn}: {confirmationStrNoBirthday}")
-                    await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
                     return
 
                 await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(month)
@@ -562,11 +559,7 @@ class Birthday(commands.Cog):
             return
 
         await ctx.author.send(
-            f"{headerGood}: Successfully set your birthday to {bold(birthdayStr)}."
-        )
-
-        await ctx.send(
-            f"{headerGood}: Successfully set your birthday."
+            f"{headerGood}: Successfully set your birthday to {spoiler(bold(birthdayStr))}."
         )
 
         self.logger.info(
