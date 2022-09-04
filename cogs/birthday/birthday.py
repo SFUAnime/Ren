@@ -440,7 +440,7 @@ class Birthday(commands.Cog):
                 if month and day:
                     birthday = date(2020, month, day)
                     birthdayStr = "{0:%B} {0:%d}".format(birthday)
-                    ctx.author.send(f"{headerGood}: Your birthday is {birthdayStr}.")
+                    await ctx.author.send(f"{headerGood}: Your birthday is {birthdayStr}.")
                     return
 
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
