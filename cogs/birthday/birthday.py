@@ -470,7 +470,7 @@ class Birthday(commands.Cog):
         administrator or a moderator in case you want to have your birthday erased and/or set.
 
         Specify your birth month and birth day in numbers.
-        
+
         For your privacy, you can delete the command message right away after sending it.
 
         Parameters
@@ -523,56 +523,57 @@ class Birthday(commands.Cog):
         try:
             birthday = date(2020, month, day)
             birthdayStr = "{0:%B} {0:%d}".format(birthday)
-
-            if birthdayConfig:
-                confirmationStr = (
-                    f"Are you sure you want to set your birthday to {spoiler(bold(birthdayStr))}? "
-                    "Only administrators and moderators can reset your birthday afterwards. "
-                    f"Type {bold('`yes`')} to confirm."
-                )
-
-                await ctx.author.send(f"{headerWarn}: {confirmationStr}")
-
-                def check(msg: discord.Message):
-                    return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
-
-                try:
-                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
-                except asyncio.TimeoutError:
-                    # hide the birthday portion within the previous message
-                    await ctx.author.send(f"{headerBad}: You took too long. Not setting your birthday.")
-                    return
-
-                if response.content.lower() != "yes":
-                    await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
-                    return
-
-                await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(month)
-                await birthdayConfig.get_attr(KEY_BDAY_DAY).set(day)
-                await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
-            else:
-                raise Exception(
-                    "Error while accessing member's birthday config. This should not happen!"
-                )
         except ValueError:
             await ctx.send(f"{headerBad}: Please enter a valid birthday!")
             return
 
-        await ctx.author.send(
-            f"{headerGood}: Successfully set your birthday to {spoiler(bold(birthdayStr))}."
-        )
+        if birthdayConfig:
+            confirmationStr = (
+                f"Are you sure you want to set your birthday to {spoiler(bold(birthdayStr))}? "
+                "Only administrators and moderators can reset your birthday afterwards. "
+                f"Type {bold('`yes`')} to confirm."
+            )
 
-        self.logger.info(
-            "%s#%s (%s) added their birthday as %s",
-            ctx.author.name,
-            ctx.author.discriminator,
-            ctx.author.id,
-            birthdayStr,
-        )
+            await ctx.author.send(f"{headerWarn}: {confirmationStr}")
 
-        # Explicitly check to see if user should be added to role, if the month
-        # and day just so happen to be the same as it is now.
-        await self.checkBirthday()
+            def check(msg: discord.Message):
+                return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
+
+            try:
+                response = await self.bot.wait_for("message", timeout=30.0, check=check)
+            except asyncio.TimeoutError:
+                # hide the birthday portion within the previous message
+                await ctx.author.send(
+                    f"{headerBad}: You took too long. Not setting your birthday."
+                )
+                return
+
+            if response.content.lower() != "yes":
+                await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
+                return
+
+            await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(month)
+            await birthdayConfig.get_attr(KEY_BDAY_DAY).set(day)
+            await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+
+            await ctx.author.send(
+                f"{headerGood}: Successfully set your birthday to {spoiler(bold(birthdayStr))}."
+            )
+
+            self.logger.info(
+                "%s#%s (%s) added their birthday as %s",
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
+                birthdayStr,
+            )
+
+            # explicitly check to see if user should be added to role, if the month
+            # and day just so happen to be the same as it is now.
+            await self.checkBirthday()
+            return
+
+        raise Exception("Error while accessing member's birthday config. This should not happen!")
 
     @_birthday.command(name="selfbirthday")
     @commands.guild_only()
