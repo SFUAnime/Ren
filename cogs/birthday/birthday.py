@@ -441,7 +441,7 @@ class Birthday(commands.Cog):
                     birthday = date(2020, month, day)
                     birthdayStr = "{0:%B} {0:%d}".format(birthday)
                     replyMsg = (
-                        f"{headerGood}\n"
+                        f"{headerGood}: "
                         f"Your birthday is {birthdayStr}.\n"
                         f"{italics('(For your privacy, this message will disappear shortly.)')}"
                     )
@@ -458,7 +458,7 @@ class Birthday(commands.Cog):
         )
 
         replyMsg = (
-            f"{headerBad}\n"
+            f"{headerBad}: "
             "Your birthday in this server has not been set. "
             "Please contact an administrator/moderator, or, "
             "if it is allowed by the server's admins and/or "
@@ -487,7 +487,7 @@ class Birthday(commands.Cog):
 
         if not await self.config.guild(ctx.guild).get_attr(KEY_ALLOW_SELF_BDAY)():
             await ctx.send(
-                f"{headerBad}\n"
+                f"{headerBad}: "
                 "This function is not enabled. You cannot set your birthday. "
                 "Please let an administrator or a moderator know if you "
                 "believe this function should be enabled."
@@ -500,7 +500,7 @@ class Birthday(commands.Cog):
             birthDay = birthdayConfig.get_attr(KEY_BDAY_DAY)
             if birthMonth and birthDay and await birthMonth() and await birthDay():
                 await ctx.send(
-                    f"{headerBad}\n"
+                    f"{headerBad}: "
                     "Your birthday is already set. If you believe it is "
                     "incorrect, please contact an admin or a moderator."
                 )
@@ -510,7 +510,7 @@ class Birthday(commands.Cog):
 
         if not birthdayRoleId:
             await ctx.send(
-                f"{headerBad}\n"
+                f"{headerBad}: "
                 "This server is not configured, please let a server "
                 "administrator or moderator know."
             )
@@ -531,14 +531,14 @@ class Birthday(commands.Cog):
                     "Error while accessing member's birthday config. This should not happen!"
                 )
         except ValueError:
-            await ctx.send(f"{headerBad}\n" "Please enter a valid birthday!")
+            await ctx.send(f"{headerBad}: Please enter a valid birthday!")
             return
 
         birthdayStr = "{0:%B} {0:%d}".format(birthday)
 
         sentReplyMsg: discord.Message = await ctx.send(
-            f"{headerGood}\n"
-            f"Successfully set your birthday to {bold(birthdayStr)}.\n"
+            f"{headerGood}: "
+            f"Successfully set your birthday to {bold(birthdayStr)}.: "
             f"{italics('(For your privacy, your birthday shown will be hidden shortly.)')}"
         )
 
@@ -551,7 +551,7 @@ class Birthday(commands.Cog):
         )
 
         await asyncio.sleep(5)
-        await sentReplyMsg.edit(content=(f"{headerGood}\n" "Successfully set your birthday."))
+        await sentReplyMsg.edit(content=(f"{headerGood}: Successfully set your birthday."))
 
         # Explicitly check to see if user should be added to role, if the month
         # and day just so happen to be the same as it is now.
@@ -572,14 +572,12 @@ class Birthday(commands.Cog):
         headerGood = f":white_check_mark: {bold(fnTitle)}"
 
         msgAllow = (
-            f"{headerGood}\n"
-            f":white_check_mark: Enabled. Members can set their birthdays themselves "
+            f"{headerGood}: "
+            f"{bold('Enabled')}. Members can set their birthdays themselves "
             f"{bold('ONCE')} and {bold('ONLY IF')} their birthdays were not already set."
         )
         msgNotAllow = (
-            f"{headerGood}\n"
-            ":negative_squared_cross_mark: Disabled. Members cannot set their birthdays "
-            "themselves."
+            f"{headerGood}: " f"{bold('Disabled')}. Members cannot set their birthdays themselves."
         )
         guildConfig = self.config.guild(ctx.guild)
         allowSelfBirthdayConfig = guildConfig.get_attr(KEY_ALLOW_SELF_BDAY)
