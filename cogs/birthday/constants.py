@@ -5,6 +5,7 @@ KEY_BDAY_USERS = "birthdayUsers"
 KEY_BDAY_MONTH = "birthdateMonth"
 KEY_BDAY_DAY = "birthdateDay"
 KEY_IS_ASSIGNED = "isAssigned"
+KEY_ALLOW_SELF_BDAY = "allowSelfBirthday"
 
 BASE_GUILD_MEMBER = {
     KEY_ADDED_BEFORE: False,
@@ -13,7 +14,11 @@ BASE_GUILD_MEMBER = {
     KEY_IS_ASSIGNED: False,
 }
 
-BASE_GUILD = {KEY_BDAY_CHANNEL: None, KEY_BDAY_ROLE: None}
+BASE_GUILD = {
+    KEY_BDAY_CHANNEL: None,
+    KEY_BDAY_ROLE: None,
+    KEY_ALLOW_SELF_BDAY: False,
+}
 
 CANNED_MESSAGES = [
     "Wow look, it's {}'s birthday today! Happy birthday, hope you have a good one!",
