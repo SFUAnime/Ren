@@ -12,7 +12,7 @@ from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from redbot.core.utils.chat_formatting import bold, italics, pagify, warning
+from redbot.core.utils.chat_formatting import bold, italics, pagify, spoiler, warning
 from redbot.core.bot import Red
 from .constants import *
 
@@ -472,6 +472,10 @@ class Birthday(commands.Cog):
     async def setSelfBirthday(self, ctx: Context, month: int, day: int):
         """Set your birthday.
 
+        If this function is enabled, you can set your birthday ONCE, and ONLY IF your
+        birthday were not already set. Otherwise, if not enabled, you need to contact an
+        administrator or a moderator in case you want to have your birthday erased and/or set.
+
         Specify your birth month and birth day in numbers.
 
         Parameters
@@ -484,6 +488,7 @@ class Birthday(commands.Cog):
         fnTitle = "Birthday - Set Self's Birthday"
         headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
         headerGood = f":white_check_mark: {bold(fnTitle)}"
+        headerWarn = warning(bold(fnTitle))
 
         if not await self.config.guild(ctx.guild).get_attr(KEY_ALLOW_SELF_BDAY)():
             await ctx.send(
@@ -522,7 +527,36 @@ class Birthday(commands.Cog):
 
         try:
             birthday = date(2020, month, day)
+            birthdayStr = "{0:%B} {0:%d}".format(birthday)
+
             if birthdayConfig:
+                confirmationStr = (
+                    f"Are you sure you want to set your birthday to {spoiler(birthdayStr)}? "
+                    "Only administrators and moderators can reset your birthday afterwards."
+                )
+                confirmationStrNoBirthday = (
+                    "Are you sure you want to set your birthday to the specified month and day? "
+                    "Only administrators and moderators can reset your birthday afterwards."
+                )
+
+                sentReplyMsg = await ctx.send(f"{headerWarn}: {confirmationStr}")
+
+                def check(msg: discord.Message):
+                    return msg.author == ctx.author and msg.channel == ctx.channel
+
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    # hide the birthday portion within the previous message
+                    await sentReplyMsg.edit(content=f"{headerWarn}: {confirmationStrNoBirthday}")
+                    await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
+                    return
+
+                if response.content.lower() != "yes":
+                    await sentReplyMsg.edit(content=f"{headerWarn}: {confirmationStrNoBirthday}")
+                    await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    return
+
                 await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(month)
                 await birthdayConfig.get_attr(KEY_BDAY_DAY).set(day)
                 await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
@@ -533,8 +567,6 @@ class Birthday(commands.Cog):
         except ValueError:
             await ctx.send(f"{headerBad}: Please enter a valid birthday!")
             return
-
-        birthdayStr = "{0:%B} {0:%d}".format(birthday)
 
         sentReplyMsg: discord.Message = await ctx.send(
             f"{headerGood}: "
