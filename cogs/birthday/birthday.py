@@ -454,6 +454,7 @@ class Birthday(commands.Cog):
         setSelfBirthdayCmdStr = (
             # pylint: disable=no-member
             f"`{ctx.clean_prefix}help {setSelfBirthdayCmd.qualified_name}`"
+            # pylint: enable=no-member
         )
 
         replyMsg = (
