@@ -440,14 +440,7 @@ class Birthday(commands.Cog):
                 if month and day:
                     birthday = date(2020, month, day)
                     birthdayStr = "{0:%B} {0:%d}".format(birthday)
-                    replyMsg = (
-                        f"{headerGood}: "
-                        f"Your birthday is {birthdayStr}.\n"
-                        f"{italics('(For your privacy, this message will disappear shortly.)')}"
-                    )
-                    sentReplyMsg: discord.Message = await ctx.send(replyMsg)
-                    await asyncio.sleep(5)
-                    await sentReplyMsg.delete()
+                    ctx.author.send(f"{headerGood}: Your birthday is {birthdayStr}.")
                     return
 
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
@@ -568,10 +561,12 @@ class Birthday(commands.Cog):
             await ctx.send(f"{headerBad}: Please enter a valid birthday!")
             return
 
-        sentReplyMsg: discord.Message = await ctx.send(
-            f"{headerGood}: "
-            f"Successfully set your birthday to {bold(birthdayStr)}.: "
-            f"{italics('(For your privacy, your birthday shown will be hidden shortly.)')}"
+        await ctx.author.send(
+            f"{headerGood}: Successfully set your birthday to {bold(birthdayStr)}."
+        )
+
+        await ctx.send(
+            f"{headerGood}: Successfully set your birthday."
         )
 
         self.logger.info(
@@ -581,9 +576,6 @@ class Birthday(commands.Cog):
             ctx.author.id,
             birthdayStr,
         )
-
-        await asyncio.sleep(5)
-        await sentReplyMsg.edit(content=(f"{headerGood}: Successfully set your birthday."))
 
         # Explicitly check to see if user should be added to role, if the month
         # and day just so happen to be the same as it is now.
