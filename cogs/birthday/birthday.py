@@ -467,6 +467,7 @@ class Birthday(commands.Cog):
         await ctx.send(replyMsg)
 
     @me.command("set", aliases=["add"])
+    @commands.guild_only()
     async def setSelfBirthday(self, ctx: Context, month: int, day: int):
         """Set your birthday.
 
@@ -526,8 +527,7 @@ class Birthday(commands.Cog):
                 await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
             else:
                 raise Exception(
-                    "Error while accessing member's birthday config."
-                    "This should not happen!"
+                    "Error while accessing member's birthday config. This should not happen!"
                 )
         except ValueError:
             await ctx.send(f"{headerBad}\n" "Please enter a valid birthday!")
