@@ -451,7 +451,7 @@ class Birthday(commands.Cog):
                     return
 
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
-        setSelfBirthdayCmdStr = (
+        helpSetSelfBirthdayCmdStr = (
             # pylint: disable=no-member
             f"`{ctx.clean_prefix}help {setSelfBirthdayCmd.qualified_name}`"
             # pylint: enable=no-member
@@ -463,7 +463,7 @@ class Birthday(commands.Cog):
             "Please contact an administrator/moderator, or, "
             "if it is allowed by the server's admins and/or "
             "moderators, try setting it yourself. Reference "
-            f"{setSelfBirthdayCmdStr} for the command syntax."
+            f"{helpSetSelfBirthdayCmdStr} for the command syntax."
         )
         await ctx.send(replyMsg)
 
