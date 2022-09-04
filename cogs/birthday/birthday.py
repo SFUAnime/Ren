@@ -547,7 +547,7 @@ class Birthday(commands.Cog):
             ctx.author.name,
             ctx.author.discriminator,
             ctx.author.id,
-            birthday.strftime("%B %d"),
+            birthdayStr,
         )
 
         await asyncio.sleep(5)
