@@ -12,7 +12,7 @@ from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from redbot.core.utils.chat_formatting import bold, italics, pagify, spoiler, warning
+from redbot.core.utils.chat_formatting import bold, pagify, spoiler, warning
 from redbot.core.bot import Red
 from .constants import *
 
@@ -440,7 +440,10 @@ class Birthday(commands.Cog):
                 if month and day:
                     birthday = date(2020, month, day)
                     birthdayStr = "{0:%B} {0:%d}".format(birthday)
-                    await ctx.author.send(f"{headerGood}: Your birthday is {birthdayStr}.")
+                    await ctx.author.send(
+                        f"{headerGood}: Your birthday is "
+                        f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
+                    )
                     return
 
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
@@ -529,9 +532,10 @@ class Birthday(commands.Cog):
 
         if birthdayConfig:
             confirmationStr = (
-                f"Are you sure you want to set your birthday to {spoiler(bold(birthdayStr))}? "
+                f"Are you sure you want to set your birthday to "
+                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}? "
                 "Only administrators and moderators can reset your birthday afterwards. "
-                f"Type {bold('`yes`')} to confirm."
+                f"Type {bold('`yes`', escape_formatting=False)} to confirm."
             )
 
             await ctx.author.send(f"{headerWarn}: {confirmationStr}")
@@ -557,7 +561,8 @@ class Birthday(commands.Cog):
             await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
 
             await ctx.author.send(
-                f"{headerGood}: Successfully set your birthday to {spoiler(bold(birthdayStr))}."
+                f"{headerGood}: Successfully set your birthday to "
+                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
             )
 
             self.logger.info(
