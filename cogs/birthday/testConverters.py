@@ -3,10 +3,11 @@
 from datetime import datetime
 import locale
 
-locale.setlocale(locale.LC_ALL, ("en", "UTF-8") )
+locale.setlocale(locale.LC_ALL, ("en", "UTF-8"))
 
 import pytest
 from .converters import MonthDayConverter
+
 
 @pytest.mark.asyncio
 class TestMonthDayConverter:
@@ -50,5 +51,6 @@ class TestMonthDayConverter:
     async def testShortMonthDay(self):
         bday = await self.converter.convert(None, "Feb 29")
         self.verifyFeb29(bday)
+
 
 locale.resetlocale(locale.LC_ALL)
