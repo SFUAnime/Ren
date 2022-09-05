@@ -600,7 +600,7 @@ class Birthday(commands.Cog):
             f"{bold('ONCE')} and {bold('ONLY IF')} their birthdays were not already set."
         )
         msgNotAllow = (
-            f"{headerGood}: " f"{bold('Disabled')}. Members cannot set their birthdays themselves."
+            f"{headerGood}: {bold('Disabled')}. Members cannot set their birthdays themselves."
         )
         guildConfig = self.config.guild(ctx.guild)
         allowSelfBirthdayConfig = guildConfig.get_attr(KEY_ALLOW_SELF_BDAY)
