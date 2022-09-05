@@ -14,6 +14,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, warning
 from redbot.core.bot import Red
 from .constants import *
+from .converters import MonthDayConverter
 
 
 class Birthday(commands.Cog):
@@ -125,9 +126,11 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addMemberBirthday(
-        self, ctx: Context, member: discord.Member, month: int = None, day: int = None
+        self, ctx: Context, member: discord.Member, *, birthday: MonthDayConverter=None
     ):
-        """Add a user's birthday to the list. If date is not specified, it will default to the current day.
+        """Add a user's birthday to the list.
+
+        If the birthday is not specified, it defaults to today.
         On the day, the bot will automatically add the user to the birthday role.
 
         Parameters:
@@ -135,11 +138,8 @@ class Birthday(commands.Cog):
         member: discord.Member
             The member whose birthday is being assigned.
 
-        month: int (optional)
-            The birthday month, between 1 and 12 inclusive.
-
-        day: int (optional)
-            The birthday day, range between 1 and 31 inclusive, depending on month.
+        birthday: (optional)
+            The user's birthday, with the year omitted. If entering only numbers, specify the month first.
         """
         rid = await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE)()
 
@@ -153,26 +153,12 @@ class Birthday(commands.Cog):
 
         # Check if both the inputs are empty, for this case set the birthday as current day
         # If one of the parameters are missing, then send error message
-        if month == None and day == None:
+        if not birthday:
             day = int(time.strftime("%d"))
             month = int(time.strftime("%m"))
-
-        elif month == None or day == None:
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Add**: "
-                "Please enter a valid birthday!"
-            )
-            return
-
-        # Check inputs here.
-        try:
-            userBirthday = datetime(2020, month, day)
-        except ValueError:
-            await ctx.send(
-                ":negative_squared_cross_mark: **Birthday - Add**: "
-                "Please enter a valid birthday!"
-            )
-            return
+        else:
+            day = birthday.day
+            month = birthday.month
 
         def check(msg: discord.Message):
             return msg.author == ctx.author and msg.channel == ctx.channel
@@ -203,7 +189,7 @@ class Birthday(commands.Cog):
         confMsg = await ctx.send(
             ":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s birthday "
             "as **{2:%B} {2:%d}**. The role will be assigned automatically on this "
-            "day.".format("updated" if birthdayExists else "added", member.name, userBirthday)
+            "day.".format("updated" if birthdayExists else "added", member.name, birthday)
         )
 
         # Explicitly check to see if user should be added to role, if the month
@@ -227,7 +213,7 @@ class Birthday(commands.Cog):
             member.name,
             member.discriminator,
             member.id,
-            userBirthday.strftime("%B %d"),
+            birthday.strftime("%B %d"),
         )
         return
 
