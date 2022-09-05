@@ -6,6 +6,8 @@ import locale
 locale.setlocale(locale.LC_ALL, ("en", "UTF-8"))
 
 import pytest
+
+from redbot.core import commands
 from .converters import MonthDayConverter
 
 
@@ -30,6 +32,13 @@ class TestMonthDayConverter:
     async def testDayShortMonth(self):
         bday = await self.converter.convert(None, "29 Feb")
         self.verifyFeb29(bday)
+
+    async def testInvalidDate(self):
+        try:
+            await self.converter.convert(None, "February 30")
+        except commands.BadArgument:
+            # This is the only type of exception we should be handling
+            pass
 
     async def testNumMonthDay(self):
         bday = await self.converter.convert(None, "02 03")
