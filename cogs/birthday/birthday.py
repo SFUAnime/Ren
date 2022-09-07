@@ -5,13 +5,14 @@ import os
 from random import choice
 import time  # To auto remove birthday role on the next day.
 import asyncio
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import discord
+import typing
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from redbot.core.utils.chat_formatting import pagify, warning
+from redbot.core.utils.chat_formatting import bold, pagify, spoiler, warning
 from redbot.core.bot import Red
 from .constants import *
 from .converters import MonthDayConverter
@@ -401,6 +402,200 @@ class Birthday(commands.Cog):
             member.id,
         )
         return
+
+    @_birthday.group(name="self", aliases=["me"])
+    @commands.guild_only()
+    async def me(self, ctx: Context):
+        """Manage your birthday."""
+        # this method is not named "self" because it is a Python reserved keyword
+
+    @me.command("get", aliases=["display", "show"])
+    @commands.guild_only()
+    async def getSelfBirthday(self, ctx: Context):
+        """Display your birthday."""
+        fnTitle = "Birthday - Get Self's Birthday"
+        headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
+        headerGood = f":white_check_mark: {bold(fnTitle)}"
+
+        birthdayConfig = self.config.member(ctx.author)
+        if birthdayConfig:
+            details: typing.Dict = await birthdayConfig.all()
+            if details:
+                month: int = details.get(KEY_BDAY_MONTH)
+                day: int = details.get(KEY_BDAY_DAY)
+                if month and day:
+                    birthday = date(2020, month, day)
+                    birthdayStr = "{0:%B} {0:%d}".format(birthday)
+                    await ctx.author.send(
+                        f"{headerGood}: Your birthday is "
+                        f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
+                    )
+                    return
+
+        setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
+        helpSetSelfBirthdayCmdStr = (
+            # pylint: disable=no-member
+            f"`{ctx.clean_prefix}help {setSelfBirthdayCmd.qualified_name}`"
+            # pylint: enable=no-member
+        )
+
+        replyMsg = (
+            f"{headerBad}: "
+            "Your birthday in this server has not been set. "
+            "Please contact an administrator/moderator, or, "
+            "if it is allowed by the server's admins and/or "
+            "moderators, try setting it yourself. Reference "
+            f"{helpSetSelfBirthdayCmdStr} for the command syntax."
+        )
+        await ctx.send(replyMsg)
+
+    @me.command("set", aliases=["add"])
+    @commands.guild_only()
+    async def setSelfBirthday(self, ctx: Context, month: int, day: int):
+        """Set your birthday.
+
+        If this function is enabled, you can set your birthday ONCE, and ONLY IF your
+        birthday were not already set. Otherwise, if not enabled, you need to contact an
+        administrator or a moderator in case you want to have your birthday erased and/or set.
+
+        Specify your birth month and birth day in numbers.
+
+        For your privacy, you can delete the command message right away after sending it.
+
+        Parameters
+        ----------
+        month: int
+            Birth month.
+        day: int
+            Birth day.
+        """
+        fnTitle = "Birthday - Set Self's Birthday"
+        headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
+        headerGood = f":white_check_mark: {bold(fnTitle)}"
+        headerWarn = warning(bold(fnTitle))
+
+        if not await self.config.guild(ctx.guild).get_attr(KEY_ALLOW_SELF_BDAY)():
+            await ctx.send(
+                f"{headerBad}: "
+                "This function is not enabled. You cannot set your birthday. "
+                "Please let an administrator or a moderator know if you "
+                "believe this function should be enabled."
+            )
+            return
+
+        birthdayConfig = self.config.member(ctx.author)
+        if birthdayConfig:
+            birthMonth = birthdayConfig.get_attr(KEY_BDAY_MONTH)
+            birthDay = birthdayConfig.get_attr(KEY_BDAY_DAY)
+            if birthMonth and birthDay and await birthMonth() and await birthDay():
+                await ctx.send(
+                    f"{headerBad}: "
+                    "Your birthday is already set. If you believe it is "
+                    "incorrect, please contact an admin or a moderator."
+                )
+                return
+
+        birthdayRoleId = await self.config.guild(ctx.guild).get_attr(KEY_BDAY_ROLE)()
+
+        if not birthdayRoleId:
+            await ctx.send(
+                f"{headerBad}: "
+                "This server is not configured, please let a server "
+                "administrator or moderator know."
+            )
+            return
+
+        if not month and not day:
+            today = date.today()
+            month, day = today.month, today.day
+
+        try:
+            birthday = date(2020, month, day)
+            birthdayStr = "{0:%B} {0:%d}".format(birthday)
+        except ValueError:
+            await ctx.send(f"{headerBad}: Please enter a valid birthday!")
+            return
+
+        if birthdayConfig:
+            confirmationStr = (
+                f"Are you sure you want to set your birthday to "
+                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}? "
+                "Only administrators and moderators can reset your birthday afterwards. "
+                f"Type {bold('`yes`', escape_formatting=False)} to confirm."
+            )
+
+            await ctx.author.send(f"{headerWarn}: {confirmationStr}")
+
+            def check(msg: discord.Message):
+                return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
+
+            try:
+                response = await self.bot.wait_for("message", timeout=30.0, check=check)
+            except asyncio.TimeoutError:
+                # hide the birthday portion within the previous message
+                await ctx.author.send(
+                    f"{headerBad}: You took too long. Not setting your birthday."
+                )
+                return
+
+            if response.content.lower() != "yes":
+                await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
+                return
+
+            await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(month)
+            await birthdayConfig.get_attr(KEY_BDAY_DAY).set(day)
+            await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+
+            await ctx.author.send(
+                f"{headerGood}: Successfully set your birthday to "
+                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
+            )
+
+            self.logger.info(
+                "%s#%s (%s) added their birthday as %s",
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
+                birthdayStr,
+            )
+
+            # explicitly check to see if user should be added to role, if the month
+            # and day just so happen to be the same as it is now.
+            await self.checkBirthday()
+            return
+
+        raise Exception("Error while accessing member's birthday config. This should not happen!")
+
+    @_birthday.command(name="selfbirthday")
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def toggleSelfBirthday(self, ctx: Context):
+        """Allow or disallow members to set their birthdays themselves.
+
+        If allowed, members can set their birthdays themselves ONCE, and
+        ONLY IF their birthdays were not already set. Otherwise, if not
+        allowed, members need to contact an administrator or a moderator
+        in case they want to have their birthdays erased and/or set.
+        """
+        fnTitle = "Birthday - Toggle Self Birthday"
+        headerGood = f":white_check_mark: {bold(fnTitle)}"
+
+        msgAllow = (
+            f"{headerGood}: "
+            f"{bold('Enabled')}. Members can set their birthdays themselves "
+            f"{bold('ONCE')} and {bold('ONLY IF')} their birthdays were not already set."
+        )
+        msgNotAllow = (
+            f"{headerGood}: {bold('Disabled')}. Members cannot set their birthdays themselves."
+        )
+        guildConfig = self.config.guild(ctx.guild)
+        allowSelfBirthdayConfig = guildConfig.get_attr(KEY_ALLOW_SELF_BDAY)
+        if await allowSelfBirthdayConfig():
+            await allowSelfBirthdayConfig.set(False)
+            await ctx.send(msgNotAllow)
+        else:
+            await allowSelfBirthdayConfig.set(True)
+            await ctx.send(msgAllow)
 
     async def checkBirthday(self):
         """Check birthday list once."""
