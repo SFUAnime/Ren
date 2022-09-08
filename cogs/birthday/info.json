@@ -5,6 +5,6 @@
     "description": "This cog assigns and at-mentions a user on their birthday.",
     "end_user_data_statement": "This cog will store users' Discord ID and the month and day of their birthday",
     "install_msg": "Thanks for installing Birthday. Please run [p]birthday to see all the relevant commands.",
-    "requirements": [],
+    "requirements": ["python-dateutil"],
     "tags": ["at-mention", "birthday", "notifications", "roles"]
 }
