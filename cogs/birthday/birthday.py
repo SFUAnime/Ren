@@ -54,7 +54,6 @@ class Birthday(commands.Cog):
 
     @commands.group(name="birthday")
     @commands.guild_only()
-    @checks.mod_or_permissions(administrator=True)
     async def _birthday(self, ctx: Context):
         """Birthday role assignment settings."""
 
@@ -118,6 +117,7 @@ class Birthday(commands.Cog):
 
     @_birthday.command(name="test")
     @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
     async def test(self, ctx: Context):
         """Test at-mentions."""
         for msg in CANNED_MESSAGES:
