@@ -34,11 +34,15 @@ class TestMonthDayConverter:
         self.verifyFeb29(bday)
 
     async def testInvalidDate(self):
-        try:
-            await self.converter.convert(None, "February 30")
-        except commands.BadArgument:
-            # This is the only type of exception we should be handling
-            pass
+        inputTuple = ("February 30", "some random text")
+        for inputString in inputTuple:
+            with pytest.raises(commands.BadArgument) as excInfo:
+                await self.converter.convert(None, inputString)
+            assert "Invalid date!" in str(excInfo.value)
+
+        with pytest.raises(commands.BadArgument) as excInfo:
+            await self.converter.convert(None, "February 29 00:01")
+        assert "Time information should not be supplied!" in str(excInfo.value)
 
     async def testNumMonthDay(self):
         bday = await self.converter.convert(None, "02 03")
