@@ -44,10 +44,10 @@ class TestMonthDayConverter:
             await self.converter.convert(None, "February 29 00:01")
         assert "Time information should not be supplied!" in str(excInfo.value)
 
-    async def testNumMonthDay(self):
-        for dateString in ( "02 03", "02 3", "2 03", "2 3"):
-            bday = await self.converter.convert(None, dateString)
-            self.verifyFeb3(bday)
+    @pytest.mark.parametrize("dateString", ("02 03", "02 3", "2 03", "2 3"))
+    async def testNumMonthDay(self, dateString):
+        bday = await self.converter.convert(None, dateString)
+        self.verifyFeb3(bday)
 
     async def testLongMonthDay(self):
         bday = await self.converter.convert(None, "February 29")
