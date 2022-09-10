@@ -25,21 +25,18 @@ class TestMonthDayConverter:
         assert bday.month == 2
         assert bday.day == 3
 
-    async def testDayLongMonth(self):
-        bday = await self.converter.convert(None, "29 February")
+    @pytest.mark.parametrize("dateString", ("29 Feb", "29 February"))
+    async def testDayTextMonth(self, dateString):
+        bday = await self.converter.convert(None, dateString)
         self.verifyFeb29(bday)
 
-    async def testDayShortMonth(self):
-        bday = await self.converter.convert(None, "29 Feb")
-        self.verifyFeb29(bday)
+    @pytest.mark.parametrize("inputString", ("February 30", "some random text"))
+    async def testInvalidDate(self, inputString):
+        with pytest.raises(commands.BadArgument) as excInfo:
+            await self.converter.convert(None, inputString)
+        assert "Invalid date!" in str(excInfo.value)
 
-    async def testInvalidDate(self):
-        inputTuple = ("February 30", "some random text")
-        for inputString in inputTuple:
-            with pytest.raises(commands.BadArgument) as excInfo:
-                await self.converter.convert(None, inputString)
-            assert "Invalid date!" in str(excInfo.value)
-
+    async def testTime(self):
         with pytest.raises(commands.BadArgument) as excInfo:
             await self.converter.convert(None, "February 29 00:01")
         assert "Time information should not be supplied!" in str(excInfo.value)
@@ -49,12 +46,9 @@ class TestMonthDayConverter:
         bday = await self.converter.convert(None, dateString)
         self.verifyFeb3(bday)
 
-    async def testLongMonthDay(self):
-        bday = await self.converter.convert(None, "February 29")
-        self.verifyFeb29(bday)
-
-    async def testShortMonthDay(self):
-        bday = await self.converter.convert(None, "Feb 29")
+    @pytest.mark.parametrize("dateString", ("February 29", "Feb 29"))
+    async def testTextMonthDay(self, dateString):
+        bday = await self.converter.convert(None, dateString)
         self.verifyFeb29(bday)
 
 
