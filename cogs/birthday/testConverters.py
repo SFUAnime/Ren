@@ -45,17 +45,9 @@ class TestMonthDayConverter:
         assert "Time information should not be supplied!" in str(excInfo.value)
 
     async def testNumMonthDay(self):
-        bday = await self.converter.convert(None, "02 03")
-        self.verifyFeb3(bday)
-
-        bday = await self.converter.convert(None, "02 3")
-        self.verifyFeb3(bday)
-
-        bday = await self.converter.convert(None, "2 03")
-        self.verifyFeb3(bday)
-
-        bday = await self.converter.convert(None, "2 3")
-        self.verifyFeb3(bday)
+        for dateString in ( "02 03", "02 3", "2 03", "2 3"):
+            bday = await self.converter.convert(None, dateString)
+            self.verifyFeb3(bday)
 
     async def testLongMonthDay(self):
         bday = await self.converter.convert(None, "February 29")
