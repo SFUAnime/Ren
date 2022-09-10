@@ -32,13 +32,18 @@ class TestMonthDayConverter:
             ("February 29", 2, 29, raiseNothing, None),
             ("some random text", None, None, raiseBadArgument, "Invalid date!"),
             ("February 30", None, None, raiseBadArgument, "Invalid date!"),
-            ("February 29 00:01", None, None, raiseBadArgument,
-             "Time information should not be supplied!"),
-        ]
+            (
+                "February 29 00:01",
+                None,
+                None,
+                raiseBadArgument,
+                "Time information should not be supplied!",
+            ),
+        ],
     )
     async def testInputs(
-            self, dateString: str, expectM: int, expectD: int, ctxMgr: ContextManager,
-            excString: str):
+        self, dateString: str, expectM: int, expectD: int, ctxMgr: ContextManager, excString: str
+    ):
         with ctxMgr as excInfo:
             bday = await self.converter.convert(None, dateString)
             if excString:
