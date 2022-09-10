@@ -61,7 +61,7 @@ class Spoilers(commands.Cog):
                 "the cog and try again"
             )
             return
-        if wordFilter.containsFilterableWords(ctx.message):
+        if await wordFilter.containsFilterableWords(ctx.message):
             await ctx.send(
                 "You have filtered words in your spoiler!  Please check it and try again!"
             )
