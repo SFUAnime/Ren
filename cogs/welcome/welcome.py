@@ -30,6 +30,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         self.config.register_guild(**DEFAULT_GUILD)
 
+
+        self.data_dir = data_manager.cog_data_path(cog_instance=self)
+        self.img_dir = os.path.join(self.data_dir, "welcome_imgs")
+
+
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
 
