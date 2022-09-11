@@ -39,7 +39,7 @@ DEFAULT_GUILD = {
         KEY_POST_FAILED_DM: False,
     },
     KEY_JOINED_USER_IDS: [],
-    KEY_TOGGLE_RANDOM_MSG: False, 
+    KEY_TOGGLE_RANDOM_MSG: False,
 }
 
 
