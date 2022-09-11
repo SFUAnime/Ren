@@ -34,14 +34,13 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         self.config.register_guild(**DEFAULT_GUILD)
 
-
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
         self.img_dir = os.path.join(self.data_dir, "welcome_imgs")
 
         # create folder to hold welcome images
         try:
             os.mkdir(self.img_dir)
-        except OSError as error: 
+        except OSError as error:
             pass
 
         self.session = aiohttp.ClientSession()
@@ -181,7 +180,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         try:
             img = await self.generateRandWelcomeImg(newUser)
             if await self.config.guild(guild).get_attr("toggle_img")():
-                await channel.send(message, file = discord.File(img, filename = "generated.png"))
+                await channel.send(message, file=discord.File(img, filename="generated.png"))
             else:
                 await channel.send(message)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
@@ -344,13 +343,17 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
         base = Image.open(os.path.join(self.img_dir, random.choice(os.listdir(self.img_dir))))
         mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
-        border_overlay = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png"))
-        border_overlay_mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER_mask.png"))
-        #get avatar from User
+        border_overlay = Image.open(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png")
+        )
+        border_overlay_mask = Image.open(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER_mask.png")
+        )
+        # get avatar from User
         avatar: bytes
 
         try:
-            async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
+            async with self.session.get(str(user.avatar_url), headers=self.headers) as webp:
                 avatar = await webp.read()
         except aiohttp.ClientResponseError:
             pass
@@ -359,9 +362,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if not retrieved_avatar:
                 return
             else:
-                retrieved_avatar = retrieved_avatar.resize((325,325), 1)
-                base.paste(border_overlay, (434,0), border_overlay_mask)
-                base.paste(retrieved_avatar, (434,0), mask)
+                retrieved_avatar = retrieved_avatar.resize((325, 325), 1)
+                base.paste(border_overlay, (434, 0), border_overlay_mask)
+                base.paste(retrieved_avatar, (434, 0), mask)
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
@@ -530,7 +533,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 guildData["toggle_img"] = True
 
             await ctx.send(f'Sending randomised welcome image: {guildData["toggle_img"]}')
-            
+
     # [p]welcomeset greetings add
     @greetings.command(name="add")
     async def greetAdd(self, ctx: Context, name: str, pool: Optional[str] = None):
@@ -601,12 +604,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings addimg
     @greetings.command(name="addimg")
     async def imgAdd(self, ctx: Context):
-        '''adds the attached image to the pool of random based images used to generate custom welcome images. Attaches only the first image attached. 
+        """adds the attached image to the pool of random based images used to generate custom welcome images. Attaches only the first image attached.
 
 
         Additionally automatically makes the sent image conform to the dimensions and dpi that's been tested for: 72dpi, 1193x671. Mileage may vary
 
-        '''
+        """
         num_pictures = len(os.listdir(self.img_dir))
         file_name = "{}.png"
         img_path = os.path.join(self.img_dir, file_name.format(num_pictures))
@@ -616,16 +619,17 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             image = ctx.message.attachments[0]
             await image.save(img_path)
         else:
-            await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
+            await ctx.reply(
+                "You need to attach exactly 1 image in the message that uses this command"
+            )
             return
-
 
         # Performing necessary checks to ensure that this base can produce a good generated image
         temp = Image.open(img_path)
         temp_resize = temp.resize((1193, 671), 2)
         temp_resize.save(img_path, dpi=(72, 72))
 
-        #alert user that their image has been added
+        # alert user that their image has been added
         await ctx.reply("image added")
 
     # [p]welcomeset greetings channelset
