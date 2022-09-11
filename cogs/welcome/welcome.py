@@ -32,11 +32,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
 
-
-        DEFAULT_GUILD = {
-            "toggle_img": False
-        }
-
         self.config.register_guild(**DEFAULT_GUILD)
 
 
@@ -184,8 +179,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         message = rawMessage.replace("{USER}", newUser.mention)
 
         try:
+            img = await self.generateRandWelcomeImg(newUser)
             if await self.config.guild(guild).get_attr("toggle_img")():
-                await channel.send(message, file = discord.File(generateRandWelcomeImg(newUser), filename = "generated.png"))
+                await channel.send(message, file = discord.File(img, filename = "generated.png"))
             else:
                 await channel.send(message)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
