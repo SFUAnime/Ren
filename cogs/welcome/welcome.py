@@ -184,7 +184,10 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         message = rawMessage.replace("{USER}", newUser.mention)
 
         try:
-            await channel.send(message)
+            if await self.config.guild(guild).get_attr("toggle_img")():
+                await channel.send(message, file = discord.File(generateRandWelcomeImg(newUser), filename = "generated.png"))
+            else:
+                await channel.send(message)
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
             LOGGER.error(
                 "Could not send message, please make sure the bot "
@@ -367,11 +370,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 base.save(generated, format="png")
                 generated.seek(0)
                 return generated
-
-
-
-
-
 
     ####################
     # MESSAGE COMMANDS #
