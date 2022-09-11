@@ -34,6 +34,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
         self.img_dir = os.path.join(self.data_dir, "welcome_imgs")
 
+        # create folder to hold welcome images
+        try:
+            os.mkdir(self.img_dir)
+        except OSError as error: 
+            pass
+
 
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
