@@ -8,6 +8,7 @@ import logging
 import random
 import aiohttp
 import os
+import io
 from PIL import Image, ImageChops, ImageOps
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
@@ -339,6 +340,38 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     leaveUser.discriminator,
                     leaveUser.id,
                 )
+
+    async def generateRandWelcomeImg(self, user):
+        """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
+        base = Image.open(os.path.join(self.img_dir, random.choice(os.listdir(self.img_dir))))
+        mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
+        border_overlay = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png"))
+        border_overlay_mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER_mask.png"))
+        #get avatar from User
+        avatar: bytes
+
+        try:
+            async with self.session.get(str(user.avatar_url), headers = self.headers) as webp:
+                avatar = await webp.read()
+        except aiohttp.ClientResponseError:
+            pass
+
+        with Image.open(io.BytesIO(avatar)) as retrieved_avatar:
+            if not retrieved_avatar:
+                return
+            else:
+                retrieved_avatar = retrieved_avatar.resize((325,325), 1)
+                base.paste(border_overlay, (434,0), border_overlay_mask)
+                base.paste(retrieved_avatar, (434,0), mask)
+                generated = io.BytesIO()
+                base.save(generated, format="png")
+                generated.seek(0)
+                return generated
+
+
+
+
+
 
     ####################
     # MESSAGE COMMANDS #
