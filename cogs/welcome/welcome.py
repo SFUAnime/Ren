@@ -6,7 +6,7 @@ import asyncio
 import discord
 import logging
 import random
-
+import aiohttp
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
@@ -40,6 +40,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         except OSError as error: 
             pass
 
+        self.session = aiohttp.ClientSession()
+        # a header to successfully download user avatars for use
+        self.headers = {"User-agent": "Mozilla/5.0"}
 
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
