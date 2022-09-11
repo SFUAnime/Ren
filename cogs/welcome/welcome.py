@@ -8,6 +8,7 @@ import logging
 import random
 import aiohttp
 import os
+from PIL import Image, ImageChops, ImageOps
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
@@ -503,8 +504,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
             await ctx.send(f'Sending randomised welcome image: {guildData["toggle_img"]}')
             
-
-
     # [p]welcomeset greetings add
     @greetings.command(name="add")
     async def greetAdd(self, ctx: Context, name: str, pool: Optional[str] = None):
@@ -571,6 +570,36 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await greeting.add_reaction("✅")
         await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
+
+    # [p]welcomeset greetings addimg
+    @greetings.command(name="addimg")
+    async def imgAdd(self, ctx: Context):
+        '''adds the attached image to the pool of random based images used to generate custom welcome images. Attaches only the first image attached. 
+
+
+        Additionally automatically makes the sent image conform to the dimensions and dpi that's been tested for: 72dpi, 1193x671. Mileage may vary
+
+        '''
+        num_pictures = len(os.listdir(self.img_dir))
+        file_name = "{}.png"
+        img_path = os.path.join(self.img_dir, file_name.format(num_pictures))
+
+        image = None
+        if len(ctx.message.attachments) == 1:
+            image = ctx.message.attachments[0]
+            await image.save(img_path)
+        else:
+            await ctx.reply("You need to attach exactly 1 image in the message that uses this command")
+            return
+
+
+        # Performing necessary checks to ensure that this base can produce a good generated image
+        temp = Image.open(img_path)
+        temp_resize = temp.resize((1193, 671), 2)
+        temp_resize.save(img_path, dpi=(72, 72))
+
+        #alert user that their image has been added
+        await ctx.reply("image added")
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
