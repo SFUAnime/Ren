@@ -16,6 +16,7 @@ KEY_DESCRIPTIONS = "descriptions"
 KEY_WELCOME_CHANNEL_SETTINGS = "welcomeChannelSettings"
 KEY_POST_FAILED_DM = "postFailedDm"
 KEY_JOINED_USER_IDS = "joinedUserIds"
+KEY_TOGGLE_RANDOM_MSG = "toggle_img"
 
 MAX_MESSAGE_LENGTH = 2000
 MAX_DESCRIPTION_LENGTH = 500
@@ -38,6 +39,7 @@ DEFAULT_GUILD = {
         KEY_POST_FAILED_DM: False,
     },
     KEY_JOINED_USER_IDS: [],
+    KEY_TOGGLE_RANDOM_MSG: False, 
 }
 
 

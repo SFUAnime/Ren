@@ -159,15 +159,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Checks if the user is a returning user."""
         return user.id in await self.config.guild(user.guild).get_attr(KEY_JOINED_USER_IDS)()
 
-    async def ensureConfigsExist(self):
-        '''Ensure that configs exist'''
-
-        # check if the config keys handling random image have been added
-        try:
-            await self.config.guild(guild).get_attr("toggle_img")()
-        except:
-            await self.config.guild(ctx.author.guild).toggle_img.set(False)
-
     async def sendWelcomeMessageChannel(self, newUser: discord.Member):
         """Sends a welcome message to the welcome channel if it is set."""
         guild = newUser.guild
@@ -186,8 +177,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         message = rawMessage.replace("{USER}", newUser.mention)
 
-            
-        self.ensureConfigsExist()
 
         try:
             img = await self.generateRandWelcomeImg(newUser)
@@ -538,7 +527,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @greetings.command(name="toggleimg")
     async def toggle_img(self, ctx: Context):
         """Toggles the random image on and off"""
-        self.ensureConfigsExist()
         async with self.config.guild(ctx.guild).all() as guildData:
             if guildData["toggle_img"]:
                 guildData["toggle_img"] = False
