@@ -7,7 +7,8 @@ import discord
 import logging
 import random
 import aiohttp
-from redbot.core import Config, checks, commands
+import os
+from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils.chat_formatting import box, info, pagify, warning
@@ -28,6 +29,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     def __init__(self, bot: Red):
         self.bot = bot
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+
+
+        DEFAULT_GUILD = {
+            "toggle_img": False
+        }
+
         self.config.register_guild(**DEFAULT_GUILD)
 
 
@@ -483,6 +490,20 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         - `default`: default pool, containing greetings that are sent to new users
         - `returning`: pool of greetings that are sent to returning users
         """
+
+    # [p]welcomeset greetings toggleimg
+    @greetings.command(name="toggleimg")
+    async def toggle_img(self, ctx: Context):
+        """Toggles the random image on and off"""
+        async with self.config.guild(ctx.guild).all() as guildData:
+            if guildData["toggle_img"]:
+                guildData["toggle_img"] = False
+            else:
+                guildData["toggle_img"] = True
+
+            await ctx.send(f'Sending randomised welcome image: {guildData["toggle_img"]}')
+            
+
 
     # [p]welcomeset greetings add
     @greetings.command(name="add")
