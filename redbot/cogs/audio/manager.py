@@ -321,10 +321,7 @@ class ServerManager:
 
                 shutil.move(path, str(LAVALINK_JAR_FILE), copy_function=shutil.copyfile)
 
-        log.info(
-            "Successfully downloaded Lavalink.jar (%s bytes written)",
-            format(nbytes, ","),
-        )
+        log.info("Successfully downloaded Lavalink.jar (%s bytes written)", format(nbytes, ","))
         await self._is_up_to_date()
 
     async def _is_up_to_date(self):

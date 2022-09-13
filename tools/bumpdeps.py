@@ -87,10 +87,7 @@ PIP_FREEZE_ARGS = ("freeze", "--no-color")
 
 def main() -> int:
     if not REQUIREMENTS_INI_PTH.is_file():
-        print(
-            "No primary_deps.ini found in the same directory as bumpdeps.py",
-            file=sys.stderr,
-        )
+        print("No primary_deps.ini found in the same directory as bumpdeps.py", file=sys.stderr)
         return 1
 
     primary_reqs_cfg = setuptools.config.read_configuration(str(REQUIREMENTS_INI_PTH))
@@ -106,8 +103,7 @@ def main() -> int:
     for extra, extra_primary_deps in primary_reqs_cfg["options"]["extras_require"].items():
         print(extra, "=")
         full_extra_reqs = get_all_reqs(
-            extra_primary_deps,
-            all_core_deps={r.name.lower(): r for r in full_core_reqs},
+            extra_primary_deps, all_core_deps={r.name.lower(): r for r in full_core_reqs}
         )
         print(textwrap.indent("\n".join(map(str, full_extra_reqs)), " " * 4))
 
@@ -115,8 +111,7 @@ def main() -> int:
 
 
 def get_all_reqs(
-    primary_deps: Iterable[str],
-    all_core_deps: Dict[str, packaging.requirements.Requirement] = (),
+    primary_deps: Iterable[str], all_core_deps: Dict[str, packaging.requirements.Requirement] = ()
 ) -> Sequence[packaging.requirements.Requirement]:
     reqs_dict = {r.name.lower(): r for r in map(packaging.requirements.Requirement, primary_deps)}
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -137,10 +132,7 @@ def get_all_reqs(
 
         # Get pinned primary+secondary dependencies from pip freeze
         proc = sp.run(
-            (pip_exe_pth, *PIP_FREEZE_ARGS),
-            stdout=sp.PIPE,
-            check=True,
-            encoding="utf-8",
+            (pip_exe_pth, *PIP_FREEZE_ARGS), stdout=sp.PIPE, check=True, encoding="utf-8"
         )
 
         # Return Requirement objects
@@ -172,9 +164,7 @@ if __name__ == "__main__":
     except sp.CalledProcessError as exc:
         cmd = " ".join(map(lambda c: shlex.quote(str(c)), exc.cmd))
         print(
-            f"The following command failed with code {exc.returncode}:\n    ",
-            cmd,
-            file=sys.stderr,
+            f"The following command failed with code {exc.returncode}:\n    ", cmd, file=sys.stderr
         )
         exit_code = 1
 

@@ -25,9 +25,7 @@ class VoiceMutes(MixinMeta):
 
     @staticmethod
     async def _voice_perm_check(
-        ctx: commands.Context,
-        user_voice_state: Optional[discord.VoiceState],
-        **perms: bool,
+        ctx: commands.Context, user_voice_state: Optional[discord.VoiceState], **perms: bool
     ) -> Tuple[bool, Optional[str]]:
         """Check if the bot and user have sufficient permissions for voicebans.
 

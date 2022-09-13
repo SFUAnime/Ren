@@ -106,9 +106,7 @@ class LocalTrackUtilities(MixinMeta, metaclass=CompositeMetaClass):
             return True
         elif ctx.invoked_with != "start":
             await self.send_embed_msg(
-                ctx,
-                title=_("Invalid Environment"),
-                description=_("No localtracks folder."),
+                ctx, title=_("Invalid Environment"), description=_("No localtracks folder.")
             )
         return False
 

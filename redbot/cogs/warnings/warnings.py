@@ -410,9 +410,7 @@ class Warnings(commands.Cog):
                     fake_context = await ctx.bot.get_context(fake_message)
                     try:
                         can = await self.allowcustomreasons.can_run(
-                            fake_context,
-                            check_all_parents=True,
-                            change_permission_state=False,
+                            fake_context, check_all_parents=True, change_permission_state=False
                         )
                     except commands.CommandError:
                         can = False
@@ -442,9 +440,7 @@ class Warnings(commands.Cog):
             else:
                 title = _("Warning")
             em = discord.Embed(
-                title=title,
-                description=reason_type["description"],
-                color=await ctx.embed_colour(),
+                title=title, description=reason_type["description"], color=await ctx.embed_colour()
             )
             em.add_field(name=_("Points"), value=str(reason_type["points"]))
             try:
@@ -477,9 +473,7 @@ class Warnings(commands.Cog):
             else:
                 title = _("Warning")
             em = discord.Embed(
-                title=title,
-                description=reason_type["description"],
-                color=await ctx.embed_colour(),
+                title=title, description=reason_type["description"], color=await ctx.embed_colour()
             )
             em.add_field(name=_("Points"), value=str(reason_type["points"]))
             warn_channel = self.bot.get_channel(guild_settings["warn_channel"])
@@ -496,8 +490,7 @@ class Warnings(commands.Cog):
                     await ctx.tick()
                 else:
                     await ctx.send(
-                        _("{user} has been warned.").format(user=member.mention),
-                        embed=em,
+                        _("{user} has been warned.").format(user=member.mention), embed=em
                     )
         else:
             if not dm_failed:

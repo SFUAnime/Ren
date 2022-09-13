@@ -10,12 +10,7 @@ from pytest_mock import MockFixture
 from redbot.pytest.downloader import *
 
 from redbot.cogs.downloader.repo_manager import Installable
-from redbot.cogs.downloader.repo_manager import (
-    Candidate,
-    ProcessFormatter,
-    RepoManager,
-    Repo,
-)
+from redbot.cogs.downloader.repo_manager import Candidate, ProcessFormatter, RepoManager, Repo
 from redbot.cogs.downloader.errors import (
     AmbiguousRevision,
     ExistingGitRepo,
@@ -31,17 +26,10 @@ class FakeCompletedProcess(NamedTuple):
 
 
 def _mock_run(
-    mocker: MockFixture,
-    repo: Repo,
-    returncode: int,
-    stdout: bytes = b"",
-    stderr: bytes = b"",
+    mocker: MockFixture, repo: Repo, returncode: int, stdout: bytes = b"", stderr: bytes = b""
 ):
     return mocker.patch.object(
-        repo,
-        "_run",
-        autospec=True,
-        return_value=FakeCompletedProcess(returncode, stdout, stderr),
+        repo, "_run", autospec=True, return_value=FakeCompletedProcess(returncode, stdout, stderr)
     )
 
 
@@ -127,8 +115,7 @@ async def test_is_ancestor_commit_raise(mocker, repo):
     )
     with pytest.raises(UnknownRevision):
         await repo.is_ancestor(
-            "0123456789abcde0123456789abcde0123456789",
-            "c950fc05a540dd76b944719c2a3302da2e2f3090",
+            "0123456789abcde0123456789abcde0123456789", "c950fc05a540dd76b944719c2a3302da2e2f3090"
         )
 
     m.assert_called_once_with(
@@ -160,10 +147,7 @@ async def test_get_file_update_statuses(mocker, repo):
     ret = await repo._get_file_update_statuses(old_rev, new_rev)
     m.assert_called_once_with(
         ProcessFormatter().format(
-            repo.GIT_DIFF_FILE_STATUS,
-            path=repo.folder_path,
-            old_rev=old_rev,
-            new_rev=new_rev,
+            repo.GIT_DIFF_FILE_STATUS, path=repo.folder_path, old_rev=old_rev, new_rev=new_rev
         )
     )
 
@@ -359,9 +343,7 @@ async def test_add_repo(monkeypatch, repo_manager):
     )
 
     squid = await repo_manager.add_repo(
-        url="https://github.com/tekulvw/Squid-Plugins",
-        name="squid",
-        branch="rewrite_cogs",
+        url="https://github.com/tekulvw/Squid-Plugins", name="squid", branch="rewrite_cogs"
     )
 
     assert squid.available_modules == ()
@@ -371,8 +353,7 @@ async def test_add_repo(monkeypatch, repo_manager):
 async def test_lib_install_requirements(monkeypatch, library_installable, repo, tmpdir):
     monkeypatch.setattr("redbot.cogs.downloader.repo_manager.Repo._run", fake_run_noprint)
     monkeypatch.setattr(
-        "redbot.cogs.downloader.repo_manager.Repo.available_libraries",
-        (library_installable,),
+        "redbot.cogs.downloader.repo_manager.Repo.available_libraries", (library_installable,)
     )
 
     lib_path = Path(str(tmpdir)) / "cog_data_path" / "lib"
@@ -395,9 +376,7 @@ async def test_remove_repo(monkeypatch, repo_manager):
     )
 
     await repo_manager.add_repo(
-        url="https://github.com/tekulvw/Squid-Plugins",
-        name="squid",
-        branch="rewrite_cogs",
+        url="https://github.com/tekulvw/Squid-Plugins", name="squid", branch="rewrite_cogs"
     )
     assert repo_manager.get_repo("squid") is not None
     await repo_manager.delete_repo("squid")

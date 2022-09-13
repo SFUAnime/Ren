@@ -133,8 +133,7 @@ def git_export(source: Path, yes: bool):
             abort=True,
         )
     p = _run(
-        ("git", "-C", str(source), "fast-export", "--all", "--show-original-ids"),
-        stdout=sp.PIPE,
+        ("git", "-C", str(source), "fast-export", "--all", "--show-original-ids"), stdout=sp.PIPE
     )
     with TEST_REPO_EXPORT_PTH.open(mode="wb") as f:
         f.write(

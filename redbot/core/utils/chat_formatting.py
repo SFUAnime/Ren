@@ -515,9 +515,7 @@ def format_perms_list(perms: discord.Permissions) -> str:
 
 
 def humanize_timedelta(
-    *,
-    timedelta: Optional[datetime.timedelta] = None,
-    seconds: Optional[SupportsInt] = None,
+    *, timedelta: Optional[datetime.timedelta] = None, seconds: Optional[SupportsInt] = None
 ) -> str:
     """
     Get a locale aware human timedelta representation.
@@ -592,11 +590,7 @@ def humanize_number(val: Union[int, float], override_locale=None) -> str:
 
 
 def text_to_file(
-    text: str,
-    filename: str = "file.txt",
-    *,
-    spoiler: bool = False,
-    encoding: str = "utf-8",
+    text: str, filename: str = "file.txt", *, spoiler: bool = False, encoding: str = "utf-8"
 ):
     """Prepares text to be sent as a file on Discord, without character limit.
 

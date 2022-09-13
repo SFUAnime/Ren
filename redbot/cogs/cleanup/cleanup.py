@@ -174,11 +174,7 @@ class Cleanup(commands.Cog):
     @checks.mod_or_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     async def text(
-        self,
-        ctx: commands.Context,
-        text: str,
-        number: positive_int,
-        delete_pinned: bool = False,
+        self, ctx: commands.Context, text: str, number: positive_int, delete_pinned: bool = False
     ):
         """Delete the last X messages matching the specified text in the current channel.
 
@@ -489,10 +485,7 @@ class Cleanup(commands.Cog):
                 return
 
         to_delete = await self.get_messages_for_deletion(
-            channel=channel,
-            number=number,
-            before=ctx.message,
-            delete_pinned=delete_pinned,
+            channel=channel, number=number, before=ctx.message, delete_pinned=delete_pinned
         )
         to_delete.append(ctx.message)
 

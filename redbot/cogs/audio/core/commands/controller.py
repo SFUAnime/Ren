@@ -274,9 +274,7 @@ class PlayerControllerCommands(MixinMeta, metaclass=CompositeMetaClass):
         player.store("notify_channel", ctx.channel.id)
         if player.fetch("prev_song") is None:
             return await self.send_embed_msg(
-                ctx,
-                title=_("Unable To Play Tracks"),
-                description=_("No previous track."),
+                ctx, title=_("Unable To Play Tracks"), description=_("No previous track.")
             )
         else:
             track = player.fetch("prev_song")
@@ -343,9 +341,7 @@ class PlayerControllerCommands(MixinMeta, metaclass=CompositeMetaClass):
         if player.current:
             if player.current.is_stream:
                 return await self.send_embed_msg(
-                    ctx,
-                    title=_("Unable To Seek Tracks"),
-                    description=_("Can't seek on a stream."),
+                    ctx, title=_("Unable To Seek Tracks"), description=_("Can't seek on a stream.")
                 )
             else:
                 try:
@@ -902,7 +898,5 @@ class PlayerControllerCommands(MixinMeta, metaclass=CompositeMetaClass):
         removed = player.queue.pop(index)
         description = await self.get_track_description(removed, self.local_folder_current_path)
         await self.send_embed_msg(
-            ctx,
-            title=_("Moved track to the top of the queue."),
-            description=description,
+            ctx, title=_("Moved track to the top of the queue."), description=description
         )

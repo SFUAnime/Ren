@@ -763,11 +763,7 @@ class CogGroupMixin:
         :meta private:
         """
         cur_rule = self.requires.get_rule(model_id, guild_id=guild_id)
-        if cur_rule not in (
-            PermState.NORMAL,
-            PermState.ACTIVE_ALLOW,
-            PermState.ACTIVE_DENY,
-        ):
+        if cur_rule not in (PermState.NORMAL, PermState.ACTIVE_ALLOW, PermState.ACTIVE_DENY):
             # The above three states are unaffected by subcommand rules
             # Remaining states can be changed if there exists no actively-allowed
             # subcommand (this includes subcommands multiple levels below)
@@ -1082,9 +1078,7 @@ def group(name=None, cls=Group, **attrs):
 __command_disablers: DisablerDictType = weakref.WeakValueDictionary()
 
 
-def get_command_disabler(
-    guild: discord.Guild,
-) -> Callable[["Context"], Awaitable[bool]]:
+def get_command_disabler(guild: discord.Guild) -> Callable[["Context"], Awaitable[bool]]:
     """Get the command disabler for a guild.
 
     A command disabler is a simple check predicate which returns

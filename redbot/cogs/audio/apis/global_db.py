@@ -28,11 +28,7 @@ log = logging.getLogger("red.cogs.Audio.api.GlobalDB")
 
 class GlobalCacheWrapper:
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        session: aiohttp.ClientSession,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, session: aiohttp.ClientSession, cog: Union["Audio", Cog]
     ):
         # Place Holder for the Global Cache PR
         self.bot = bot
@@ -76,10 +72,7 @@ class GlobalCacheWrapper:
                 async with self.session.get(
                     api_url,
                     timeout=aiohttp.ClientTimeout(total=await self.config.global_db_get_timeout()),
-                    headers={
-                        "Authorization": self.api_key,
-                        "X-Token": self._handshake_token,
-                    },
+                    headers={"Authorization": self.api_key, "X-Token": self._handshake_token},
                     params={"query": query},
                 ) as r:
                     search_response = await r.json(loads=json.loads)
@@ -111,10 +104,7 @@ class GlobalCacheWrapper:
                 async with self.session.get(
                     api_url,
                     timeout=aiohttp.ClientTimeout(total=await self.config.global_db_get_timeout()),
-                    headers={
-                        "Authorization": self.api_key,
-                        "X-Token": self._handshake_token,
-                    },
+                    headers={"Authorization": self.api_key, "X-Token": self._handshake_token},
                     params=params,
                 ) as r:
                     search_response = await r.json(loads=json.loads)
@@ -138,10 +128,7 @@ class GlobalCacheWrapper:
             if not self.cog.global_api_user.get("can_post"):
                 return
             query = Query.process_input(query, self.cog.local_folder_current_path)
-            if llresponse.has_error or llresponse.load_type.value in [
-                "NO_MATCHES",
-                "LOAD_FAILED",
-            ]:
+            if llresponse.has_error or llresponse.load_type.value in ["NO_MATCHES", "LOAD_FAILED"]:
                 return
             if query and query.valid and query.is_youtube:
                 query = query.lavalink_query
@@ -154,10 +141,7 @@ class GlobalCacheWrapper:
             async with self.session.post(
                 api_url,
                 json=llresponse._raw,
-                headers={
-                    "Authorization": self.api_key,
-                    "X-Token": self._handshake_token,
-                },
+                headers={"Authorization": self.api_key, "X-Token": self._handshake_token},
                 params={"query": query},
             ) as r:
                 await r.read()
@@ -182,10 +166,7 @@ class GlobalCacheWrapper:
         with contextlib.suppress(Exception):
             async with self.session.delete(
                 api_url,
-                headers={
-                    "Authorization": self.api_key,
-                    "X-Token": self._handshake_token,
-                },
+                headers={"Authorization": self.api_key, "X-Token": self._handshake_token},
                 params={"id": id},
             ) as r:
                 await r.read()
@@ -201,10 +182,7 @@ class GlobalCacheWrapper:
             async with aiohttp.ClientSession(json_serialize=json.dumps) as session:
                 async with session.get(
                     f"{_API_URL}api/v2/users/me",
-                    headers={
-                        "Authorization": self.api_key,
-                        "X-Token": self._handshake_token,
-                    },
+                    headers={"Authorization": self.api_key, "X-Token": self._handshake_token},
                 ) as resp:
                     if resp.status == 200:
                         search_response = await resp.json(loads=json.loads)

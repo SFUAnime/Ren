@@ -153,13 +153,7 @@ class IdentifierData:
         return tuple(
             filter(
                 None,
-                (
-                    self.cog_name,
-                    self.uuid,
-                    self.category,
-                    *self.primary_key,
-                    *self.identifiers,
-                ),
+                (self.cog_name, self.uuid, self.category, *self.primary_key, *self.identifiers),
             )
         )
 
@@ -382,9 +376,7 @@ class BaseDriver(abc.ABC):
         return ret
 
     async def import_data(
-        self,
-        cog_data: List[Tuple[str, Dict[str, Any]]],
-        custom_group_data: Dict[str, int],
+        self, cog_data: List[Tuple[str, Dict[str, Any]]], custom_group_data: Dict[str, int]
     ) -> None:
         for category, all_data in cog_data:
             splitted_pkey = self._split_primary_key(category, custom_group_data, all_data)

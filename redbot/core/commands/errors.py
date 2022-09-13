@@ -41,11 +41,7 @@ class ArgParserFailure(UserFeedbackCheckFailure):
     """Raised when parsing an argument fails."""
 
     def __init__(
-        self,
-        cmd: str,
-        user_input: str,
-        custom_help: str = None,
-        ctx_send_help: bool = False,
+        self, cmd: str, user_input: str, custom_help: str = None, ctx_send_help: bool = False
     ):
         self.cmd = cmd
         self.user_input = user_input

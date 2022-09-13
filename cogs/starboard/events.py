@@ -55,22 +55,18 @@ class StarboardEvents:
                 em.color = discord.Colour(starboard.colour)
             em.description = message.system_content
             em.set_author(
-                name=author.display_name,
-                url=message.jump_url,
-                icon_url=str(author.avatar_url),
+                name=author.display_name, url=message.jump_url, icon_url=str(author.avatar_url)
             )
             if message.attachments:
                 attachment = message.attachments[0]
                 spoiler = attachment.is_spoiler()
                 if spoiler:
                     em.add_field(
-                        name="Attachment",
-                        value=f"||[{attachment.filename}]({attachment.url})||",
+                        name="Attachment", value=f"||[{attachment.filename}]({attachment.url})||"
                     )
                 elif not attachment.url.lower().endswith(("png", "jpeg", "jpg", "gif", "webp")):
                     em.add_field(
-                        name="Attachment",
-                        value=f"[{attachment.filename}]({attachment.url})",
+                        name="Attachment", value=f"[{attachment.filename}]({attachment.url})"
                     )
                 else:
                     em.set_image(url=attachment.url)

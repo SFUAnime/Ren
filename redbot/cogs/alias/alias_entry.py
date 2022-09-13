@@ -24,11 +24,7 @@ class AliasEntry:
     uses: int
 
     def __init__(
-        self,
-        name: str,
-        command: Union[Tuple[str], str],
-        creator: int,
-        guild: Optional[int],
+        self, name: str, command: Union[Tuple[str], str], creator: int, guild: Optional[int]
     ):
         super().__init__()
         self.name = name
@@ -214,11 +210,7 @@ class AliasCache:
         return command
 
     async def add_alias(
-        self,
-        ctx: commands.Context,
-        alias_name: str,
-        command: str,
-        global_: bool = False,
+        self, ctx: commands.Context, alias_name: str, command: str, global_: bool = False
     ) -> AliasEntry:
         command = self.format_command_for_alias(command)
 
@@ -241,11 +233,7 @@ class AliasCache:
         return alias
 
     async def edit_alias(
-        self,
-        ctx: commands.Context,
-        alias_name: str,
-        command: str,
-        global_: bool = False,
+        self, ctx: commands.Context, alias_name: str, command: str, global_: bool = False
     ) -> bool:
         command = self.format_command_for_alias(command)
 

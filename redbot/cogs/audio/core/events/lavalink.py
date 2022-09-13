@@ -82,11 +82,7 @@ class LavalinkEvents(MixinMeta, metaclass=CompositeMetaClass):
                     self._ws_resume[guild_id].set()
 
                 await self._websocket_closed_handler(
-                    guild=guild,
-                    player=player,
-                    extra=extra,
-                    deafen=deafen,
-                    disconnect=disconnect,
+                    guild=guild, player=player, extra=extra, deafen=deafen, disconnect=disconnect
                 )
             except Exception:
                 log.exception("Error in WEBSOCKET_CLOSED handling for guild: %s", player.guild.id)
@@ -352,10 +348,7 @@ class LavalinkEvents(MixinMeta, metaclass=CompositeMetaClass):
                 player.store("resumes", player.fetch("resumes", 0) + 1)
                 await player.resume(player.current, start=player.position, replace=True)
                 ws_audio_log.info(
-                    "Player resumed | Reason: Error code %d & %s, %r",
-                    code,
-                    reason,
-                    player,
+                    "Player resumed | Reason: Error code %d & %s, %r", code, reason, player
                 )
                 self._ws_op_codes[guild_id]._init(self._ws_op_codes[guild_id]._maxsize)
                 return
@@ -455,10 +448,7 @@ class LavalinkEvents(MixinMeta, metaclass=CompositeMetaClass):
                 await player.connect(deafen=deafen)
                 await player.resume(player.current, start=player.position, replace=True)
                 ws_audio_log.info(
-                    "Player resumed - Reason: Error code %d & %s, %r",
-                    code,
-                    reason,
-                    player,
+                    "Player resumed - Reason: Error code %d & %s, %r", code, reason, player
                 )
             elif code in (4015, 4009, 4006, 4000, 1006):
                 if player._con_delay:
@@ -467,10 +457,7 @@ class LavalinkEvents(MixinMeta, metaclass=CompositeMetaClass):
                     player._con_delay = ExponentialBackoff(base=1)
                     delay = player._con_delay.delay()
                 ws_audio_log.debug(
-                    "Reconnecting to channel %d in guild: %d | %.2fs",
-                    channel_id,
-                    guild_id,
-                    delay,
+                    "Reconnecting to channel %d in guild: %d | %.2fs", channel_id, guild_id, delay
                 )
                 await asyncio.sleep(delay)
                 if has_perm and player.current and player.is_playing:

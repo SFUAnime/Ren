@@ -23,11 +23,7 @@ EMPTY = {KEY_CATGIRL: [], KEY_CATBOY: []}
 BASE = {
     "web": {
         KEY_CATGIRL: [
-            {
-                KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg",
-                "id": "null",
-                "is_pixiv": False,
-            }
+            {KEY_IMAGE_URL: "https://cdn.awwni.me/utpd.jpg", "id": "null", "is_pixiv": False}
         ],
         KEY_CATBOY: [],
     },
@@ -194,9 +190,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
             "- **{}** catgirls available.\n"
             "- **{}** catboys available.\n"
             "- **{}** pending images.".format(
-                len(self.catgirls),
-                len(self.catboys),
-                len(self.picturesPending[KEY_CATGIRL]),
+                len(self.catgirls), len(self.catboys), len(self.picturesPending[KEY_CATGIRL])
             )
         )
         await ctx.send(msg)
@@ -211,9 +205,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
             "- **{}** catgirls available.\n"
             "- **{}** catboys available.\n"
             "- **{}** pending images.".format(
-                len(self.catgirls),
-                len(self.catboys),
-                len(self.picturesPending[KEY_CATGIRL]),
+                len(self.catgirls), len(self.catboys), len(self.picturesPending[KEY_CATGIRL])
             )
         )
         await ctx.send(msg)

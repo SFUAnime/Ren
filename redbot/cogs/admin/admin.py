@@ -158,12 +158,7 @@ class Admin(commands.Cog):
         return ctx.author.top_role > role or ctx.author == ctx.guild.owner
 
     async def _addrole(
-        self,
-        ctx: commands.Context,
-        member: discord.Member,
-        role: discord.Role,
-        *,
-        check_user=True,
+        self, ctx: commands.Context, member: discord.Member, role: discord.Role, *, check_user=True
     ):
         if role in member.roles:
             await ctx.send(
@@ -193,12 +188,7 @@ class Admin(commands.Cog):
             )
 
     async def _removerole(
-        self,
-        ctx: commands.Context,
-        member: discord.Member,
-        role: discord.Role,
-        *,
-        check_user=True,
+        self, ctx: commands.Context, member: discord.Member, role: discord.Role, *, check_user=True
     ):
         if role not in member.roles:
             await ctx.send(
@@ -231,11 +221,7 @@ class Admin(commands.Cog):
     @commands.guild_only()
     @checks.admin_or_permissions(manage_roles=True)
     async def addrole(
-        self,
-        ctx: commands.Context,
-        rolename: discord.Role,
-        *,
-        user: discord.Member = None,
+        self, ctx: commands.Context, rolename: discord.Role, *, user: discord.Member = None
     ):
         """
         Add a role to a user.
@@ -251,11 +237,7 @@ class Admin(commands.Cog):
     @commands.guild_only()
     @checks.admin_or_permissions(manage_roles=True)
     async def removerole(
-        self,
-        ctx: commands.Context,
-        rolename: discord.Role,
-        *,
-        user: discord.Member = None,
+        self, ctx: commands.Context, rolename: discord.Role, *, user: discord.Member = None
     ):
         """
         Remove a role from a user.

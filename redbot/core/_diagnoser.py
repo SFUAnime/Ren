@@ -679,8 +679,7 @@ class DetailedCommandChecksMixin(IssueDiagnoserBase):
                     "The user is missing some of the channel permissions ({permissions})"
                     " required by the {command} command."
                 ).format(
-                    permissions=permissions,
-                    command=self._format_command_name(cog_or_command),
+                    permissions=permissions, command=self._format_command_name(cog_or_command)
                 )
             )
         if requires.privilege_level is not None:
@@ -699,8 +698,7 @@ class DetailedCommandChecksMixin(IssueDiagnoserBase):
                     "The user is missing the privilege level ({privilege_level})"
                     " required by the {cog} cog."
                 ).format(
-                    privilege_level=privilege_level,
-                    cog=inline(cog_or_command.qualified_name),
+                    privilege_level=privilege_level, cog=inline(cog_or_command.qualified_name)
                 )
                 if cog_or_command is self.ctx.cog
                 else _(

@@ -48,8 +48,7 @@ class Casino(Database, commands.Cog):
     async def initialise(self):
         self.migration_task = self.bot.loop.create_task(
             self.data_schema_migration(
-                from_version=await self.config.schema_version(),
-                to_version=_SCHEMA_VERSION,
+                from_version=await self.config.schema_version(), to_version=_SCHEMA_VERSION
             )
         )
 
@@ -310,13 +309,7 @@ class Casino(Database, commands.Cog):
                 _("While the casino is in global mode, only the bot owner may use this command.")
             )
 
-        options = (
-            _("settings"),
-            _("games"),
-            _("cooldowns"),
-            _("memberships"),
-            _("all"),
-        )
+        options = (_("settings"), _("games"), _("cooldowns"), _("memberships"), _("all"))
         await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
         pred = MessagePredicate.lower_contained_in(options, ctx=ctx)
         await ctx.send(_("What would you like to reset?\n`{}`.").format(utils.fmt_join(options)))
@@ -458,15 +451,7 @@ class Casino(Database, commands.Cog):
         ]
         table = [x + [y] for x, y in zip(t, cool)]
 
-        headers = (
-            _("Game"),
-            _("Access"),
-            _("Max"),
-            _("Min"),
-            _("Payout"),
-            _("On"),
-            _("CD"),
-        )
+        headers = (_("Game"), _("Access"), _("Max"), _("Min"), _("Payout"), _("On"), _("CD"))
         t = tabulate(table, headers=headers)
         msg = _(
             "{}\n\n"
@@ -1123,14 +1108,7 @@ class Membership(Database):
         if membership.content == self.cancel:
             raise ExitProcess()
 
-        attrs = (
-            _("Requirements"),
-            _("Name"),
-            _("Access"),
-            _("Color"),
-            _("Reduction"),
-            _("Bonus"),
-        )
+        attrs = (_("Requirements"), _("Name"), _("Access"), _("Color"), _("Reduction"), _("Bonus"))
         await self.ctx.send(
             _("Which of the following attributes would you like to edit?\n`{}`").format(
                 utils.fmt_join(attrs)
@@ -1308,8 +1286,7 @@ class Membership(Database):
             )
 
             pred = MessagePredicate.lower_contained_in(
-                (_("credits"), _("role"), _("dos"), _("days on server"), self.cancel),
-                ctx=self.ctx,
+                (_("credits"), _("role"), _("dos"), _("days on server"), self.cancel), ctx=self.ctx
             )
 
             req = await self.ctx.bot.wait_for("message", timeout=25.0, check=pred)

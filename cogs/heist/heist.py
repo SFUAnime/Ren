@@ -392,17 +392,9 @@ class Heist(commands.Cog):
         t_police = themes["Police"]
         t_bail = themes["Bail"]
 
-        time_values = [
-            config["Wait"],
-            config["Police"],
-            config["Sentence"],
-            config["Death"],
-        ]
+        time_values = [config["Wait"], config["Police"], config["Sentence"], config["Death"]]
         timers = list(map(self.thief.time_format, time_values))
-        description = [
-            "Heist Version {}".format(self.version),
-            "Theme: {}".format(theme),
-        ]
+        description = ["Heist Version {}".format(self.version), "Theme: {}".format(theme)]
         footer = "Heist was developed by Redjumpman for Red Bot v2.\nUpdated to v3 by Malarne"
 
         embed = discord.Embed(colour=0x0066FF, description="\n".join(description))
@@ -517,8 +509,7 @@ class Heist(commands.Cog):
         embed.add_field(name="Death Timer", value=death_fmt)
         embed.add_field(name="Total Deaths", value=await self.thief.get_member_totaldeaths(author))
         embed.add_field(
-            name="Lifetime Apprehensions",
-            value=await self.thief.get_member_totaljails(author),
+            name="Lifetime Apprehensions", value=await self.thief.get_member_totaljails(author)
         )
 
         await ctx.send(embed=embed)

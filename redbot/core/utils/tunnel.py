@@ -17,10 +17,7 @@ class TunnelMeta(type):
     """
 
     def __call__(cls, *args, **kwargs):
-        lockout_tuple = (
-            (kwargs.get("sender"), kwargs.get("origin")),
-            kwargs.get("recipient"),
-        )
+        lockout_tuple = ((kwargs.get("sender"), kwargs.get("origin")), kwargs.get("recipient"))
 
         if lockout_tuple in _instances:
             return _instances[lockout_tuple]
@@ -67,11 +64,7 @@ class Tunnel(metaclass=TunnelMeta):
     """
 
     def __init__(
-        self,
-        *,
-        sender: discord.Member,
-        origin: discord.TextChannel,
-        recipient: discord.User,
+        self, *, sender: discord.Member, origin: discord.TextChannel, recipient: discord.User
     ):
         self.sender = sender
         self.origin = origin
@@ -197,11 +190,7 @@ class Tunnel(metaclass=TunnelMeta):
         await asyncio.gather(*tasks, return_exceptions=True)
 
     async def communicate(
-        self,
-        *,
-        message: discord.Message,
-        topic: str = None,
-        skip_message_content: bool = False,
+        self, *, message: discord.Message, topic: str = None, skip_message_content: bool = False
     ):
         """
         Forwards a message.

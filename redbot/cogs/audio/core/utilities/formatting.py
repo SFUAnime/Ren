@@ -28,12 +28,7 @@ RE_SQUARE = re.compile(r"[\[\]]")
 
 class FormattingUtilities(MixinMeta, metaclass=CompositeMetaClass):
     async def _genre_search_button_action(
-        self,
-        ctx: commands.Context,
-        options: List,
-        emoji: str,
-        page: int,
-        playlist: bool = False,
+        self, ctx: commands.Context, options: List, emoji: str, page: int, playlist: bool = False
     ) -> str:
         try:
             if emoji == "\N{DIGIT ONE}\N{COMBINING ENCLOSING KEYCAP}":
@@ -77,10 +72,7 @@ class FormattingUtilities(MixinMeta, metaclass=CompositeMetaClass):
                 search_track_num = 5
             if playlist:
                 name = "**[{}]({})** - {} {}".format(
-                    entry.get("name"),
-                    entry.get("url"),
-                    str(entry.get("tracks")),
-                    _("tracks"),
+                    entry.get("name"), entry.get("url"), str(entry.get("tracks")), _("tracks")
                 )
             else:
                 name = f"{list(entry.keys())[0]}"
@@ -122,9 +114,7 @@ class FormattingUtilities(MixinMeta, metaclass=CompositeMetaClass):
         guild_data = await self.config.guild(ctx.guild).all()
         if len(player.queue) >= 10000:
             return await self.send_embed_msg(
-                ctx,
-                title=_("Unable To Play Tracks"),
-                description=_("Queue size limit reached."),
+                ctx, title=_("Unable To Play Tracks"), description=_("Queue size limit reached.")
             )
         if not await self.maybe_charge_requester(ctx, guild_data["jukebox_price"]):
             return
@@ -255,23 +245,19 @@ class FormattingUtilities(MixinMeta, metaclass=CompositeMetaClass):
                     )
                 else:
                     search_list += "`{0}.` **[{1}]({2})**\n".format(
-                        search_track_num,
-                        discord.utils.escape_markdown(track.title),
-                        track.uri,
+                        search_track_num, discord.utils.escape_markdown(track.title), track.uri
                     )
             except AttributeError:
                 track = Query.process_input(track, self.local_folder_current_path)
                 if track.is_local and command != "search":
                     search_list += "`{}.` **{}**\n".format(
-                        search_track_num,
-                        discord.utils.escape_markdown(track.to_string_user()),
+                        search_track_num, discord.utils.escape_markdown(track.to_string_user())
                     )
                     if track.is_album:
                         folder = True
                 else:
                     search_list += "`{}.` **{}**\n".format(
-                        search_track_num,
-                        discord.utils.escape_markdown(track.to_string_user()),
+                        search_track_num, discord.utils.escape_markdown(track.to_string_user())
                     )
         if hasattr(tracks[0], "uri") and hasattr(tracks[0], "track_identifier"):
             title = _("Tracks Found:")
@@ -401,11 +387,7 @@ class FormattingUtilities(MixinMeta, metaclass=CompositeMetaClass):
             " - Tracks: < {ptracks} >\n"
             " - Author: < {author} >\n\n"
         ).format(
-            pname=pname,
-            scope=self.humanize_scope(scope),
-            pid=pid,
-            ptracks=ptracks,
-            author=author,
+            pname=pname, scope=self.humanize_scope(scope), pid=pid, ptracks=ptracks, author=author
         )
         return box(line, lang="md")
 

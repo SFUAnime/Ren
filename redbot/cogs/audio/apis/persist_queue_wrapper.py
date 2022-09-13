@@ -43,11 +43,7 @@ if TYPE_CHECKING:
 
 class QueueInterface:
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         self.bot = bot
         self.database = conn
@@ -116,9 +112,7 @@ class QueueInterface:
     async def drop(self, guild_id: int):
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             executor.submit(
-                self.database.cursor().execute,
-                PERSIST_QUEUE_BULK_PLAYED,
-                ({"guild_id": guild_id}),
+                self.database.cursor().execute, PERSIST_QUEUE_BULK_PLAYED, ({"guild_id": guild_id})
             )
 
     async def enqueued(self, guild_id: int, room_id: int, track: lavalink.Track):

@@ -191,10 +191,7 @@ class Streams(commands.Cog):
                         data["message"],
                     )
                 else:
-                    log.error(
-                        "Twitch OAuth2 API request failed with status code %s",
-                        req.status,
-                    )
+                    log.error("Twitch OAuth2 API request failed with status code %s", req.status)
 
                 if req.status != 200:
                     return
@@ -409,10 +406,7 @@ class Streams(commands.Cog):
             else:
                 if is_yt:
                     stream = _class(
-                        _bot=self.bot,
-                        name=channel_name,
-                        token=token,
-                        config=self.config,
+                        _bot=self.bot, name=channel_name, token=token, config=self.config
                     )
                 else:
                     stream = _class(_bot=self.bot, name=channel_name, token=token)
@@ -493,9 +487,7 @@ class Streams(commands.Cog):
             "or in DM with the bot.\n"
         ).format(
             command="`{}set api twitch client_id {} client_secret {}`".format(
-                ctx.clean_prefix,
-                _("<your_client_id_here>"),
-                _("<your_client_secret_here>"),
+                ctx.clean_prefix, _("<your_client_id_here>"), _("<your_client_secret_here>")
             )
         )
 
@@ -758,15 +750,11 @@ class Streams(commands.Cog):
                         embed = await stream.is_online()
                 except StreamNotFound:
                     if stream.retry_count > MAX_RETRY_COUNT:
-                        log.info(
-                            "Stream with name %s no longer exists. Removing...",
-                            stream.name,
-                        )
+                        log.info("Stream with name %s no longer exists. Removing...", stream.name)
                         to_remove.append(stream)
                     else:
                         log.info(
-                            "Stream with name %s seems to not exist, will retry later",
-                            stream.name,
+                            "Stream with name %s seems to not exist, will retry later", stream.name
                         )
                         stream.retry_count += 1
                     continue

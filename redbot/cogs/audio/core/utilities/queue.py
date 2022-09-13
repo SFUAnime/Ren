@@ -158,9 +158,7 @@ class QueueUtilities(MixinMeta, metaclass=CompositeMetaClass):
             else:
                 track_match += "`{}.` **{}**\n".format(track[0], track[1])
         embed = discord.Embed(
-            colour=await ctx.embed_colour(),
-            title=_("Matching Tracks:"),
-            description=track_match,
+            colour=await ctx.embed_colour(), title=_("Matching Tracks:"), description=track_match
         )
         embed.set_footer(
             text=_("Page {page_num}/{total_pages} | {num_tracks} tracks").format(

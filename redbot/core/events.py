@@ -31,12 +31,7 @@ from .utils._internal_utils import (
     fetch_latest_red_version_info,
     send_to_owners_with_prefix_replaced,
 )
-from .utils.chat_formatting import (
-    inline,
-    bordered,
-    format_perms_list,
-    humanize_timedelta,
-)
+from .utils.chat_formatting import inline, bordered, format_perms_list, humanize_timedelta
 
 import rich
 from rich import box
@@ -171,10 +166,7 @@ def init_events(bot, cli_flags):
         if guilds:
             rich_console.print(
                 Columns(
-                    [
-                        Panel(table_general_info, title=str(bot.user.name)),
-                        Panel(table_counts),
-                    ],
+                    [Panel(table_general_info, title=str(bot.user.name)), Panel(table_counts)],
                     equal=True,
                     align="center",
                 )

@@ -103,8 +103,7 @@ class EqualizerCommands(MixinMeta, metaclass=CompositeMetaClass):
                     )
 
         await self.send_embed_msg(
-            ctx,
-            title=_("The {preset_name} preset was deleted.".format(preset_name=eq_preset)),
+            ctx, title=_("The {preset_name} preset was deleted.".format(preset_name=eq_preset))
         )
 
     @command_equalizer.command(name="list")
@@ -216,8 +215,7 @@ class EqualizerCommands(MixinMeta, metaclass=CompositeMetaClass):
         message = await ctx.send(
             content=box(eq.visualise(), lang="ini"),
             embed=discord.Embed(
-                colour=await ctx.embed_colour(),
-                title=_("Equalizer values have been reset."),
+                colour=await ctx.embed_colour(), title=_("Equalizer values have been reset.")
             ),
         )
         player.store("eq_message", message)

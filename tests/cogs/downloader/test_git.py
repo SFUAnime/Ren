@@ -56,10 +56,7 @@ async def test_git_clone_notgit_repo(git_repo, tmp_path):
     notgit_repo = tmp_path / "test_clone_folder"
     p = await git_repo._run(
         ProcessFormatter().format(
-            git_repo.GIT_CLONE,
-            branch=None,
-            url=notgit_repo,
-            folder=tmp_path / "cloned_repo_test",
+            git_repo.GIT_CLONE, branch=None, url=notgit_repo, folder=tmp_path / "cloned_repo_test"
         )
     )
     assert p.returncode == 128
@@ -130,9 +127,7 @@ async def test_git_latest_commit(git_repo):
     # HEAD on dont_add_commits (a0ccc2390883c85a361f5a90c72e1b07958939fa)
     p = await git_repo._run(
         ProcessFormatter().format(
-            git_repo.GIT_LATEST_COMMIT,
-            path=git_repo.folder_path,
-            branch="dont_add_commits",
+            git_repo.GIT_LATEST_COMMIT, path=git_repo.folder_path, branch="dont_add_commits"
         )
     )
     assert p.returncode == 0
@@ -148,9 +143,7 @@ async def test_git_hard_reset(cloned_git_repo, tmp_path):
     assert staged_file.exists() is True
     p = await cloned_git_repo._run(
         ProcessFormatter().format(
-            cloned_git_repo.GIT_HARD_RESET,
-            path=cloned_git_repo.folder_path,
-            branch="master",
+            cloned_git_repo.GIT_HARD_RESET, path=cloned_git_repo.folder_path, branch="master"
         )
     )
     assert p.returncode == 0
@@ -165,8 +158,7 @@ async def test_git_pull(git_repo_with_remote, tmp_path):
     git_dirparams = ("git", "-C", git_repo_with_remote.url)
     sp.run((*git_dirparams, "add", "staged_file.txt"), check=True)
     sp.run(
-        (*git_dirparams, "commit", "-m", "test commit", "--no-gpg-sign", "--no-verify"),
-        check=True,
+        (*git_dirparams, "commit", "-m", "test commit", "--no-gpg-sign", "--no-verify"), check=True
     )
     assert not (git_repo_with_remote.folder_path / "staged_file.txt").exists()
 
@@ -250,9 +242,7 @@ async def test_git_checkout_non_existent_branch(git_repo):
 async def test_git_get_full_sha1_from_branch_name(git_repo):
     p = await git_repo._run(
         ProcessFormatter().format(
-            git_repo.GIT_GET_FULL_SHA1,
-            path=git_repo.folder_path,
-            rev="dont_add_commits",
+            git_repo.GIT_GET_FULL_SHA1, path=git_repo.folder_path, rev="dont_add_commits"
         )
     )
     assert p.returncode == 0

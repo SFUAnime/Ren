@@ -42,12 +42,7 @@ class TestMonthDayConverter:
         ],
     )
     async def testInputs(
-        self,
-        dateString: str,
-        expectM: int,
-        expectD: int,
-        ctxMgr: ContextManager,
-        excString: str,
+        self, dateString: str, expectM: int, expectD: int, ctxMgr: ContextManager, excString: str
     ):
         with ctxMgr as excInfo:
             bday = await self.converter.convert(None, dateString)

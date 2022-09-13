@@ -85,8 +85,7 @@ class MiscellaneousCommands(MixinMeta, metaclass=CompositeMetaClass):
             )
             em.set_footer(
                 text=_("Page {}/{}").format(
-                    humanize_number(pages),
-                    humanize_number((math.ceil(len(msg) / 1500))),
+                    humanize_number(pages), humanize_number((math.ceil(len(msg) / 1500)))
                 )
             )
             pages += 1

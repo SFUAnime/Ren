@@ -228,11 +228,7 @@ class PlaylistUtilities(MixinMeta, metaclass=CompositeMetaClass):
                     ).format(match_count=match_count, original_input=original_input)
                 )
         elif match_count == 1:
-            return (
-                correct_scope_matches[0],
-                original_input,
-                correct_scope_matches[0].scope,
-            )
+            return correct_scope_matches[0], original_input, correct_scope_matches[0].scope
         elif match_count == 0:
             return None, original_input, scope or PlaylistScope.GUILD.value
 
@@ -296,11 +292,7 @@ class PlaylistUtilities(MixinMeta, metaclass=CompositeMetaClass):
         )
 
     async def _build_playlist_list_page(
-        self,
-        ctx: commands.Context,
-        page_num: int,
-        abc_names: List,
-        scope: Optional[str],
+        self, ctx: commands.Context, page_num: int, abc_names: List, scope: Optional[str]
     ) -> discord.Embed:
         plist_num_pages = math.ceil(len(abc_names) / 5)
         plist_idx_start = (page_num - 1) * 5
@@ -425,9 +417,7 @@ class PlaylistUtilities(MixinMeta, metaclass=CompositeMetaClass):
             try:
                 try:
                     result, called_api = await self.api_interface.fetch_track(
-                        ctx,
-                        player,
-                        Query.process_input(song_url, self.local_folder_current_path),
+                        ctx, player, Query.process_input(song_url, self.local_folder_current_path)
                     )
                 except TrackEnqueueError:
                     self.update_player_lock(ctx, False)
@@ -491,10 +481,7 @@ class PlaylistUtilities(MixinMeta, metaclass=CompositeMetaClass):
         await playlist_msg.edit(embed=embed3)
 
     async def _maybe_update_playlist(
-        self,
-        ctx: commands.Context,
-        player: lavalink.player_manager.Player,
-        playlist: Playlist,
+        self, ctx: commands.Context, player: lavalink.player_manager.Player, playlist: Playlist
     ) -> Tuple[List[lavalink.Track], List[lavalink.Track], Playlist]:
         if getattr(playlist, "id", 0) == 42069:
             _, updated_tracks = await self._get_bundled_playlist_tracks()
@@ -688,10 +675,7 @@ class PlaylistUtilities(MixinMeta, metaclass=CompositeMetaClass):
         return tracklist
 
     def humanize_scope(
-        self,
-        scope: str,
-        ctx: Union[discord.Guild, discord.abc.User, str] = None,
-        the: bool = None,
+        self, scope: str, ctx: Union[discord.Guild, discord.abc.User, str] = None, the: bool = None
     ) -> Optional[str]:
 
         if scope == PlaylistScope.GLOBAL.value:

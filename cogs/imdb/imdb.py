@@ -79,14 +79,7 @@ class Imdb(BaseCog):
             embed.set_footer(text="Powered by omdb")
             embeds.append(embed)
 
-        await menu(
-            ctx,
-            pages=embeds,
-            controls=DEFAULT_CONTROLS,
-            message=None,
-            page=0,
-            timeout=20,
-        )
+        await menu(ctx, pages=embeds, controls=DEFAULT_CONTROLS, message=None, page=0, timeout=20)
 
     @commands.command()
     @checks.is_owner()

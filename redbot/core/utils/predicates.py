@@ -1,17 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import (
-    Callable,
-    ClassVar,
-    List,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Callable, ClassVar, List, Optional, Pattern, Sequence, Tuple, Union, cast
 
 import discord
 
@@ -904,8 +894,7 @@ class ReactionPredicate(Callable[[discord.Reaction, discord.abc.User], bool]):
     """List[str] : A list of all single-digit number emojis, 0 through 9."""
 
     def __init__(
-        self,
-        predicate: Callable[["ReactionPredicate", discord.Reaction, discord.abc.User], bool],
+        self, predicate: Callable[["ReactionPredicate", discord.Reaction, discord.abc.User], bool]
     ) -> None:
         self._pred: Callable[
             ["ReactionPredicate", discord.Reaction, discord.abc.User], bool
@@ -918,9 +907,7 @@ class ReactionPredicate(Callable[[discord.Reaction, discord.abc.User], bool]):
     # noinspection PyUnusedLocal
     @classmethod
     def same_context(
-        cls,
-        message: Optional[discord.Message] = None,
-        user: Optional[discord.abc.User] = None,
+        cls, message: Optional[discord.Message] = None, user: Optional[discord.abc.User] = None
     ) -> "ReactionPredicate":
         """Match if a reaction fits the described context.
 
@@ -991,9 +978,7 @@ class ReactionPredicate(Callable[[discord.Reaction, discord.abc.User], bool]):
 
     @classmethod
     def yes_or_no(
-        cls,
-        message: Optional[discord.Message] = None,
-        user: Optional[discord.abc.User] = None,
+        cls, message: Optional[discord.Message] = None, user: Optional[discord.abc.User] = None
     ) -> "ReactionPredicate":
         """Match if the reaction is a tick or cross emoji.
 

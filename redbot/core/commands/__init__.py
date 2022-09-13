@@ -18,11 +18,7 @@ from .commands import (
     RedUnhandledAPI as RedUnhandledAPI,
     RESERVED_COMMAND_NAMES as RESERVED_COMMAND_NAMES,
 )
-from .context import (
-    Context as Context,
-    GuildContext as GuildContext,
-    DMContext as DMContext,
-)
+from .context import Context as Context, GuildContext as GuildContext, DMContext as DMContext
 from .converter import (
     DictConverter as DictConverter,
     RelativedeltaConverter as RelativedeltaConverter,

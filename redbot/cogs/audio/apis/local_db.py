@@ -67,11 +67,7 @@ _SCHEMA_VERSION = 3
 
 class BaseWrapper:
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         self.bot = bot
         self.config = config
@@ -215,9 +211,7 @@ class BaseWrapper:
             for future in concurrent.futures.as_completed(
                 [
                     executor.submit(
-                        self.database.cursor().execute,
-                        self.statement.get_random,
-                        values,
+                        self.database.cursor().execute, self.statement.get_random, values
                     )
                 ]
             ):
@@ -239,11 +233,7 @@ class BaseWrapper:
 
 class YouTubeTableWrapper(BaseWrapper):
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         super().__init__(bot, config, conn, cog)
         self.statement.upsert = YOUTUBE_UPSERT
@@ -279,11 +269,7 @@ class YouTubeTableWrapper(BaseWrapper):
 
 class SpotifyTableWrapper(BaseWrapper):
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         super().__init__(bot, config, conn, cog)
         self.statement.upsert = SPOTIFY_UPSERT
@@ -319,11 +305,7 @@ class SpotifyTableWrapper(BaseWrapper):
 
 class LavalinkTableWrapper(BaseWrapper):
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         super().__init__(bot, config, conn, cog)
         self.statement.upsert = LAVALINK_UPSERT
@@ -381,11 +363,7 @@ class LocalCacheWrapper:
     """Wraps all table apis into 1 object representing the local cache"""
 
     def __init__(
-        self,
-        bot: Red,
-        config: Config,
-        conn: APSWConnectionWrapper,
-        cog: Union["Audio", Cog],
+        self, bot: Red, config: Config, conn: APSWConnectionWrapper, cog: Union["Audio", Cog]
     ):
         self.bot = bot
         self.config = config

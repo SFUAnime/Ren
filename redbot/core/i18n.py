@@ -318,9 +318,7 @@ def get_babel_locale(locale: Optional[str] = None) -> babel.core.Locale:
     return _get_babel_locale(locale)
 
 
-def get_babel_regional_format(
-    regional_format: Optional[str] = None,
-) -> babel.core.Locale:
+def get_babel_regional_format(regional_format: Optional[str] = None) -> babel.core.Locale:
     """Function to convert a regional format to a `babel.core.Locale`.
 
     If ``regional_format`` parameter is passed, this behaves the same as `get_babel_locale`.

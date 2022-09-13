@@ -8,16 +8,7 @@ import time
 
 from collections import namedtuple
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    List,
-    MutableMapping,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Callable, List, MutableMapping, Optional, Tuple, Union, cast
 
 import aiohttp
 import discord
@@ -33,12 +24,7 @@ from redbot.core.utils.dbtools import APSWConnectionWrapper
 
 from ..audio_dataclasses import Query
 from ..audio_logging import IS_DEBUG, debug_exc_log
-from ..errors import (
-    DatabaseError,
-    SpotifyFetchError,
-    TrackEnqueueError,
-    YouTubeApiError,
-)
+from ..errors import DatabaseError, SpotifyFetchError, TrackEnqueueError, YouTubeApiError
 from ..utils import CacheLevel, Notifier
 from .api_utils import LavalinkCacheFetchForGlobalResult
 from .global_db import GlobalCacheWrapper
@@ -171,19 +157,11 @@ class AudioAPIInterface:
                     del self._tasks[lock_id]
                 except Exception as exc:
                     debug_exc_log(
-                        log,
-                        exc,
-                        "Failed database writes for %d (%s)",
-                        lock_id,
-                        lock_author,
+                        log, exc, "Failed database writes for %d (%s)", lock_id, lock_author
                     )
                 else:
                     if IS_DEBUG:
-                        log.debug(
-                            "Completed database writes for %d (%s)",
-                            lock_id,
-                            lock_author,
-                        )
+                        log.debug("Completed database writes for %d (%s)", lock_id, lock_author)
 
     async def run_all_pending_tasks(self) -> None:
         """Run all pending tasks left in the cache, called on cog_unload."""
@@ -266,16 +244,12 @@ class AudioAPIInterface:
                 val = None
                 if youtube_cache:
                     try:
-                        (
-                            val,
-                            last_update,
-                        ) = await self.local_cache_api.youtube.fetch_one({"track": track_info})
+                        (val, last_update) = await self.local_cache_api.youtube.fetch_one(
+                            {"track": track_info}
+                        )
                     except Exception as exc:
                         debug_exc_log(
-                            log,
-                            exc,
-                            "Failed to fetch %r from YouTube table",
-                            track_info,
+                            log, exc, "Failed to fetch %r from YouTube table", track_info
                         )
 
                 if val is None:
@@ -414,10 +388,7 @@ class AudioAPIInterface:
                 )
             except Exception as exc:
                 debug_exc_log(
-                    log,
-                    exc,
-                    "Failed to fetch 'spotify:track:%s' from Spotify table",
-                    uri,
+                    log, exc, "Failed to fetch 'spotify:track:%s' from Spotify table", uri
                 )
                 val = None
         else:
@@ -540,16 +511,12 @@ class AudioAPIInterface:
                 llresponse = None
                 if youtube_cache:
                     try:
-                        (
-                            val,
-                            last_updated,
-                        ) = await self.local_cache_api.youtube.fetch_one({"track": track_info})
+                        (val, last_updated) = await self.local_cache_api.youtube.fetch_one(
+                            {"track": track_info}
+                        )
                     except Exception as exc:
                         debug_exc_log(
-                            log,
-                            exc,
-                            "Failed to fetch %r from YouTube table",
-                            track_info,
+                            log, exc, "Failed to fetch %r from YouTube table", track_info
                         )
                 should_query_global = globaldb_toggle and query_global and val is None
                 if should_query_global:
@@ -658,11 +625,7 @@ class AudioAPIInterface:
                 ):
                     has_not_allowed = True
                     if IS_DEBUG:
-                        log.debug(
-                            "Query is not allowed in %r (%d)",
-                            ctx.guild.name,
-                            ctx.guild.id,
-                        )
+                        log.debug("Query is not allowed in %r (%d)", ctx.guild.name, ctx.guild.id)
                     continue
                 track_list.append(single_track)
                 if enqueue:
@@ -1030,9 +993,7 @@ class AudioAPIInterface:
                 ):
                     if IS_DEBUG:
                         log.debug(
-                            "Query is not allowed in %r (%d)",
-                            player.guild.name,
-                            player.guild.id,
+                            "Query is not allowed in %r (%d)", player.guild.name, player.guild.id
                         )
                     continue
                 valid = True

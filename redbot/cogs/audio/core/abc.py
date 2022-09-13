@@ -6,17 +6,7 @@ import datetime
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import (
-    Set,
-    TYPE_CHECKING,
-    Any,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Set, TYPE_CHECKING, Any, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import aiohttp
 import discord
@@ -209,18 +199,13 @@ class MixinMeta(ABC):
 
     @abstractmethod
     async def get_track_description_unformatted(
-        self,
-        track: Union[lavalink.rest_api.Track, "Query"],
-        local_folder_current_path: Path,
+        self, track: Union[lavalink.rest_api.Track, "Query"], local_folder_current_path: Path
     ) -> Optional[str]:
         raise NotImplementedError()
 
     @abstractmethod
     def humanize_scope(
-        self,
-        scope: str,
-        ctx: Union[discord.Guild, discord.abc.User, str] = None,
-        the: bool = None,
+        self, scope: str, ctx: Union[discord.Guild, discord.abc.User, str] = None, the: bool = None
     ) -> Optional[str]:
         raise NotImplementedError()
 
@@ -349,10 +334,7 @@ class MixinMeta(ABC):
 
     @abstractmethod
     async def _maybe_update_playlist(
-        self,
-        ctx: commands.Context,
-        player: lavalink.player_manager.Player,
-        playlist: "Playlist",
+        self, ctx: commands.Context, player: lavalink.player_manager.Player, playlist: "Playlist"
     ) -> Tuple[List[lavalink.Track], List[lavalink.Track], "Playlist"]:
         raise NotImplementedError()
 
@@ -397,12 +379,7 @@ class MixinMeta(ABC):
 
     @abstractmethod
     async def _genre_search_button_action(
-        self,
-        ctx: commands.Context,
-        options: List,
-        emoji: str,
-        page: int,
-        playlist: bool = False,
+        self, ctx: commands.Context, options: List, emoji: str, page: int, playlist: bool = False
     ) -> str:
         raise NotImplementedError()
 
@@ -513,11 +490,7 @@ class MixinMeta(ABC):
 
     @abstractmethod
     async def _build_playlist_list_page(
-        self,
-        ctx: commands.Context,
-        page_num: int,
-        abc_names: List,
-        scope: Optional[str],
+        self, ctx: commands.Context, page_num: int, abc_names: List, scope: Optional[str]
     ) -> discord.Embed:
         raise NotImplementedError()
 

@@ -211,8 +211,7 @@ class Reports(commands.Cog):
             em = discord.Embed(description=report, colour=await ctx.embed_colour())
             em.set_author(
                 name=_("Report from {author}{maybe_nick}").format(
-                    author=author,
-                    maybe_nick=(f" ({author.nick})" if author.nick else ""),
+                    author=author, maybe_nick=(f" ({author.nick})" if author.nick else "")
                 ),
                 icon_url=author.avatar_url,
             )

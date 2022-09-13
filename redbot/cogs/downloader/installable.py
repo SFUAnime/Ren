@@ -196,18 +196,11 @@ class InstalledModule(Installable):
         location = repo_folder / cog_name
 
         return cls(
-            location=location,
-            repo=repo,
-            commit=commit,
-            pinned=pinned,
-            json_repo_name=repo_name,
+            location=location, repo=repo, commit=commit, pinned=pinned, json_repo_name=repo_name
         )
 
     @classmethod
     def from_installable(cls, module: Installable, *, pinned: bool = False) -> InstalledModule:
         return cls(
-            location=module._location,
-            repo=module.repo,
-            commit=module.commit,
-            pinned=pinned,
+            location=module._location, repo=module.repo, commit=module.commit, pinned=pinned
         )

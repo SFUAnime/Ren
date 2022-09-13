@@ -416,9 +416,7 @@ class Downloader(commands.Cog):
             for commit, libs in libs_by_commit.items():
                 await repo.checkout(commit)
                 installed, failed = await repo.install_libraries(
-                    target_dir=self.SHAREDLIB_PATH,
-                    req_target_dir=self.LIB_PATH,
-                    libraries=libs,
+                    target_dir=self.SHAREDLIB_PATH, req_target_dir=self.LIB_PATH, libraries=libs
                 )
                 all_installed += installed
                 all_failed += failed
@@ -779,9 +777,7 @@ class Downloader(commands.Cog):
         await self._cog_installrev(ctx, repo, None, cog_names)
 
     @cog.command(
-        name="installversion",
-        usage="<repo> <revision> <cogs...>",
-        require_var_positional=True,
+        name="installversion", usage="<repo> <revision> <cogs...>", require_var_positional=True
     )
     async def _cog_installversion(
         self, ctx: commands.Context, repo: Repo, revision: str, *cog_names: str
@@ -805,11 +801,7 @@ class Downloader(commands.Cog):
         await self._cog_installrev(ctx, repo, revision, cog_names)
 
     async def _cog_installrev(
-        self,
-        ctx: commands.Context,
-        repo: Repo,
-        rev: Optional[str],
-        cog_names: Iterable[str],
+        self, ctx: commands.Context, repo: Repo, rev: Optional[str], cog_names: Iterable[str]
     ) -> None:
         commit = None
         async with ctx.typing():
@@ -1252,10 +1244,7 @@ class Downloader(commands.Cog):
 
                 if updates_available:
                     updated_cognames, message = await self._update_cogs_and_libs(
-                        ctx,
-                        cogs_to_update,
-                        libs_to_update,
-                        current_cog_versions=cogs_to_check,
+                        ctx, cogs_to_update, libs_to_update, current_cog_versions=cogs_to_check
                     )
                 else:
                     if repos:
@@ -1771,9 +1760,7 @@ class Downloader(commands.Cog):
             embed.add_field(name=_("Repo URL:"), value=repo_url, inline=False)
             if installed and cog_installable.repo is not None and cog_installable.repo.branch:
                 embed.add_field(
-                    name=_("Repo branch:"),
-                    value=cog_installable.repo.branch,
-                    inline=False,
+                    name=_("Repo branch:"), value=cog_installable.repo.branch, inline=False
                 )
             await ctx.send(embed=embed)
 

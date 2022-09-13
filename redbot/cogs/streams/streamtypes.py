@@ -360,8 +360,7 @@ class TwitchStream(Stream):
 
                     if resp.status == 429:
                         log.info(
-                            "Ratelimited. Trying again at %s.",
-                            datetime.fromtimestamp(int(reset)),
+                            "Ratelimited. Trying again at %s.", datetime.fromtimestamp(int(reset))
                         )
                         resp.release()
                         return await self.get_data(url)
@@ -371,10 +370,7 @@ class TwitchStream(Stream):
 
                     return resp.status, await resp.json(encoding="utf-8")
             except (aiohttp.ClientConnectionError, asyncio.TimeoutError) as exc:
-                log.warning(
-                    "Connection error occurred when fetching Twitch stream",
-                    exc_info=exc,
-                )
+                log.warning("Connection error occurred when fetching Twitch stream", exc_info=exc)
                 return None, {}
 
     async def is_online(self):

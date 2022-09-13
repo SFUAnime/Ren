@@ -318,8 +318,7 @@ class Economy(commands.Cog):
                             "Please spend some more \N{GRIMACING FACE}\n\n"
                             "You currently have {new_balance} {currency}."
                         ).format(
-                            currency=credits_name,
-                            new_balance=humanize_number(exc.max_balance),
+                            currency=credits_name, new_balance=humanize_number(exc.max_balance)
                         )
                     )
                     return
@@ -374,8 +373,7 @@ class Economy(commands.Cog):
                             "Please spend some more \N{GRIMACING FACE}\n\n"
                             "You currently have {new_balance} {currency}."
                         ).format(
-                            currency=credits_name,
-                            new_balance=humanize_number(exc.max_balance),
+                            currency=credits_name, new_balance=humanize_number(exc.max_balance)
                         )
                     )
                     return
@@ -774,10 +772,7 @@ class Economy(commands.Cog):
 
     @economyset.command()
     async def slottime(
-        self,
-        ctx: commands.Context,
-        *,
-        duration: TimedeltaConverter(default_unit="seconds"),
+        self, ctx: commands.Context, *, duration: TimedeltaConverter(default_unit="seconds")
     ):
         """Set the cooldown for the slot machine.
 
@@ -800,10 +795,7 @@ class Economy(commands.Cog):
 
     @economyset.command()
     async def paydaytime(
-        self,
-        ctx: commands.Context,
-        *,
-        duration: TimedeltaConverter(default_unit="seconds"),
+        self, ctx: commands.Context, *, duration: TimedeltaConverter(default_unit="seconds")
     ):
         """Set the cooldown for the payday command.
 
@@ -904,9 +896,7 @@ class Economy(commands.Cog):
                         "Every payday will now give {num} {currency} "
                         "to people with the role {role_name}."
                     ).format(
-                        num=humanize_number(creds),
-                        currency=credits_name,
-                        role_name=role.name,
+                        num=humanize_number(creds), currency=credits_name, role_name=role.name
                     )
                 )
 

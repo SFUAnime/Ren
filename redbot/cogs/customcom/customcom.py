@@ -341,9 +341,7 @@ class CustomCommands(commands.Cog):
         if await ctx.embed_requested():
             content = " \n".join(map("**{0[0]}** {0[1]}".format, results))
             embed = discord.Embed(
-                title=_("Search results"),
-                description=content,
-                colour=await ctx.embed_colour(),
+                title=_("Search results"), description=content, colour=await ctx.embed_colour()
             )
             await ctx.send(embed=embed)
         else:
@@ -442,12 +440,7 @@ class CustomCommands(commands.Cog):
     @customcom.command(name="cooldown")
     @checks.mod_or_permissions(administrator=True)
     async def cc_cooldown(
-        self,
-        ctx,
-        command: str.lower,
-        cooldown: int = None,
-        *,
-        per: str.lower = "member",
+        self, ctx, command: str.lower, cooldown: int = None, *, per: str.lower = "member"
     ):
         """Set, edit, or view the cooldown for a custom command.
 
@@ -624,10 +617,7 @@ class CustomCommands(commands.Cog):
             "Created: {created_at}\n"
             "Type: {type}\n"
         ).format(
-            command_name=command_name,
-            author=author,
-            created_at=cmd["created_at"],
-            type=_type,
+            command_name=command_name, author=author, created_at=cmd["created_at"], type=_type
         )
 
         cooldowns = cmd.get("cooldowns", {})

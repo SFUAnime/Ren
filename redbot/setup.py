@@ -17,10 +17,7 @@ import appdirs
 import click
 
 from redbot.core.cli import confirm
-from redbot.core.utils._internal_utils import (
-    safe_delete,
-    create_backup as red_create_backup,
-)
+from redbot.core.utils._internal_utils import safe_delete, create_backup as red_create_backup
 from redbot.core import config, data_manager, drivers
 from redbot.core.drivers import BackendType, IdentifierData
 
@@ -409,9 +406,7 @@ def cli(
     base_logger = logging.getLogger("red")
     base_logger.setLevel(level)
     formatter = logging.Formatter(
-        "[{asctime}] [{levelname}] {name}: {message}",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        style="{",
+        "[{asctime}] [{levelname}] {name}: {message}", datefmt="%Y-%m-%d %H:%M:%S", style="{"
     )
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setFormatter(formatter)

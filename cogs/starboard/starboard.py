@@ -763,10 +763,7 @@ class Starboard(StarboardEvents, commands.Cog):
 
     @starboard.command(name="threshold")
     async def set_threshold(
-        self,
-        ctx: commands.Context,
-        starboard: Optional[StarboardExists],
-        threshold: int,
+        self, ctx: commands.Context, starboard: Optional[StarboardExists], threshold: int
     ) -> None:
         """
         Set the threshold before posting to the starboard

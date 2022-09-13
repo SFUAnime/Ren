@@ -171,10 +171,7 @@ class PostgresDriver(BaseDriver):
             pass
 
     async def inc(
-        self,
-        identifier_data: IdentifierData,
-        value: Union[int, float],
-        default: Union[int, float],
+        self, identifier_data: IdentifierData, value: Union[int, float], default: Union[int, float]
     ) -> Union[int, float]:
         try:
             return await self._execute(

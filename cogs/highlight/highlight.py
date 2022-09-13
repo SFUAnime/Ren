@@ -120,8 +120,7 @@ class Highlight(commands.Cog):
             totalEntries = len(dlChannels)
             async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
                 embed = discord.Embed(
-                    title=f"Denylist channels for **{ctx.guild.name}**",
-                    description=page,
+                    title=f"Denylist channels for **{ctx.guild.name}**", description=page
                 )
                 embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
                 embed.colour = discord.Colour.red()
@@ -177,8 +176,7 @@ class Highlight(commands.Cog):
                 # user can only have MAX_WORDS_HIGHLIGHT words
                 userWords.append(word)
                 await ctx.send(
-                    "Highlight word added, {}".format(userName),
-                    delete_after=DELETE_TIME,
+                    "Highlight word added, {}".format(userName), delete_after=DELETE_TIME
                 )
             else:
                 await ctx.send(
@@ -198,8 +196,7 @@ class Highlight(commands.Cog):
             if word in userWords:
                 userWords.remove(word)
                 await ctx.send(
-                    "Highlight word removed, {}".format(userName),
-                    delete_after=DELETE_TIME,
+                    "Highlight word removed, {}".format(userName), delete_after=DELETE_TIME
                 )
             else:
                 await ctx.send(
@@ -410,8 +407,7 @@ class Highlight(commands.Cog):
                 )
             else:
                 await ctx.send(
-                    "You are not currently ignoring this word!",
-                    delete_after=DELETE_TIME,
+                    "You are not currently ignoring this word!", delete_after=DELETE_TIME
                 )
         await ctx.message.delete()
 
@@ -522,8 +518,7 @@ class Highlight(commands.Cog):
             else:
                 channelList.remove(channelId)
                 await ctx.send(
-                    "Channel successfully removed from deny list.",
-                    delete_after=DELETE_TIME,
+                    "Channel successfully removed from deny list.", delete_after=DELETE_TIME
                 )
                 await ctx.message.delete()
 
@@ -776,10 +771,7 @@ class Highlight(commands.Cog):
         try:
             await user.send(content=notifyMsg, embed=embed)
             self.logger.info(
-                "%s#%s (%s) was successfully triggered.",
-                user.name,
-                user.discriminator,
-                user.id,
+                "%s#%s (%s) was successfully triggered.", user.name, user.discriminator, user.id
             )
         except discord.errors.Forbidden as error:
             self.logger.error(

@@ -577,9 +577,7 @@ class TempChannels(commands.Cog):
     ###################
     # Background Loop #
     ###################
-    async def checkChannels(
-        self,
-    ):  # pylint: disable=too-many-branches,too-many-statements
+    async def checkChannels(self):  # pylint: disable=too-many-branches,too-many-statements
         """Loop to check whether or not we should create/delete the
         TempChannel."""
         while self == self.bot.get_cog("TempChannels"):
@@ -686,9 +684,7 @@ class TempChannels(commands.Cog):
                                         if role == guild.default_role:
                                             continue
                                         await chanObj.set_permissions(
-                                            role,
-                                            overwrite=None,
-                                            reason="Archiving tempchannel",
+                                            role, overwrite=None, reason="Archiving tempchannel"
                                         )
                                     currentDate = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                                     await chanObj.edit(name=f"tc-{currentDate}")

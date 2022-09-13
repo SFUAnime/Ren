@@ -447,9 +447,7 @@ class ComplexScopeParser(commands.Converter):
                 target_user_error = f"{err}\n"
             if target_user is None:
                 raise commands.ArgParserFailure(
-                    "--to-author",
-                    to_user_raw,
-                    custom_help=f"{target_user_error}{_(_USER_HELP)}",
+                    "--to-author", to_user_raw, custom_help=f"{target_user_error}{_(_USER_HELP)}"
                 )
         elif any(x in argument for x in ["--to-author", "--to-user", "--to-member"]):
             raise commands.ArgParserFailure("--to-user", _("Nothing"), custom_help=_(_USER_HELP))

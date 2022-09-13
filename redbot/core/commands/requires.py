@@ -233,10 +233,7 @@ PermStateTransitions: TransitionDict = {
     PermState.NORMAL: {
         PermState.ACTIVE_ALLOW: (True, PermState.ACTIVE_ALLOW),
         PermState.NORMAL: (None, PermState.NORMAL),
-        PermState.PASSIVE_ALLOW: (
-            True,
-            {True: PermState.NORMAL, False: PermState.PASSIVE_ALLOW},
-        ),
+        PermState.PASSIVE_ALLOW: (True, {True: PermState.NORMAL, False: PermState.PASSIVE_ALLOW}),
         PermState.CAUTIOUS_ALLOW: (True, PermState.CAUTIOUS_ALLOW),
         PermState.ACTIVE_DENY: (False, PermState.ACTIVE_DENY),
     },
