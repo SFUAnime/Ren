@@ -177,7 +177,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         message = rawMessage.replace("{USER}", newUser.mention)
 
-
         try:
             img = await self.generateRandWelcomeImg(newUser)
             if await self.config.guild(guild).get_attr("toggle_img")():
@@ -531,11 +530,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if guildData["toggle_img"]:
                 guildData["toggle_img"] = False
             elif guildData["toggle_img"] == False:
-                #check if there is at least one image in the pool at least, otherwise tell user to add one before enabling 
+                # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
                 if len(os.listdir(self.img_dir)) < 1:
-                    await ctx.send("There are currently no images in the image_base folder. Add at least one before turning the randomiser on")
-                    return                
-
+                    await ctx.send(
+                        "There are currently no images in the image_base folder. Add at least one before turning the randomiser on"
+                    )
+                    return
 
                 guildData["toggle_img"] = True
 
