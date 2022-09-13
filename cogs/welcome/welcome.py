@@ -962,4 +962,3 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             user.discriminator,
             user.id,
         )
-        #
