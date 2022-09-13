@@ -4,7 +4,7 @@ import math
 from typing import Union, Dict, List, Sequence
 
 utf8_re = re.compile(r"^[\U00000000-\U0010FFFF]*$")
-min_int, max_int = 1 - (2 ** 64), (2 ** 64) - 1
+min_int, max_int = 1 - (2**64), (2**64) - 1
 
 
 def is_input_unsupported(data: Union[Dict, List, str, int, float]):
@@ -46,7 +46,7 @@ class PluralDict(dict):
 
 
 def time_converter(units):
-    return sum(int(x) * 60 ** i for i, x in enumerate(reversed(units.split(":"))))
+    return sum(int(x) * 60**i for i, x in enumerate(reversed(units.split(":"))))
 
 
 def color_lookup(color="grey"):
