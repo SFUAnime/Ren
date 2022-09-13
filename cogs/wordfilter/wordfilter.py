@@ -269,7 +269,8 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
             async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
                 embed = discord.Embed(
-                    title=f"Denylist commands for: **{ctx.guild.name}**", description=page
+                    title=f"Denylist commands for: **{ctx.guild.name}**",
+                    description=page,
                 )
                 embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
                 embed.colour = discord.Colour.red()
@@ -375,7 +376,8 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
             async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
                 embed = discord.Embed(
-                    title=f"Allowlist channels for: **{ctx.guild.name}**", description=page
+                    title=f"Allowlist channels for: **{ctx.guild.name}**",
+                    description=page,
                 )
                 embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
                 embed.colour = discord.Colour.red()
@@ -557,7 +559,10 @@ class WordFilter(commands.Cog):  # pylint: disable=too-many-instance-attributes
             await msg.channel.send(filterNotify, embed=embed)
 
         self.logger.info(
-            "Author : %s#%s (%s)", msg.author.name, msg.author.discriminator, msg.author.id
+            "Author : %s#%s (%s)",
+            msg.author.name,
+            msg.author.discriminator,
+            msg.author.id,
         )
         self.logger.info("Message: %s", originalMsg)
 

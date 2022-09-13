@@ -15,7 +15,13 @@ from redbot.core import commands
 from redbot.core.commands import UserInputOptional
 from redbot.core.i18n import Translator
 from redbot.core.utils import AsyncIter
-from redbot.core.utils.menus import DEFAULT_CONTROLS, close_menu, menu, next_page, prev_page
+from redbot.core.utils.menus import (
+    DEFAULT_CONTROLS,
+    close_menu,
+    menu,
+    next_page,
+    prev_page,
+)
 
 from ...audio_dataclasses import _PARTIALLY_SUPPORTED_MUSIC_EXT, Query
 from ...audio_logging import IS_DEBUG
@@ -55,7 +61,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
                 )
         elif not await self.is_query_allowed(self.config, ctx, f"{query}", query_obj=query):
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("That track is not allowed.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("That track is not allowed."),
             )
         can_skip = await self._can_instaskip(ctx, ctx.author)
         if guild_data["dj_enabled"] and not can_skip:
@@ -120,7 +128,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
             )
         if len(player.queue) >= 10000:
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("Queue size limit reached.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("Queue size limit reached."),
             )
 
         if not await self.maybe_charge_requester(ctx, guild_data["jukebox_price"]):
@@ -141,7 +151,11 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
     @commands.guild_only()
     @commands.bot_has_permissions(embed_links=True)
     async def command_bumpplay(
-        self, ctx: commands.Context, play_now: UserInputOptional[bool] = False, *, query: str
+        self,
+        ctx: commands.Context,
+        play_now: UserInputOptional[bool] = False,
+        *,
+        query: str,
     ):
         """Force play a URL or search for a track."""
         query = Query.process_input(query, self.local_folder_current_path)
@@ -163,7 +177,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
                 )
         elif not await self.is_query_allowed(self.config, ctx, f"{query}", query_obj=query):
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("That track is not allowed.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("That track is not allowed."),
             )
         can_skip = await self._can_instaskip(ctx, ctx.author)
         if guild_data["dj_enabled"] and not can_skip:
@@ -228,7 +244,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
             )
         if len(player.queue) >= 10000:
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("Queue size limit reached.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("Queue size limit reached."),
             )
 
         if not await self.maybe_charge_requester(ctx, guild_data["jukebox_price"]):
@@ -529,7 +547,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
             return await self.send_embed_msg(ctx, title=_("No tracks to play."))
         if len(player.queue) >= 10000:
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("Queue size limit reached.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("Queue size limit reached."),
             )
         if not await self.maybe_charge_requester(ctx, guild_data["jukebox_price"]):
             return
@@ -602,7 +622,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
             )
         if len(player.queue) >= 10000:
             return await self.send_embed_msg(
-                ctx, title=_("Unable To Play Tracks"), description=_("Queue size limit reached.")
+                ctx,
+                title=_("Unable To Play Tracks"),
+                description=_("Queue size limit reached."),
             )
         if not await self.maybe_charge_requester(ctx, guild_data["jukebox_price"]):
             return
@@ -820,7 +842,9 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
                     ):
                         if IS_DEBUG:
                             log.debug(
-                                "Query is not allowed in %r (%d)", ctx.guild.name, ctx.guild.id
+                                "Query is not allowed in %r (%d)",
+                                ctx.guild.name,
+                                ctx.guild.id,
                             )
                         continue
                     elif guild_data["maxlength"] > 0:
@@ -835,7 +859,10 @@ class PlayerCommands(MixinMeta, metaclass=CompositeMetaClass):
                             )
                             player.add(ctx.author, track)
                             self.bot.dispatch(
-                                "red_audio_track_enqueue", player.guild, track, ctx.author
+                                "red_audio_track_enqueue",
+                                player.guild,
+                                track,
+                                ctx.author,
                             )
                     else:
                         track_len += 1

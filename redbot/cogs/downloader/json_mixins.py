@@ -29,7 +29,9 @@ class RepoJSONMixin:
                     info = json.load(f)
             except json.JSONDecodeError as e:
                 log.error(
-                    "Invalid JSON information file at path: %s\nError: %s", self._info_file, str(e)
+                    "Invalid JSON information file at path: %s\nError: %s",
+                    self._info_file,
+                    str(e),
                 )
                 info = {}
         else:

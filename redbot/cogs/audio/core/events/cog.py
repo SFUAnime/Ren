@@ -136,7 +136,10 @@ class AudioEvents(MixinMeta, metaclass=CompositeMetaClass):
                 )
             except Exception as err:
                 debug_exc_log(
-                    log, err, "Failed to delete global daily playlist ID: %d", too_old_id
+                    log,
+                    err,
+                    "Failed to delete global daily playlist ID: %d",
+                    too_old_id,
                 )
         persist_cache = self._persist_queue_cache.setdefault(
             guild.id, await self.config.guild(guild).persist_queue()

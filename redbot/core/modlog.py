@@ -54,7 +54,9 @@ _ = Translator("ModLog", __file__)
 
 
 async def _process_data_deletion(
-    *, requester: Literal["discord_deleted_user", "owner", "user", "user_strict"], user_id: int
+    *,
+    requester: Literal["discord_deleted_user", "owner", "user", "user_strict"],
+    user_id: int,
 ):
     if requester != "discord_deleted_user":
         return
@@ -592,7 +594,12 @@ class Case:
 
     @classmethod
     async def from_json(
-        cls, mod_channel: discord.TextChannel, bot: Red, case_number: int, data: dict, **kwargs
+        cls,
+        mod_channel: discord.TextChannel,
+        bot: Red,
+        case_number: int,
+        data: dict,
+        **kwargs,
     ):
         """Get a Case object from the provided information
 
@@ -846,7 +853,11 @@ async def get_all_cases(guild: discord.Guild, bot: Red) -> List[Case]:
 
 
 async def get_cases_for_member(
-    guild: discord.Guild, bot: Red, *, member: discord.Member = None, member_id: int = None
+    guild: discord.Guild,
+    bot: Red,
+    *,
+    member: discord.Member = None,
+    member_id: int = None,
 ) -> List[Case]:
     """
     Gets all cases for the specified member or member id in a guild.

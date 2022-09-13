@@ -78,10 +78,14 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
             with open(filepath, "br") as icon:
                 try:
                     await guild.edit(
-                        icon=icon.read(), reason=f"ServerManage changing icon to {iconName}"
+                        icon=icon.read(),
+                        reason=f"ServerManage changing icon to {iconName}",
                     )
                     self.logger.info(
-                        "Changed the server icon for %s (%s) to %s", guild.name, guild.id, iconName
+                        "Changed the server icon for %s (%s) to %s",
+                        guild.name,
+                        guild.id,
+                        iconName,
                     )
                 except discord.errors.Forbidden as error:
                     self.logger.error(
@@ -294,7 +298,9 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
             for date, imageName in dates.items():
                 if name == imageName:
                     self.logger.debug(
-                        "The date %s has this %s, deleting from dates dict", date, imageName
+                        "The date %s has this %s, deleting from dates dict",
+                        date,
+                        imageName,
                     )
                     datesToRemove.append(date)
             for date in datesToRemove:
@@ -370,7 +376,8 @@ class ServerManage(ServerManageCommands, commands.Cog, metaclass=ServerManageMet
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
             embed = discord.Embed(
-                title=f"Server {imageSingular} changes for {ctx.guild.name}", description=page
+                title=f"Server {imageSingular} changes for {ctx.guild.name}",
+                description=page,
             )
             embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
             pageList.append(embed)

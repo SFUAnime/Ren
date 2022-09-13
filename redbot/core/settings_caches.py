@@ -39,7 +39,9 @@ class PrefixManager:
         return ret
 
     async def set_prefixes(
-        self, guild: Optional[discord.Guild] = None, prefixes: Optional[List[str]] = None
+        self,
+        guild: Optional[discord.Guild] = None,
+        prefixes: Optional[List[str]] = None,
     ):
         gid: Optional[int] = guild.id if guild else None
         prefixes = prefixes or []

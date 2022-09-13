@@ -228,4 +228,8 @@ def update_mixin(repo_or_installable: RepoJSONMixin, schema: SchemaType) -> None
     info = repo_or_installable._info
     info_file = repo_or_installable._info_file
     for key, callback in schema.items():
-        setattr(repo_or_installable, key, callback(info_file, key, info.get(key, USE_DEFAULT)))
+        setattr(
+            repo_or_installable,
+            key,
+            callback(info_file, key, info.get(key, USE_DEFAULT)),
+        )

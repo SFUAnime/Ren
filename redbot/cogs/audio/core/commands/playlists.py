@@ -23,7 +23,12 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.predicates import MessagePredicate
 
 from ...apis.api_utils import FakePlaylist
-from ...apis.playlist_interface import Playlist, create_playlist, delete_playlist, get_all_playlist
+from ...apis.playlist_interface import (
+    Playlist,
+    create_playlist,
+    delete_playlist,
+    get_all_playlist,
+)
 from ...audio_dataclasses import LocalPath, Query
 from ...audio_logging import IS_DEBUG, debug_exc_log
 from ...converters import ComplexScopeParser, ScopeParser
@@ -192,7 +197,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                     ctx,
                     title=_("Track added"),
                     description=_("{track} appended to {playlist} (`{id}`) [**{scope}**].").format(
-                        track=track_title, playlist=playlist.name, id=playlist.id, scope=scope_name
+                        track=track_title,
+                        playlist=playlist.name,
+                        id=playlist.id,
+                        scope=scope_name,
                     ),
                 )
 
@@ -203,7 +211,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 diff = to_append_count - appended
                 desc += _(
                     "\n{existing} {plural} already in the playlist and were skipped."
-                ).format(existing=diff, plural=_("tracks are") if diff != 1 else _("track is"))
+                ).format(
+                    existing=diff,
+                    plural=_("tracks are") if diff != 1 else _("track is"),
+                )
 
             embed = discord.Embed(title=_("Playlist Modified"), description=desc)
             await self.send_embed_msg(
@@ -294,7 +305,12 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
         async with ctx.typing():
             try:
                 from_playlist, playlist_arg, from_scope = await self.get_playlist_match(
-                    ctx, playlist_matches, from_scope, from_author, from_guild, specified_from_user
+                    ctx,
+                    playlist_matches,
+                    from_scope,
+                    from_author,
+                    from_guild,
+                    specified_from_user,
                 )
             except TooManyMatches as e:
                 ctx.command.reset_cooldown(ctx)
@@ -357,7 +373,11 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
 
     @command_playlist.command(name="create", usage="<name> [args]")
     async def command_playlist_create(
-        self, ctx: commands.Context, playlist_name: str, *, scope_data: ScopeParser = None
+        self,
+        ctx: commands.Context,
+        playlist_name: str,
+        *,
+        scope_data: ScopeParser = None,
     ):
         """Create an empty playlist.
 
@@ -730,7 +750,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 ctx.command.reset_cooldown(ctx)
                 return await self.send_embed_msg(ctx, title=_("That playlist has no tracks."))
             if version == "v2":
-                v2_valid_urls = ["https://www.youtube.com/watch?v=", "https://soundcloud.com/"]
+                v2_valid_urls = [
+                    "https://www.youtube.com/watch?v=",
+                    "https://soundcloud.com/",
+                ]
                 song_list = []
                 async for track in AsyncIter(playlist.tracks):
                     if track["info"]["uri"].startswith(tuple(v2_valid_urls)):
@@ -895,7 +918,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 embed_title = _(
                     "Playlist info for {playlist_name} (`{id}`) [**{scope}**]:\nURL: {url}"
                 ).format(
-                    playlist_name=playlist.name, url=playlist.url, id=playlist.id, scope=scope_name
+                    playlist_name=playlist.name,
+                    url=playlist.url,
+                    id=playlist.id,
+                    scope=scope_name,
                 )
 
             page_list = []
@@ -908,7 +934,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 author_obj = self.bot.get_user(playlist.author) or playlist.author or _("Unknown")
                 embed.set_footer(
                     text=_("Page {page}/{pages} | Author: {author_name} | {num} track(s)").format(
-                        author_name=author_obj, num=track_len, pages=total_pages, page=numb
+                        author_name=author_obj,
+                        num=track_len,
+                        pages=total_pages,
+                        page=numb,
                     )
                 )
                 page_list.append(embed)
@@ -1073,7 +1102,11 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
     @command_playlist.command(name="queue", usage="<name> [args]", cooldown_after_parsing=True)
     @commands.cooldown(1, 300, commands.BucketType.member)
     async def command_playlist_queue(
-        self, ctx: commands.Context, playlist_name: str, *, scope_data: ScopeParser = None
+        self,
+        ctx: commands.Context,
+        playlist_name: str,
+        *,
+        scope_data: ScopeParser = None,
     ):
         """Save the queue to a playlist.
 
@@ -1160,7 +1193,14 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 track_obj = self.get_track_json(player, queue_idx)
                 tracklist.append(track_obj)
                 playlist = await create_playlist(
-                    ctx, self.playlist_api, scope, playlist_name, None, tracklist, author, guild
+                    ctx,
+                    self.playlist_api,
+                    scope,
+                    playlist_name,
+                    None,
+                    tracklist,
+                    author,
+                    guild,
                 )
         await self.send_embed_msg(
             ctx,
@@ -1169,7 +1209,10 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 "Playlist {name} (`{id}`) [**{scope}**] "
                 "saved from current queue: {num} tracks added."
             ).format(
-                name=playlist.name, num=len(playlist.tracks), id=playlist.id, scope=scope_name
+                name=playlist.name,
+                num=len(playlist.tracks),
+                id=playlist.id,
+                scope=scope_name,
             ),
             footer=_("Playlist limit reached: Could not add {} tracks.").format(not_added)
             if not_added > 0
@@ -1369,7 +1412,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 return
             player = lavalink.get_player(ctx.guild.id)
             tracklist = await self.fetch_playlist_tracks(
-                ctx, player, Query.process_input(playlist_url, self.local_folder_current_path)
+                ctx,
+                player,
+                Query.process_input(playlist_url, self.local_folder_current_path),
             )
             if isinstance(tracklist, discord.Message):
                 return None
@@ -1526,7 +1571,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                     ):
                         if IS_DEBUG:
                             log.debug(
-                                "Query is not allowed in %r (%d)", ctx.guild.name, ctx.guild.id
+                                "Query is not allowed in %r (%d)",
+                                ctx.guild.name,
+                                ctx.guild.id,
                             )
                         continue
                     query = Query.process_input(track.uri, self.local_folder_current_path)
@@ -1753,7 +1800,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                             if i % 10 == 0 or i == total_added:
                                 page_count += 1
                                 embed = discord.Embed(
-                                    title=_("Tracks added"), colour=_colour, description=added_text
+                                    title=_("Tracks added"),
+                                    colour=_colour,
+                                    description=added_text,
                                 )
                                 text = _("Page {page_num}/{total_pages}").format(
                                     page_num=page_count, total_pages=total_pages
@@ -1842,7 +1891,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
                 )
                 try:
                     file_message = await self.bot.wait_for(
-                        "message", timeout=30.0, check=MessagePredicate.same_context(ctx)
+                        "message",
+                        timeout=30.0,
+                        check=MessagePredicate.same_context(ctx),
                     )
                 except asyncio.TimeoutError:
                     return await self.send_embed_msg(
@@ -1937,7 +1988,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
 
     @commands.cooldown(1, 60, commands.BucketType.member)
     @command_playlist.command(
-        name="rename", usage="<playlist_name_OR_id> <new_name> [args]", cooldown_after_parsing=True
+        name="rename",
+        usage="<playlist_name_OR_id> <new_name> [args]",
+        cooldown_after_parsing=True,
     )
     async def command_playlist_rename(
         self,
@@ -2027,6 +2080,9 @@ class PlaylistCommands(MixinMeta, metaclass=CompositeMetaClass):
             update = {"name": new_name}
             await playlist.edit(update)
             msg = _("'{old}' playlist has been renamed to '{new}' (`{id}`) [**{scope}**]").format(
-                old=bold(old_name), new=bold(playlist.name), id=playlist.id, scope=scope_name
+                old=bold(old_name),
+                new=bold(playlist.name),
+                id=playlist.id,
+                scope=scope_name,
             )
             await self.send_embed_msg(ctx, title=_("Playlist Modified"), description=msg)

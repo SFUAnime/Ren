@@ -726,7 +726,8 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
             embed = discord.Embed(
-                title=f"Welcome greetings changes for {ctx.guild.name}", description=page
+                title=f"Welcome greetings changes for {ctx.guild.name}",
+                description=page,
             )
             embed.set_footer(text=f"Pool {greetingPool.name} | Page {pageNumber}/{totalPages}")
             pageList.append(embed)
@@ -818,7 +819,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             ctx.message.author.id,
         )
         LOGGER.info(
-            "Welcome channel set to #%s (%s)", ctx.message.channel.name, ctx.message.channel.id
+            "Welcome channel set to #%s (%s)",
+            ctx.message.channel.name,
+            ctx.message.channel.id,
         )
 
     # [p]welcomeset log toggle
@@ -917,7 +920,8 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if description:
                 descText = "\n".join([f"**{user.mention}:**", box(description)])
                 embed = discord.Embed(
-                    title=f"Description for {user.name}#{user.discriminator}", description=descText
+                    title=f"Description for {user.name}#{user.discriminator}",
+                    description=descText,
                 )
                 await ctx.send(embed=embed, allowed_mentions=discord.AllowedMentions.none())
                 return
@@ -962,4 +966,3 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             user.discriminator,
             user.id,
         )
-        #

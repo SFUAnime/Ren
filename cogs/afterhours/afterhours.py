@@ -127,7 +127,8 @@ class AfterHours(commands.Cog):
 
             if not forced and await autoPurgeConfig.get_attr(KEY_BACKGROUND_LOOP)() is False:
                 self.logger.debug(
-                    "Background execution of auto-purged is disabled for guild %s", guild.id
+                    "Background execution of auto-purged is disabled for guild %s",
+                    guild.id,
                 )
                 continue
 
@@ -152,7 +153,8 @@ class AfterHours(commands.Cog):
 
             if not inactiveDurationTimeDelta or inactiveDurationTimeDelta < timedelta(seconds=1):
                 self.logger.debug(
-                    "Auto-purge based on inactive duration is not enabled for guild %s", guild.id
+                    "Auto-purge based on inactive duration is not enabled for guild %s",
+                    guild.id,
                 )
                 continue
 
@@ -201,11 +203,14 @@ class AfterHours(commands.Cog):
                         del lastMsgTimestamps[memberId]
             except discord.Forbidden:
                 self.logger.error(
-                    "Auto-purge failed due to missing permissions for guild %s", guild.id
+                    "Auto-purge failed due to missing permissions for guild %s",
+                    guild.id,
                 )
             except discord.HTTPException:
                 self.logger.error(
-                    "Auto-purge failed due to HTTP error for guild %s", guild.id, exc_info=True
+                    "Auto-purge failed due to HTTP error for guild %s",
+                    guild.id,
+                    exc_info=True,
                 )
 
     async def getContext(self, channel: discord.TextChannel):
@@ -323,7 +328,9 @@ class AfterHours(commands.Cog):
     async def handleChannelCreate(self, channel: discord.abc.GuildChannel):
         """Listener to see if we need to add exceptions to a channel"""
         self.logger.info(
-            "Channel creation has been detected. Name: %s, ID: %s", channel.name, channel.id
+            "Channel creation has been detected. Name: %s, ID: %s",
+            channel.name,
+            channel.id,
         )
 
         if not isinstance(channel, discord.TextChannel):
@@ -345,7 +352,9 @@ class AfterHours(commands.Cog):
     async def handleChannelDelete(self, channel: discord.abc.GuildChannel):
         """Listener to see if we need to remove exceptions from a channel"""
         self.logger.info(
-            "Channel deletion has been detected. Name: %s, ID: %s", channel.name, channel.id
+            "Channel deletion has been detected. Name: %s, ID: %s",
+            channel.name,
+            channel.id,
         )
 
         if not isinstance(channel, discord.TextChannel):

@@ -52,6 +52,10 @@ class YOURLSSearchKeywordsMixin(object):
 
 
 class YOURLSClient(
-    YOURLSDeleteMixin, YOURLSEditMixin, YOURLSSearchKeywordsMixin, YOURLSAPIMixin, YOURLSClientBase
+    YOURLSDeleteMixin,
+    YOURLSEditMixin,
+    YOURLSSearchKeywordsMixin,
+    YOURLSAPIMixin,
+    YOURLSClientBase,
 ):
     """YOURLS client with API delete support."""

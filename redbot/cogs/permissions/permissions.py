@@ -2,7 +2,18 @@ import asyncio
 import io
 import textwrap
 from copy import copy
-from typing import Union, Optional, Dict, List, Tuple, Any, Iterator, ItemsView, Literal, cast
+from typing import (
+    Union,
+    Optional,
+    Dict,
+    List,
+    Tuple,
+    Any,
+    Iterator,
+    ItemsView,
+    Literal,
+    cast,
+)
 
 import discord
 import yaml
@@ -130,7 +141,10 @@ class Permissions(commands.Cog):
         # The dict as returned here as string keys. Above is for comparison,
         # there's a below recast to int where needed for guild ids
 
-        for typename, getter in ((COG, self.bot.get_cog), (COMMAND, self.bot.get_command)):
+        for typename, getter in (
+            (COG, self.bot.get_cog),
+            (COMMAND, self.bot.get_command),
+        ):
 
             obj_type_rules = await self.config.custom(typename).all()
 
@@ -452,7 +466,9 @@ class Permissions(commands.Cog):
     @commands.guild_only()
     @checks.guildowner_or_permissions(administrator=True)
     @permissions.command(
-        name="removeserverrule", aliases=["removeguildrule"], require_var_positional=True
+        name="removeserverrule",
+        aliases=["removeguildrule"],
+        require_var_positional=True,
     )
     async def permissions_removeguildrule(
         self,
@@ -477,7 +493,10 @@ class Permissions(commands.Cog):
     @checks.guildowner_or_permissions(administrator=True)
     @permissions.command(name="setdefaultserverrule", aliases=["setdefaultguildrule"])
     async def permissions_setdefaultguildrule(
-        self, ctx: commands.Context, allow_or_deny: ClearableRuleType, cog_or_command: CogOrCommand
+        self,
+        ctx: commands.Context,
+        allow_or_deny: ClearableRuleType,
+        cog_or_command: CogOrCommand,
     ):
         """Set the default rule for a command in this server.
 
@@ -500,7 +519,10 @@ class Permissions(commands.Cog):
     @checks.is_owner()
     @permissions.command(name="setdefaultglobalrule")
     async def permissions_setdefaultglobalrule(
-        self, ctx: commands.Context, allow_or_deny: ClearableRuleType, cog_or_command: CogOrCommand
+        self,
+        ctx: commands.Context,
+        allow_or_deny: ClearableRuleType,
+        cog_or_command: CogOrCommand,
     ):
         """Set the default global rule for a command.
 
@@ -514,7 +536,9 @@ class Permissions(commands.Cog):
         rule for. This is case sensitive.
         """
         await self._set_default_rule(
-            rule=cast(Optional[bool], allow_or_deny), cog_or_cmd=cog_or_command, guild_id=GLOBAL
+            rule=cast(Optional[bool], allow_or_deny),
+            cog_or_cmd=cog_or_command,
+            guild_id=GLOBAL,
         )
         await ctx.send(_("Default set."))
 
@@ -660,7 +684,10 @@ class Permissions(commands.Cog):
         if update is False:
             await self._clear_rules(guild_id)
 
-        for category, getter in ((COG, self.bot.get_cog), (COMMAND, self.bot.get_command)):
+        for category, getter in (
+            (COG, self.bot.get_cog),
+            (COMMAND, self.bot.get_command),
+        ):
             rules_dict = rules.get(category)
             if not rules_dict:
                 continue
@@ -791,7 +818,10 @@ class Permissions(commands.Cog):
 
     async def _load_all_rules(self):
         """Load all of this cog's rules into loaded commands and cogs."""
-        for category, getter in ((COG, self.bot.get_cog), (COMMAND, self.bot.get_command)):
+        for category, getter in (
+            (COG, self.bot.get_cog),
+            (COMMAND, self.bot.get_command),
+        ):
             all_rules = await self.config.custom(category).all()
             for name, rules in all_rules.items():
                 obj = getter(name)
@@ -827,7 +857,10 @@ class Permissions(commands.Cog):
         This is done instead of just clearing all rules, which could
         clear rules set by other cogs.
         """
-        for category, getter in ((COG, self.bot.get_cog), (COMMAND, self.bot.get_command)):
+        for category, getter in (
+            (COG, self.bot.get_cog),
+            (COMMAND, self.bot.get_command),
+        ):
             all_rules = await self.config.custom(category).all()
             for name, rules in all_rules.items():
                 obj = getter(name)

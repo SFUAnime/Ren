@@ -327,7 +327,9 @@ class InVoice(commands.Cog):
                 overs = tc.overwrites_for(m)
                 overs.read_messages = False if is_deaf else None
                 await tc.set_permissions(
-                    target=m, overwrite=None if overs.is_empty() else overs, reason=reason
+                    target=m,
+                    overwrite=None if overs.is_empty() else overs,
+                    reason=reason,
                 )
 
     async def _add_roles(self, m, c, *, reason, role_id=None, guild_role_id=None):

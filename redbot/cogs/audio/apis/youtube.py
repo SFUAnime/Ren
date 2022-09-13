@@ -25,7 +25,11 @@ class YouTubeWrapper:
     """Wrapper for the YouTube Data API."""
 
     def __init__(
-        self, bot: Red, config: Config, session: aiohttp.ClientSession, cog: Union["Audio", Cog]
+        self,
+        bot: Red,
+        config: Config,
+        session: aiohttp.ClientSession,
+        cog: Union["Audio", Cog],
     ):
         self.bot = bot
         self.config = config

@@ -111,7 +111,8 @@ class SmartReact(commands.Cog):
             totalEntries = len(display)
             async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
                 embed = discord.Embed(
-                    title=f"Smart React emojis for **{ctx.guild.name}**", description=page
+                    title=f"Smart React emojis for **{ctx.guild.name}**",
+                    description=page,
                 )
                 embed.set_footer(text=f"Page {pageNumber}/{totalPages} ({totalEntries} entries)")
                 embed.colour = discord.Colour.red()

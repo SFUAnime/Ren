@@ -57,7 +57,10 @@ class PlayerTasks(MixinMeta, metaclass=CompositeMetaClass):
                         ).currently_auto_playing_in.set([])
                     except Exception as err:
                         debug_exc_log(
-                            log, err, "Exception raised in Audio's emptydc_timer for %s.", sid
+                            log,
+                            err,
+                            "Exception raised in Audio's emptydc_timer for %s.",
+                            sid,
                         )
 
                 elif sid in stop_times and await self.config.guild(server_obj).emptydc_enabled():
@@ -77,7 +80,10 @@ class PlayerTasks(MixinMeta, metaclass=CompositeMetaClass):
                             if "No such player for that guild" in str(err):
                                 stop_times.pop(sid, None)
                             debug_exc_log(
-                                log, err, "Exception raised in Audio's emptydc_timer for %s.", sid
+                                log,
+                                err,
+                                "Exception raised in Audio's emptydc_timer for %s.",
+                                sid,
                             )
                 elif (
                     sid in pause_times and await self.config.guild(server_obj).emptypause_enabled()
@@ -90,6 +96,9 @@ class PlayerTasks(MixinMeta, metaclass=CompositeMetaClass):
                             if "No such player for that guild" in str(err):
                                 pause_times.pop(sid, None)
                             debug_exc_log(
-                                log, err, "Exception raised in Audio's pausing for %s.", sid
+                                log,
+                                err,
+                                "Exception raised in Audio's pausing for %s.",
+                                sid,
                             )
             await asyncio.sleep(5)

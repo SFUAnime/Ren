@@ -125,7 +125,8 @@ class GameEngine(Database):
             error = _(
                 "Your bet must be between "
                 "{} and {}.".format(
-                    settings["Games"][self.game]["Min"], settings["Games"][self.game]["Max"]
+                    settings["Games"][self.game]["Min"],
+                    settings["Games"][self.game]["Max"],
                 )
             )
 
@@ -308,7 +309,11 @@ class GameEngine(Database):
             bonus_multiplier = 1
         total = round(amount * bonus_multiplier)
         bonus = total - amount
-        return total, amount, "(+{})".format(humanize_number(bonus) if bonus_multiplier > 1 else 0)
+        return (
+            total,
+            amount,
+            "(+{})".format(humanize_number(bonus) if bonus_multiplier > 1 else 0),
+        )
 
     @staticmethod
     def limit_check(settings, amount):

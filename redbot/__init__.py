@@ -128,10 +128,26 @@ class VersionInfo:
     def _generate_comparison_tuples(
         self, other: "VersionInfo"
     ) -> _List[
-        _Tuple[int, int, int, int, _Union[int, float], _Union[int, float], _Union[int, float]]
+        _Tuple[
+            int,
+            int,
+            int,
+            int,
+            _Union[int, float],
+            _Union[int, float],
+            _Union[int, float],
+        ]
     ]:
         tups: _List[
-            _Tuple[int, int, int, int, _Union[int, float], _Union[int, float], _Union[int, float]]
+            _Tuple[
+                int,
+                int,
+                int,
+                int,
+                _Union[int, float],
+                _Union[int, float],
+                _Union[int, float],
+            ]
         ] = []
         for obj in (self, other):
             tups.append(

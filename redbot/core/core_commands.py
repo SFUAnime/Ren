@@ -21,7 +21,17 @@ from redbot.core import data_manager
 from redbot.core.utils.menus import menu, DEFAULT_CONTROLS
 from redbot.core.commands import GuildConverter, RawUserIdConverter
 from string import ascii_letters, digits
-from typing import TYPE_CHECKING, Union, Tuple, List, Optional, Iterable, Sequence, Dict, Set
+from typing import (
+    TYPE_CHECKING,
+    Union,
+    Tuple,
+    List,
+    Optional,
+    Iterable,
+    Sequence,
+    Dict,
+    Set,
+)
 
 import aiohttp
 import discord
@@ -281,7 +291,10 @@ class CoreLogic:
             else:
                 notloaded_packages.append(name)
 
-        return {"unloaded_packages": unloaded_packages, "notloaded_packages": notloaded_packages}
+        return {
+            "unloaded_packages": unloaded_packages,
+            "notloaded_packages": notloaded_packages,
+        }
 
     async def _reload(
         self, pkg_names: Sequence[str]
@@ -523,7 +536,13 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
                 "6. <{}>\n"
                 "7. <{}>\n"
             ).format(
-                red_repo, author_repo, org_repo, support_server_url, python_url, dpy_repo, red_pypi
+                red_repo,
+                author_repo,
+                org_repo,
+                support_server_url,
+                python_url,
+                dpy_repo,
+                red_pypi,
             )
             await ctx.send(refs)
 
@@ -748,7 +767,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
                     "{mention}, however the following modules errored: {modules}.\n"
                     "Please contact the owner of this bot to address this.\n"
                     "Note: Outside of these failures, data should have been deleted."
-                ).format(mention=ctx.author.mention, modules=humanize_list(results.failed_modules))
+                ).format(
+                    mention=ctx.author.mention,
+                    modules=humanize_list(results.failed_modules),
+                )
             )
         else:
             await ctx.send(
@@ -878,7 +900,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
                 "`{prefix}{command_name}` instead."
                 "\n\nIf you are sure this is what you intend to do "
                 "please respond with the following:"
-            ).format(prefix=ctx.clean_prefix, command_name="mydata ownermanagement deleteforuser"),
+            ).format(
+                prefix=ctx.clean_prefix,
+                command_name="mydata ownermanagement deleteforuser",
+            ),
         ):
             return
         results = await self.bot.handle_data_deletion_request(
@@ -1304,7 +1329,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
     @commands.guild_only()
     @embedset_command.command(name="server", aliases=["guild"])
     async def embedset_command_guild(
-        self, ctx: commands.GuildContext, command: CommandConverter, enabled: bool = None
+        self,
+        ctx: commands.GuildContext,
+        command: CommandConverter,
+        enabled: bool = None,
     ):
         """
         Sets a commmand's embed setting for the current server.
@@ -2288,7 +2316,8 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
             await casetype.set_enabled(not enabled)
             await ctx.send(
                 _("Case creation for {action_name} actions is now {enabled}.").format(
-                    action_name=action, enabled=_("enabled") if not enabled else _("disabled")
+                    action_name=action,
+                    enabled=_("enabled") if not enabled else _("disabled"),
                 )
             )
 
@@ -2472,7 +2501,8 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
                 )
             else:
                 log.error(
-                    "Unexpected error occurred when trying to change the username.", exc_info=e
+                    "Unexpected error occurred when trying to change the username.",
+                    exc_info=e,
                 )
                 await ctx.send(_("Unexpected error occurred when trying to change the username."))
         else:
@@ -2541,7 +2571,9 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
         """Commands for setting [botname]'s status."""
 
     @_set_status.command(
-        name="streaming", aliases=["stream", "twitch"], usage="[(<streamer> <stream_title>)]"
+        name="streaming",
+        aliases=["stream", "twitch"],
+        usage="[(<streamer> <stream_title>)]",
     )
     @checks.bot_in_a_guild()
     @checks.is_owner()
@@ -2815,7 +2847,8 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
         await ctx.send(_("That role is now considered a mod role."))
 
     @_set_roles.command(
-        name="removeadminrole", aliases=["remadmindrole", "deladminrole", "deleteadminrole"]
+        name="removeadminrole",
+        aliases=["remadmindrole", "deladminrole", "deleteadminrole"],
     )
     @checks.guildowner()
     @commands.guild_only()
@@ -3237,7 +3270,8 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
         await ctx.tick()
 
     @_set_ownernotifications.command(
-        name="removedestination", aliases=["remdestination", "deletedestination", "deldestination"]
+        name="removedestination",
+        aliases=["remdestination", "deletedestination", "deldestination"],
     )
     async def _set_ownernotifications_removedestination(
         self, ctx: commands.Context, *, channel: Union[discord.TextChannel, int]
@@ -4474,7 +4508,9 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @localallowlist.command(name="add", require_var_positional=True)
     async def localallowlist_add(
-        self, ctx: commands.Context, *users_or_roles: Union[discord.Member, discord.Role, int]
+        self,
+        ctx: commands.Context,
+        *users_or_roles: Union[discord.Member, discord.Role, int],
     ):
         """
         Adds a user or role to the server allowlist.
@@ -4536,7 +4572,9 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @localallowlist.command(name="remove", require_var_positional=True)
     async def localallowlist_remove(
-        self, ctx: commands.Context, *users_or_roles: Union[discord.Member, discord.Role, int]
+        self,
+        ctx: commands.Context,
+        *users_or_roles: Union[discord.Member, discord.Role, int],
     ):
         """
         Removes user or role from the allowlist.
@@ -4597,7 +4635,9 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @localblocklist.command(name="add", require_var_positional=True)
     async def localblocklist_add(
-        self, ctx: commands.Context, *users_or_roles: Union[discord.Member, discord.Role, int]
+        self,
+        ctx: commands.Context,
+        *users_or_roles: Union[discord.Member, discord.Role, int],
     ):
         """
         Adds a user or role to the local blocklist.
@@ -4656,7 +4696,9 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @localblocklist.command(name="remove", require_var_positional=True)
     async def localblocklist_remove(
-        self, ctx: commands.Context, *users_or_roles: Union[discord.Member, discord.Role, int]
+        self,
+        ctx: commands.Context,
+        *users_or_roles: Union[discord.Member, discord.Role, int],
     ):
         """
         Removes user or role from local blocklist.
@@ -5105,7 +5147,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @autoimmune_group.command(name="add")
     async def autoimmune_add(
-        self, ctx: commands.Context, *, user_or_role: Union[discord.Member, discord.Role]
+        self,
+        ctx: commands.Context,
+        *,
+        user_or_role: Union[discord.Member, discord.Role],
     ):
         """
         Makes a user or role immune from automated moderation actions.
@@ -5125,7 +5170,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @autoimmune_group.command(name="remove")
     async def autoimmune_remove(
-        self, ctx: commands.Context, *, user_or_role: Union[discord.Member, discord.Role]
+        self,
+        ctx: commands.Context,
+        *,
+        user_or_role: Union[discord.Member, discord.Role],
     ):
         """
         Remove a user or role from being immune to automated moderation actions.
@@ -5145,7 +5193,10 @@ class Core(commands.commands._RuleDropper, commands.Cog, CoreLogic):
 
     @autoimmune_group.command(name="isimmune")
     async def autoimmune_checkimmune(
-        self, ctx: commands.Context, *, user_or_role: Union[discord.Member, discord.Role]
+        self,
+        ctx: commands.Context,
+        *,
+        user_or_role: Union[discord.Member, discord.Role],
     ):
         """
         Checks if a user or role would be considered immune from automated actions.

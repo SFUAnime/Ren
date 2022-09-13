@@ -207,7 +207,8 @@ class DpyEvents(MixinMeta, metaclass=CompositeMetaClass):
                 error=True,
             )
             log.exception(
-                "This is not handled in the core Audio cog, please report it.", exc_info=error
+                "This is not handled in the core Audio cog, please report it.",
+                exc_info=error,
             )
         if not isinstance(
             error,
@@ -252,7 +253,10 @@ class DpyEvents(MixinMeta, metaclass=CompositeMetaClass):
 
     @commands.Cog.listener()
     async def on_voice_state_update(
-        self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
     ) -> None:
         if await self.bot.cog_disabled_in_guild(self, member.guild):
             return

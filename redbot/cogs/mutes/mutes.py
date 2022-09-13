@@ -492,7 +492,11 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
                     channel=channel,
                 )
                 await self._send_dm_notification(
-                    member, author, channel.guild, notification_title, _("Automatic unmute")
+                    member,
+                    author,
+                    channel.guild,
+                    notification_title,
+                    _("Automatic unmute"),
                 )
             return None
         else:
@@ -621,7 +625,11 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
                 del self._server_mutes[guild.id][after.id]
                 should_save = True
                 await self._send_dm_notification(
-                    after, None, guild, _("Server unmute"), _("Manually removed mute role")
+                    after,
+                    None,
+                    guild,
+                    _("Server unmute"),
+                    _("Manually removed mute role"),
                 )
         elif mute_role in roles_added:
             # send modlog case for mute and add to cache
@@ -645,7 +653,11 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
                 }
                 should_save = True
                 await self._send_dm_notification(
-                    after, None, guild, _("Server mute"), _("Manually applied mute role")
+                    after,
+                    None,
+                    guild,
+                    _("Server mute"),
+                    _("Manually applied mute role"),
                 )
         if should_save:
             await self.config.guild(guild).muted_users.set(self._server_mutes[guild.id])
@@ -749,7 +761,11 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
                 else:
                     until = None
                 await self.mute_user(
-                    guild, guild.me, member, until, _("Previously muted in this server.")
+                    guild,
+                    guild.me,
+                    member,
+                    until,
+                    _("Previously muted in this server."),
                 )
 
     @commands.group()
@@ -1277,7 +1293,9 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
             await ctx.send_interactive(resp)
 
     @commands.command(
-        name="mutechannel", aliases=["channelmute"], usage="<users...> [time_and_reason]"
+        name="mutechannel",
+        aliases=["channelmute"],
+        usage="<users...> [time_and_reason]",
     )
     @checks.mod_or_permissions(manage_roles=True)
     @commands.bot_has_guild_permissions(manage_permissions=True)
@@ -1509,7 +1527,8 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
         until: Optional[datetime] = None,
         reason: Optional[str] = None,
     ) -> Dict[
-        str, Optional[Union[List[Tuple[discord.abc.GuildChannel, str]], discord.Member, bool, str]]
+        str,
+        Optional[Union[List[Tuple[discord.abc.GuildChannel, str]], discord.Member, bool, str]],
     ]:
         """
         Handles muting users
@@ -1517,7 +1536,12 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
         permissions = user.guild_permissions
         ret: Dict[
             str,
-            Union[bool, Optional[str], List[Tuple[discord.abc.GuildChannel, str]], discord.Member],
+            Union[
+                bool,
+                Optional[str],
+                List[Tuple[discord.abc.GuildChannel, str]],
+                discord.Member,
+            ],
         ] = {
             "success": False,
             "reason": None,
@@ -1591,14 +1615,24 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
         reason: Optional[str] = None,
     ) -> Dict[
         str,
-        Union[bool, Optional[str], List[Tuple[discord.abc.GuildChannel, str]], discord.Member],
+        Union[
+            bool,
+            Optional[str],
+            List[Tuple[discord.abc.GuildChannel, str]],
+            discord.Member,
+        ],
     ]:
         """
         Handles unmuting users
         """
         ret: Dict[
             str,
-            Union[bool, Optional[str], List[Tuple[discord.abc.GuildChannel, str]], discord.Member],
+            Union[
+                bool,
+                Optional[str],
+                List[Tuple[discord.abc.GuildChannel, str]],
+                discord.Member,
+            ],
         ] = {
             "success": False,
             "reason": None,
@@ -1748,7 +1782,12 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
                     "reason": _(MUTE_UNMUTE_ISSUES["voice_mute_permission"]),
                     "old_overs": old_overs,
                 }
-        return {"success": True, "channel": channel, "old_overs": old_overs, "reason": send_reason}
+        return {
+            "success": True,
+            "channel": channel,
+            "old_overs": old_overs,
+            "reason": send_reason,
+        }
 
     async def channel_unmute_user(
         self,
@@ -1797,7 +1836,9 @@ class Mutes(VoiceMutes, commands.Cog, metaclass=CompositeMetaClass):
         try:
             if overwrites.is_empty():
                 await channel.set_permissions(
-                    user, overwrite=cast(discord.PermissionOverwrite, None), reason=reason
+                    user,
+                    overwrite=cast(discord.PermissionOverwrite, None),
+                    reason=reason,
                 )
             else:
                 await channel.set_permissions(user, overwrite=overwrites, reason=reason)

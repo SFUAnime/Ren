@@ -41,7 +41,13 @@ class TagDateCache:
             if self._tags:
                 return
             out = subprocess.check_output(
-                ("git", "tag", "-l", "--format", "%(creatordate:raw)\t%(refname:short)"),
+                (
+                    "git",
+                    "tag",
+                    "-l",
+                    "--format",
+                    "%(creatordate:raw)\t%(refname:short)",
+                ),
                 text=True,
             )
             lines = out.splitlines(False)
@@ -111,7 +117,10 @@ class DeprecatedRemoved(SphinxDirective):
             node[0].insert(0, nodes.inline("", f"{text}: ", classes=classes))
         else:
             para = nodes.paragraph(
-                "", "", nodes.inline("", f"{text}.", classes=classes), translatable=False
+                "",
+                "",
+                nodes.inline("", f"{text}.", classes=classes),
+                translatable=False,
             )
             node.append(para)
 

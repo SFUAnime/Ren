@@ -527,7 +527,10 @@ class Red(
         return self._max_messages
 
     async def add_to_blacklist(
-        self, users_or_roles: Iterable[UserOrRole], *, guild: Optional[discord.Guild] = None
+        self,
+        users_or_roles: Iterable[UserOrRole],
+        *,
+        guild: Optional[discord.Guild] = None,
     ):
         """
         Add users or roles to the global or local blocklist.
@@ -550,7 +553,10 @@ class Red(
         await self._whiteblacklist_cache.add_to_blacklist(guild, to_add)
 
     async def remove_from_blacklist(
-        self, users_or_roles: Iterable[UserOrRole], *, guild: Optional[discord.Guild] = None
+        self,
+        users_or_roles: Iterable[UserOrRole],
+        *,
+        guild: Optional[discord.Guild] = None,
     ):
         """
         Remove users or roles from the global or local blocklist.
@@ -602,7 +608,10 @@ class Red(
         await self._whiteblacklist_cache.clear_blacklist(guild)
 
     async def add_to_whitelist(
-        self, users_or_roles: Iterable[UserOrRole], *, guild: Optional[discord.Guild] = None
+        self,
+        users_or_roles: Iterable[UserOrRole],
+        *,
+        guild: Optional[discord.Guild] = None,
     ):
         """
         Add users or roles to the global or local allowlist.
@@ -625,7 +634,10 @@ class Red(
         await self._whiteblacklist_cache.add_to_whitelist(guild, to_add)
 
     async def remove_from_whitelist(
-        self, users_or_roles: Iterable[UserOrRole], *, guild: Optional[discord.Guild] = None
+        self,
+        users_or_roles: Iterable[UserOrRole],
+        *,
+        guild: Optional[discord.Guild] = None,
     ):
         """
         Remove users or roles from the global or local allowlist.
@@ -1559,7 +1571,8 @@ class Red(
             self.unregister_rpc_handler(meth)
 
     async def is_automod_immune(
-        self, to_check: Union[discord.Message, commands.Context, discord.abc.User, discord.Role]
+        self,
+        to_check: Union[discord.Message, commands.Context, discord.abc.User, discord.Role],
     ) -> bool:
         """
         Checks if the user, message, context, or role should be considered immune from automated
@@ -1785,7 +1798,9 @@ class Red(
                 ctx.permission_state = commands.PermState.DENIED_BY_HOOK
                 return False
 
-    async def get_owner_notification_destinations(self) -> List[discord.abc.Messageable]:
+    async def get_owner_notification_destinations(
+        self,
+    ) -> List[discord.abc.Messageable]:
         """
         Gets the users and channels to send to
         """

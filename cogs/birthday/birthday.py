@@ -127,7 +127,11 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addMemberBirthday(
-        self, ctx: Context, member: discord.Member, *, birthday: MonthDayConverter = None
+        self,
+        ctx: Context,
+        member: discord.Member,
+        *,
+        birthday: MonthDayConverter = None,
     ):
         """Add a user's birthday to the list.
 

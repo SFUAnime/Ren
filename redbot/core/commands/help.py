@@ -42,7 +42,13 @@ from ..i18n import Translator
 from ..utils import menus
 from ..utils.mod import mass_purge
 from ..utils._internal_utils import fuzzy_command_search, format_fuzzy_results
-from ..utils.chat_formatting import box, humanize_list, humanize_number, humanize_timedelta, pagify
+from ..utils.chat_formatting import (
+    box,
+    humanize_list,
+    humanize_number,
+    humanize_timedelta,
+    pagify,
+)
 
 __all__ = ["red_help", "RedHelpFormatter", "HelpSettings", "HelpFormatterABC"]
 
@@ -171,7 +177,11 @@ class HelpFormatterABC(abc.ABC):
 
     @abc.abstractmethod
     async def send_help(
-        self, ctx: Context, help_for: HelpTarget = None, *, from_help_command: bool = False
+        self,
+        ctx: Context,
+        help_for: HelpTarget = None,
+        *,
+        from_help_command: bool = False,
     ):
         """
         This is (currently) the only method you must implement.
@@ -211,7 +221,11 @@ class RedHelpFormatter(HelpFormatterABC):
     """
 
     async def send_help(
-        self, ctx: Context, help_for: HelpTarget = None, *, from_help_command: bool = False
+        self,
+        ctx: Context,
+        help_for: HelpTarget = None,
+        *,
+        from_help_command: bool = False,
     ):
         """
         This delegates to other functions.
@@ -359,7 +373,11 @@ class RedHelpFormatter(HelpFormatterABC):
             subcommands = await self.get_group_help_mapping(ctx, grp, help_settings=help_settings)
 
         if await self.embed_requested(ctx):
-            emb = {"embed": {"title": "", "description": ""}, "footer": {"text": ""}, "fields": []}
+            emb = {
+                "embed": {"title": "", "description": ""},
+                "footer": {"text": ""},
+                "fields": [],
+            }
 
             if description:
                 emb["embed"]["title"] = f"*{description[:250]}*"
@@ -515,7 +533,9 @@ class RedHelpFormatter(HelpFormatterABC):
 
             if page_count > 1:
                 description = _("*Page {page_num} of {page_count}*\n{content_description}").format(
-                    content_description=embed.description, page_num=i, page_count=page_count
+                    content_description=embed.description,
+                    page_num=i,
+                    page_count=page_count,
                 )
                 embed.description = description
 
@@ -540,7 +560,11 @@ class RedHelpFormatter(HelpFormatterABC):
         tagline = (help_settings.tagline) or self.get_default_tagline(ctx)
 
         if await self.embed_requested(ctx):
-            emb = {"embed": {"title": "", "description": ""}, "footer": {"text": ""}, "fields": []}
+            emb = {
+                "embed": {"title": "", "description": ""},
+                "footer": {"text": ""},
+                "fields": [],
+            }
 
             emb["footer"]["text"] = tagline
             if description:
@@ -608,7 +632,11 @@ class RedHelpFormatter(HelpFormatterABC):
 
         if await self.embed_requested(ctx):
 
-            emb = {"embed": {"title": "", "description": ""}, "footer": {"text": ""}, "fields": []}
+            emb = {
+                "embed": {"title": "", "description": ""},
+                "footer": {"text": ""},
+                "fields": [],
+            }
 
             emb["footer"]["text"] = tagline
             if description:
@@ -707,7 +735,10 @@ class RedHelpFormatter(HelpFormatterABC):
 
     async def embed_requested(self, ctx: Context) -> bool:
         return await ctx.bot.embed_requested(
-            channel=ctx.channel, user=ctx.author, command=red_help, check_permissions=True
+            channel=ctx.channel,
+            user=ctx.author,
+            command=red_help,
+            check_permissions=True,
         )
 
     async def command_not_found(self, ctx, help_for, help_settings: HelpSettings):
@@ -853,7 +884,9 @@ class RedHelpFormatter(HelpFormatterABC):
                 # We need to wrap this in a task to not block after-sending-help interactions.
                 # The channel has to be TextChannel as we can't bulk-delete from DMs
                 async def _delete_delay_help(
-                    channel: discord.TextChannel, messages: List[discord.Message], delay: int
+                    channel: discord.TextChannel,
+                    messages: List[discord.Message],
+                    delay: int,
                 ):
                     await asyncio.sleep(delay)
                     await mass_purge(messages, channel)

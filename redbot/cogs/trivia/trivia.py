@@ -400,7 +400,10 @@ class Trivia(commands.Cog):
                 await ctx.send(msg)
 
     @trivia.group(
-        name="leaderboard", aliases=["lboard"], autohelp=False, invoke_without_command=True
+        name="leaderboard",
+        aliases=["lboard"],
+        autohelp=False,
+        invoke_without_command=True,
     )
     async def trivia_leaderboard(self, ctx: commands.Context):
         """Leaderboard for trivia.
@@ -708,7 +711,8 @@ class Trivia(commands.Cog):
 
     def _get_trivia_session(self, channel: discord.TextChannel) -> TriviaSession:
         return next(
-            (session for session in self.trivia_sessions if session.ctx.channel == channel), None
+            (session for session in self.trivia_sessions if session.ctx.channel == channel),
+            None,
         )
 
     def _all_lists(self) -> List[pathlib.Path]:

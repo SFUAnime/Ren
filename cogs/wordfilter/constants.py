@@ -1,7 +1,13 @@
 from discord import Colour
 
 COLOUR = Colour
-COLOURS = [COLOUR.purple(), COLOUR.red(), COLOUR.blue(), COLOUR.orange(), COLOUR.green()]
+COLOURS = [
+    COLOUR.purple(),
+    COLOUR.red(),
+    COLOUR.blue(),
+    COLOUR.orange(),
+    COLOUR.green(),
+]
 
 KEY_CHANNEL_IDS = "channelIdsAllowed"
 KEY_FILTERS = "filters"

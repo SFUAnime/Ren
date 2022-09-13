@@ -550,7 +550,8 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
                     name=playlist.name,
                     id=playlist.id,
                     scope=self.humanize_scope(
-                        scope, ctx=guild if scope == PlaylistScope.GUILD.value else author
+                        scope,
+                        ctx=guild if scope == PlaylistScope.GUILD.value else author,
                     ),
                 ),
             )
@@ -688,14 +689,18 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
         """
         if seconds < 0:
             return await self.send_embed_msg(
-                ctx, title=_("Invalid Time"), description=_("Seconds can't be less than zero.")
+                ctx,
+                title=_("Invalid Time"),
+                description=_("Seconds can't be less than zero."),
             )
         if 10 > seconds > 0:
             seconds = 10
         if seconds == 0:
             enabled = False
             await self.send_embed_msg(
-                ctx, title=_("Setting Changed"), description=_("Empty disconnect disabled.")
+                ctx,
+                title=_("Setting Changed"),
+                description=_("Empty disconnect disabled."),
             )
         else:
             enabled = True
@@ -717,7 +722,9 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
         """Auto-pause after x seconds when room is empty, 0 to disable."""
         if seconds < 0:
             return await self.send_embed_msg(
-                ctx, title=_("Invalid Time"), description=_("Seconds can't be less than zero.")
+                ctx,
+                title=_("Invalid Time"),
+                description=_("Seconds can't be less than zero."),
             )
         if 10 > seconds > 0:
             seconds = 10
@@ -760,7 +767,9 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
         """Set a price for queueing tracks for non-mods, 0 to disable."""
         if price < 0:
             return await self.send_embed_msg(
-                ctx, title=_("Invalid Price"), description=_("Price can't be less than zero.")
+                ctx,
+                title=_("Invalid Price"),
+                description=_("Price can't be less than zero."),
             )
         if price == 0:
             jukebox = False
@@ -773,7 +782,8 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
                 ctx,
                 title=_("Setting Changed"),
                 description=_("Track queueing command price set to {price} {currency}.").format(
-                    price=humanize_number(price), currency=await bank.get_currency_name(ctx.guild)
+                    price=humanize_number(price),
+                    currency=await bank.get_currency_name(ctx.guild),
                 ),
             )
 
@@ -844,7 +854,10 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
                 "The path will still be saved, but please check the path and "
                 "create a localtracks folder in `{localfolder}` before attempting "
                 "to play local tracks."
-            ).format(localfolder=temp.absolute(), localtracks=temp.localtrack_folder.absolute())
+            ).format(
+                localfolder=temp.absolute(),
+                localtracks=temp.localtrack_folder.absolute(),
+            )
             await self.send_embed_msg(ctx, title=_("Invalid Environment"), description=warn_msg)
         local_path = str(temp.localtrack_folder.absolute())
         await self.config.localpath.set(local_path)
@@ -870,11 +883,15 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
             seconds = self.time_convert(seconds)
         if seconds < 0:
             return await self.send_embed_msg(
-                ctx, title=_("Invalid length"), description=_("Length can't be less than zero.")
+                ctx,
+                title=_("Invalid length"),
+                description=_("Length can't be less than zero."),
             )
         if seconds == 0:
             await self.send_embed_msg(
-                ctx, title=_("Setting Changed"), description=_("Track max length disabled.")
+                ctx,
+                title=_("Setting Changed"),
+                description=_("Track max length disabled."),
             )
         else:
             await self.send_embed_msg(
@@ -1216,7 +1233,9 @@ class AudioSetCommands(MixinMeta, metaclass=CompositeMetaClass):
         """Percentage needed for non-mods to skip tracks, 0 to disable."""
         if percent < 0:
             return await self.send_embed_msg(
-                ctx, title=_("Invalid Time"), description=_("Seconds can't be less than zero.")
+                ctx,
+                title=_("Invalid Time"),
+                description=_("Seconds can't be less than zero."),
             )
         elif percent > 100:
             percent = 100

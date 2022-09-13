@@ -99,7 +99,9 @@ class GuildUniqueObjectFinder(commands.Converter):
                 return role
 
         objects = itertools.chain(
-            guild.channels, guild.members, filter(lambda r: not r.is_default(), guild.roles)
+            guild.channels,
+            guild.members,
+            filter(lambda r: not r.is_default(), guild.roles),
         )
 
         maybe_matches = []

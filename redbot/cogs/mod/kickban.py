@@ -74,7 +74,9 @@ class KickBanMixin(MixinMeta):
 
     @staticmethod
     async def _voice_perm_check(
-        ctx: commands.Context, user_voice_state: Optional[discord.VoiceState], **perms: bool
+        ctx: commands.Context,
+        user_voice_state: Optional[discord.VoiceState],
+        **perms: bool,
     ) -> bool:
         """Check if the bot and user have sufficient permissions for voicebans.
 
@@ -510,7 +512,11 @@ class KickBanMixin(MixinMeta):
             try:
                 # using `reason` here would shadow the reason passed to command
                 success, failure_reason = await self.ban_user(
-                    user=member, ctx=ctx, days=days, reason=reason, create_modlog_case=True
+                    user=member,
+                    ctx=ctx,
+                    days=days,
+                    reason=reason,
+                    create_modlog_case=True,
                 )
                 if success:
                     banned.append(user_id)

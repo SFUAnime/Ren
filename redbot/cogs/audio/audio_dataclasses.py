@@ -219,7 +219,8 @@ class LocalPath:
 
     def to_string_user(self, arg: str = None):
         string = str(self.absolute()).replace(
-            (str(self.localtrack_folder.absolute()) + os.sep) if arg is None else arg, ""
+            (str(self.localtrack_folder.absolute()) + os.sep) if arg is None else arg,
+            "",
         )
         chunked = False
         while len(string) > 145 and os.sep in string:

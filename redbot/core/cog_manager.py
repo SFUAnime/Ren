@@ -57,7 +57,9 @@ class CogManager:
 
         """
         return deduplicate_iterables(
-            [await self.install_path()], await self.user_defined_paths(), [self.CORE_PATH]
+            [await self.install_path()],
+            await self.user_defined_paths(),
+            [self.CORE_PATH],
         )
 
     async def install_path(self) -> Path:

@@ -5,7 +5,17 @@ import contextlib
 import itertools
 import re
 from getpass import getpass
-from typing import Match, Pattern, Tuple, Optional, AsyncIterator, Any, Dict, Iterator, List
+from typing import (
+    Match,
+    Pattern,
+    Tuple,
+    Optional,
+    AsyncIterator,
+    Any,
+    Dict,
+    Iterator,
+    List,
+)
 from urllib.parse import quote_plus
 
 try:
@@ -128,7 +138,9 @@ class MongoDriver(BaseDriver):
         return identifier_data.primary_key
 
     async def rebuild_dataset(
-        self, identifier_data: IdentifierData, cursor: "motor.motor_asyncio.AsyncIOMotorCursor"
+        self,
+        identifier_data: IdentifierData,
+        cursor: "motor.motor_asyncio.AsyncIOMotorCursor",
     ):
         ret = {}
         async for doc in cursor:
@@ -230,7 +242,10 @@ class MongoDriver(BaseDriver):
                         await mongo_collection.delete_many(pkey_filter, session=session)
                         await mongo_collection.insert_many(
                             self.generate_documents_to_insert(
-                                uuid, primary_key, value, identifier_data.primary_key_len
+                                uuid,
+                                primary_key,
+                                value,
+                                identifier_data.primary_key_len,
                             ),
                             session=session,
                         )
@@ -300,12 +315,19 @@ class MongoDriver(BaseDriver):
 
     @classmethod
     def generate_documents_to_insert(
-        cls, uuid: str, primary_keys: List[str], data: Dict[str, Dict[str, Any]], pkey_len: int
+        cls,
+        uuid: str,
+        primary_keys: List[str],
+        data: Dict[str, Dict[str, Any]],
+        pkey_len: int,
     ) -> Iterator[Dict[str, Any]]:
         num_missing_pkeys = pkey_len - len(primary_keys)
         if num_missing_pkeys == 1:
             for pkey, document in data.items():
-                document["_id"] = {"RED_uuid": uuid, "RED_primary_key": primary_keys + [pkey]}
+                document["_id"] = {
+                    "RED_uuid": uuid,
+                    "RED_primary_key": primary_keys + [pkey],
+                }
                 yield document
         else:
             for pkey, inner_data in data.items():

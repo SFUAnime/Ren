@@ -322,7 +322,8 @@ class Blackjack:
             value=hand.format(", ".join(deck.fmt_hand(ph)), count1),
         )
         embed.add_field(
-            name=_("{}'s Hand").format(ctx.bot.user.name), value=hand.format(dealer_hand, count2)
+            name=_("{}'s Hand").format(ctx.bot.user.name),
+            value=hand.format(dealer_hand, count2),
         )
         embed.add_field(name="\u200b", value=options, inline=False)
         embed.set_footer(text=footer.format(len(deck)))
@@ -508,7 +509,9 @@ class Double:
         embed.add_field(name="\u200b", value=options, inline=False)
         if not outcome:
             embed.add_field(
-                name="\u200b", value="Remember, you can cash out at anytime.", inline=False
+                name="\u200b",
+                value="Remember, you can cash out at anytime.",
+                inline=False,
             )
         embed.set_footer(text="Try again and test your luck!")
         return embed

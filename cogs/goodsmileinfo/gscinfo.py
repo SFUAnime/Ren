@@ -160,7 +160,8 @@ class GoodSmileInfo(commands.Cog):
             channel = self.bot.get_channel(postChannel)
             if not channel:
                 self.logger.debug(
-                    "Cannot find channel ID %s, does the channel still exist?", postChannel
+                    "Cannot find channel ID %s, does the channel still exist?",
+                    postChannel,
                 )
                 continue
 

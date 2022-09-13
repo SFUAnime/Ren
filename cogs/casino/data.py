@@ -122,7 +122,14 @@ guild_defaults = {
             "Multiplier": None,
             "Open": True,
         },
-        "War": {"Access": 0, "Cooldown": 5, "Min": 25, "Max": 75, "Multiplier": 1.5, "Open": True},
+        "War": {
+            "Access": 0,
+            "Cooldown": 5,
+            "Min": 25,
+            "Max": 75,
+            "Multiplier": 1.5,
+            "Open": True,
+        },
     },
 }
 
@@ -164,7 +171,13 @@ class Database:
                         casino_data["Settings"]["Payout_Limit"] = await bank.get_max_balance()
                     for g, g_data in temp["Games"].items():
                         for g_data_key, g_data_value in g_data.items():
-                            if g_data_key in ["Access", "Cooldown", "Max", "Min", "Multiplier"]:
+                            if g_data_key in [
+                                "Access",
+                                "Cooldown",
+                                "Max",
+                                "Min",
+                                "Multiplier",
+                            ]:
                                 if is_input_unsupported(g_data_value):
                                     if g_data_value < min_int:
                                         g_data_value_new = min_int

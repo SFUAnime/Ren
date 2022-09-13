@@ -103,7 +103,15 @@ class Triggered(commands.Cog):
             if not avatar:
                 return
 
-            offsets = [(15, 15), (5, 10), (-15, -15), (10, -10), (10, 0), (-15, 10), (10, -5)]
+            offsets = [
+                (15, 15),
+                (5, 10),
+                (-15, -15),
+                (10, -10),
+                (10, 0),
+                (-15, 10),
+                (10, -5),
+            ]
             images = []
 
             # if hyper mode is set
@@ -125,7 +133,12 @@ class Triggered(commands.Cog):
 
             result = io.BytesIO()
             avatar.save(
-                result, format="GIF", append_images=images, save_all=True, duration=25, loop=0
+                result,
+                format="GIF",
+                append_images=images,
+                save_all=True,
+                duration=25,
+                loop=0,
             )
 
             # IMPORTANT: rewind to beginning of the stream before returning

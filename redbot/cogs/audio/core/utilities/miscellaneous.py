@@ -305,11 +305,20 @@ class MiscellaneousUtilities(MixinMeta, metaclass=CompositeMetaClass):
                         async for t in AsyncIter(tracks_in_playlist):
                             uri = t.get("info", {}).get("uri")
                             if uri:
-                                t = {"loadType": "V2_COMPAT", "tracks": [t], "query": uri}
+                                t = {
+                                    "loadType": "V2_COMPAT",
+                                    "tracks": [t],
+                                    "query": uri,
+                                }
                                 data = json.dumps(t)
                                 if all(
                                     k in data
-                                    for k in ["loadType", "playlistInfo", "isSeekable", "isStream"]
+                                    for k in [
+                                        "loadType",
+                                        "playlistInfo",
+                                        "isSeekable",
+                                        "isStream",
+                                    ]
                                 ):
                                     database_entries.append(
                                         {

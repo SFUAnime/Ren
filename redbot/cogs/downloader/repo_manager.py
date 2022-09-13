@@ -131,7 +131,8 @@ class Repo(RepoJSONMixin):
 
     MODULE_FOLDER_REGEX = re.compile(r"(\w+)\/")
     AMBIGUOUS_ERROR_REGEX = re.compile(
-        r"^hint: {3}(?P<rev>[A-Za-z0-9]+) (?P<type>commit|tag) (?P<desc>.+)$", re.MULTILINE
+        r"^hint: {3}(?P<rev>[A-Za-z0-9]+) (?P<type>commit|tag) (?P<desc>.+)$",
+        re.MULTILINE,
     )
 
     def __init__(
@@ -269,7 +270,10 @@ class Repo(RepoJSONMixin):
         if new_rev is None:
             new_rev = self.branch
         git_command = ProcessFormatter().format(
-            self.GIT_DIFF_FILE_STATUS, path=self.folder_path, old_rev=old_rev, new_rev=new_rev
+            self.GIT_DIFF_FILE_STATUS,
+            path=self.folder_path,
+            old_rev=old_rev,
+            new_rev=new_rev,
         )
         p = await self._run(git_command)
 
@@ -648,7 +652,10 @@ class Repo(RepoJSONMixin):
 
         if self.branch is not None:
             git_command = ProcessFormatter().format(
-                self.GIT_CLONE, branch=self.branch, url=self.url, folder=self.folder_path
+                self.GIT_CLONE,
+                branch=self.branch,
+                url=self.url,
+                folder=self.folder_path,
             )
         else:
             git_command = ProcessFormatter().format(
@@ -686,7 +693,8 @@ class Repo(RepoJSONMixin):
 
         if p.returncode != 0:
             raise errors.GitException(
-                f"Could not determine current branch at path: {self.folder_path}", git_command
+                f"Could not determine current branch at path: {self.folder_path}",
+                git_command,
             )
 
         return p.stdout.decode(**DECODE_PARAMS).strip()
@@ -869,7 +877,10 @@ class Repo(RepoJSONMixin):
         return InstalledModule.from_installable(cog)
 
     async def install_libraries(
-        self, target_dir: Path, req_target_dir: Path, libraries: Iterable[Installable] = ()
+        self,
+        target_dir: Path,
+        req_target_dir: Path,
+        libraries: Iterable[Installable] = (),
     ) -> Tuple[Tuple[InstalledModule, ...], Tuple[Installable, ...]]:
         """Install shared libraries to the target directory.
 
@@ -962,7 +973,10 @@ class Repo(RepoJSONMixin):
 
         p = await self._run(
             ProcessFormatter().format(
-                self.PIP_INSTALL, python=executable, target_dir=target_dir, reqs=requirements
+                self.PIP_INSTALL,
+                python=executable,
+                target_dir=target_dir,
+                reqs=requirements,
             )
         )
 
@@ -1062,7 +1076,11 @@ class RepoManager:
 
         # noinspection PyTypeChecker
         r = Repo(
-            url=url, name=name, branch=branch, commit="", folder_path=self.repos_folder / name
+            url=url,
+            name=name,
+            branch=branch,
+            commit="",
+            folder_path=self.repos_folder / name,
         )
         await r.clone()
         await self.config.repos.set_raw(name, value=r.branch)

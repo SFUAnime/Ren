@@ -204,7 +204,13 @@ class PlaylistWrapper:
             executor.submit(
                 self.database.cursor().execute,
                 self.statement.delete,
-                ({"playlist_id": playlist_id, "scope_id": scope_id, "scope_type": scope_type}),
+                (
+                    {
+                        "playlist_id": playlist_id,
+                        "scope_id": scope_id,
+                        "scope_type": scope_type,
+                    }
+                ),
             )
 
     async def delete_scheduled(self):

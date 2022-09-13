@@ -111,7 +111,8 @@ class LavalinkTasks(MixinMeta, metaclass=CompositeMetaClass):
                 await asyncio.sleep(1)  # prevent busylooping
             except Exception as exc:
                 log.exception(
-                    "Unhandled exception whilst connecting to Lavalink, aborting...", exc_info=exc
+                    "Unhandled exception whilst connecting to Lavalink, aborting...",
+                    exc_info=exc,
                 )
                 self.lavalink_connection_aborted = True
                 raise

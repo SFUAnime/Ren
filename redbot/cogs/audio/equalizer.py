@@ -30,7 +30,22 @@ class Equalizer:
         block = ""
         bands = [str(band + 1).zfill(2) for band in range(self.band_count)]
         bottom = (" " * 8) + " ".join(bands)
-        gains = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0, -0.1, -0.2, -0.25]
+        gains = [
+            1.0,
+            0.9,
+            0.8,
+            0.7,
+            0.6,
+            0.5,
+            0.4,
+            0.3,
+            0.2,
+            0.1,
+            0.0,
+            -0.1,
+            -0.2,
+            -0.25,
+        ]
 
         for gain in gains:
             prefix = ""
