@@ -43,10 +43,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         except OSError as error:
             pass
 
-        self.session = aiohttp.ClientSession()
-        # a header to successfully download user avatars for use
-        self.headers = {"User-agent": "Mozilla/5.0"}
-
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
 
@@ -352,9 +348,13 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         )
         # get avatar from User
         avatar: bytes
+        session = aiohttp.ClientSession()
+        # a header to successfully download user avatars for use
+        used_headers = {"User-agent": "Mozilla/5.0"}
+
 
         try:
-            async with self.session.get(str(user.avatar_url), headers=self.headers) as webp:
+            async with session.get(str(user.avatar_url), headers= used_headers) as webp:
                 avatar = await webp.read()
         except aiohttp.ClientResponseError:
             pass
