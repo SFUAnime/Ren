@@ -183,6 +183,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 await channel.send(message, file=discord.File(img, filename="generated.png"))
             else:
                 await channel.send(message)
+            img.close()
         except (discord.Forbidden, discord.HTTPException) as errorMsg:
             LOGGER.error(
                 "Could not send message, please make sure the bot "
@@ -360,6 +361,10 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         with Image.open(io.BytesIO(avatar)) as retrieved_avatar:
             if not retrieved_avatar:
+                base.close()
+                mask.close()
+                border_overlay.close()
+                border_overlay_mask.close()                
                 return
             else:
                 retrieved_avatar = retrieved_avatar.resize((325, 325), 1)
@@ -368,6 +373,10 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
+                base.close()
+                mask.close()
+                border_overlay.close()
+                border_overlay_mask.close()
                 return generated
 
     ####################
@@ -524,7 +533,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     # [p]welcomeset greetings toggleimg
     @greetings.command(name="toggleimg")
-    async def toggle_img(self, ctx: Context):
+    async def toggleImg(self, ctx: Context):
         """Toggles the random image on and off"""
         async with self.config.guild(ctx.guild).all() as guildData:
             if guildData[KEY_TOGGLE_RANDOM_MSG]:
