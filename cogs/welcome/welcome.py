@@ -39,7 +39,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # create folder to hold welcome images
         try:
-            os.mkdir(self.img_dir)
+            self.img_dir.mkdir(parents=True, exist_ok=True)
         except OSError as error:
             pass
 
@@ -179,7 +179,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         try:
             img = await self.generateRandWelcomeImg(newUser)
-            if await self.config.guild(guild).get_attr("toggle_img")():
+            if await self.config.guild(guild).get_attr(KEY_TOGGLE_RANDOM_MSG)():
                 await channel.send(message, file=discord.File(img, filename="generated.png"))
             else:
                 await channel.send(message)
@@ -527,9 +527,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def toggle_img(self, ctx: Context):
         """Toggles the random image on and off"""
         async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData["toggle_img"]:
-                guildData["toggle_img"] = False
-            elif guildData["toggle_img"] == False:
+            if guildData[KEY_TOGGLE_RANDOM_MSG]:
+                guildData[KEY_TOGGLE_RANDOM_MSG] = False
+            elif guildData[KEY_TOGGLE_RANDOM_MSG] == False:
                 # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
                 if len(os.listdir(self.img_dir)) < 1:
                     await ctx.send(
@@ -537,9 +537,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     )
                     return
 
-                guildData["toggle_img"] = True
+                guildData[KEY_TOGGLE_RANDOM_MSG] = True
 
-            await ctx.send(f'Sending randomised welcome image: {guildData["toggle_img"]}')
+            await ctx.send(f'Sending randomised welcome image: {guildData["KEY_TOGGLE_RANDOM_MSG"]}')
 
     # [p]welcomeset greetings add
     @greetings.command(name="add")
@@ -637,7 +637,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         temp_resize.save(img_path, dpi=(72, 72))
 
         # alert user that their image has been added
-        await ctx.reply("image added")
+        await ctx.reply("Image added")
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
