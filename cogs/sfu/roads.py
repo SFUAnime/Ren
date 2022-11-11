@@ -7,6 +7,7 @@ from io import BytesIO
 import datetime
 import json
 import requests
+import requests.adapters
 from bs4 import BeautifulSoup
 import discord
 from redbot.core import commands
@@ -87,6 +88,17 @@ class SFURoads(SFUBase):
         self.sfuGroup.add_command(self.cam)
         self.sfuGroup.add_command(self.report)
 
+        # Retry with exponential backoff for HTTP requests
+        # (https://github.com/SFUAnime/Ren/issues/590)
+        retryBackoff = requests.adapters.Retry(total=5, backoff_factor=0.25)
+        httpRetryHandler = requests.adapters.HTTPAdapter(max_retries=retryBackoff)
+
+        self.httpRetrySession = requests.Session()
+        self.httpRetrySession.mount("http://", httpRetryHandler)
+
+    def cog_unload(self):
+        self.httpRetrySession.close()
+
     @commands.command()
     @commands.guild_only()
     async def cam(self, ctx: Context, cam: str = ""):
@@ -116,12 +128,14 @@ class SFURoads(SFUBase):
             return
 
         try:
-            fetchedData = requests.get(camera, headers=self.headers)
+            fetchedData = self.httpRetrySession.get(camera, headers=self.headers)
             fetchedData.raise_for_status()
         except requests.exceptions.HTTPError:
             await ctx.send(":warning: This webcam is currently unavailable!")
             # self.logger.error(exc_info=True)
             return
+        except requests.adapters.MaxRetryError:
+            await ctx.send(":warning: Unable to retrieve webcam image. Please try again.")
 
         if not fetchedData.content:
             # Make sure we don't fetch a zero byte file
