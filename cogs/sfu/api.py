@@ -196,7 +196,7 @@ def _extract(data: dict):
                 time["roomNumber"],
                 time["campus"],
             )
-        except (KeyError):
+        except KeyError:
             classtimes += "TBA"
     examtime = ""
     try:
