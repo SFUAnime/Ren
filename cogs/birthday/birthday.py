@@ -519,46 +519,110 @@ class Birthday(commands.Cog):
                 f"Type {bold('`yes`', escape_formatting=False)} to confirm."
             )
 
-            await ctx.author.send(f"{headerWarn}: {confirmationStr}")
-
-            def check(msg: discord.Message):
-                return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
-
             try:
-                response = await self.bot.wait_for("message", timeout=30.0, check=check)
-            except asyncio.TimeoutError:
-                # hide the birthday portion within the previous message
+                def check(msg: discord.Message):
+                    return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
+                await ctx.author.send(f"{headerWarn}: {confirmationStr}")
+    
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    # hide the birthday portion within the previous message
+                    await ctx.author.send(
+                        f"{headerBad}: You took too long. Not setting your birthday."
+                    )
+                    return
+    
+                if response.content.lower() != "yes":
+                    await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    return
+    
+                await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
+                await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
+                await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+    
                 await ctx.author.send(
-                    f"{headerBad}: You took too long. Not setting your birthday."
+                    f"{headerGood}: Successfully set your birthday to "
+                    f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
                 )
+    
+                self.logger.info(
+                    "%s#%s (%s) added their birthday as %s",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    birthdayStr,
+                )
+    
+                # explicitly check to see if user should be added to role, if the month
+                # and day just so happen to be the same as it is now.
+                await self.checkBirthday()
                 return
+            except discord.Forbidden:
+                def check(msg: discord.Message):
+                    return msg.author == ctx.author and msg.channel == ctx.channel
+                try:
+                    await ctx.send(
+                        "You have disabled DMs from this server. Would you "
+                        "still like to continue here?"
+                        f"Type {bold('`yes`', escape_formatting=False)} to confirm."
+                        )
+                    response = await self.bot.wait_for("message", timeout = 30.0, check=check) 
+                except asyncio.TimeoutError:
+                    await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
+                    return
 
-            if response.content.lower() != "yes":
-                await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
-                return
+                if response.content.lower() != "yes":
+                    await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    return
+                can_delete = ctx.channel.permissions_for(ctx.me).manage_messages
 
-            await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
-            await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
-            await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+                if can_delete:
+                    msg: discord.Message = await ctx.send(f"{headerWarn}: {confirmationStr}")
+                    try:
+                        response = await self.bot.wait_for("message", timeout = 10.0, check=check)
+                    except asyncio.TimeoutError:
+                        try:
+                            await ctx.send(
+                                    f"{headerBad}: No response. Aborting",
+                                    delete_after=10
+                                    )
+                            await msg.delete()
+                            return
+                        except (discord.NotFound, discord.HTTPException):
+                            return
 
-            await ctx.author.send(
-                f"{headerGood}: Successfully set your birthday to "
-                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
-            )
+                    if response.content.lower() != "yes":
+                        await ctx.send(
+                                f"{headerBad}: Declined. Not setting your birthday.",
+                                delete_after=5
+                                )
+                        try:
+                            await msg.delete()
+                        except (discord.NotFound, discord.HTTPException):
+                            return
+                        return
 
-            self.logger.info(
-                "%s#%s (%s) added their birthday as %s",
-                ctx.author.name,
-                ctx.author.discriminator,
-                ctx.author.id,
-                birthdayStr,
-            )
-
-            # explicitly check to see if user should be added to role, if the month
-            # and day just so happen to be the same as it is now.
-            await self.checkBirthday()
-            return
-
+                    await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
+                    await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
+                    await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+                    await ctx.send(
+                        f"{headerGood}: Successfully set your birthday to "
+                        f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
+                        delete_after=5
+                    )      
+                    self.logger.info(
+                        "%s#%s (%s) added their birthday as %s",
+                        ctx.author.name,
+                        ctx.author.discriminator,
+                        ctx.author.id,
+                        birthdayStr,
+                    )
+                    try:
+                        await msg.delete()
+                        return
+                    except (discord.NotFound, discord.HTTPException):
+                        return
         raise Exception("Error while accessing member's birthday config. This should not happen!")
 
     @_birthday.command(name="selfbirthday")
