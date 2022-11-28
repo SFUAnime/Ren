@@ -618,6 +618,7 @@ class Birthday(commands.Cog):
                         ctx.author.id,
                         birthdayStr,
                     )
+                    await self.checkBirthday()
                     try:
                         await msg.delete()
                         return
