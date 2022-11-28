@@ -461,8 +461,8 @@ class Birthday(commands.Cog):
                             await ctx.send("Alright then")
                             return
 
-                        can_delete = ctx.channel.permissions_for(ctx.me).manage_messages
-                        if can_delete:
+                        canDelete = ctx.channel.permissions_for(ctx.me).manage_messages
+                        if canDelete:
                             await ctx.send(
                                 f"{headerGood}: Your birthday is "
                                 f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
