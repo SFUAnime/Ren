@@ -423,6 +423,7 @@ class Birthday(commands.Cog):
         fnTitle = "Birthday - Get Self's Birthday"
         headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
         headerGood = f":white_check_mark: {bold(fnTitle)}"
+        headerWarn = warning(bold(fnTitle))
 
         birthdayConfig = self.config.member(ctx.author)
         if birthdayConfig:
@@ -444,12 +445,14 @@ class Birthday(commands.Cog):
                         def check(msg: discord.Message):
                             return msg.author == ctx.author and msg.channel == ctx.channel
 
+                        await ctx.send(
+                            f"{headerWarn}: I would like to DM you your birthday but it seeems that "
+                            "you have disabled DMs from this server. Would you still like to continue here? "
+                            "Your birthday will be sent here and deleted after a short delay. "
+                            f"\nType {bold('`yes`', escape_formatting=False)} to confirm. "
+                            "\nAnything else will be treated as no."
+                        )
                         try:
-                            await ctx.send(
-                                "You have disabled DMs from this server. Would you still like to continue here? "
-                                "The your birthday will be sent here and deleted after a short delay. "
-                                f"Type {bold('`yes`', escape_formatting=False)} to confirm."
-                            )
                             response = await self.bot.wait_for(
                                 "message", timeout=30.0, check=check
                             )
@@ -458,24 +461,17 @@ class Birthday(commands.Cog):
                             return
 
                         if response.content.lower() != "yes":
-                            await ctx.send("Alright then")
+                            await ctx.send(
+                                    f"{headerBad}: Aborting."
+                                    )
                             return
 
-                        canDelete = ctx.channel.permissions_for(ctx.me).manage_messages
-                        if canDelete:
-                            await ctx.send(
-                                f"{headerGood}: Your birthday is "
-                                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
-                                delete_after=5,
-                            )
-                            return
-                        else:
-                            await ctx.send(
-                                f"{headerBad}: Unable to delete messages. Please "
-                                "notify the server administrators to give me the "
-                                '"Manage Messages" permission'
-                            )
-                            return
+                        await ctx.send(
+                            f"{headerGood}: Your birthday is "
+                            f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
+                            delete_after=5,
+                        )
+                        return
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
         helpSetSelfBirthdayCmdStr = (
             # pylint: disable=no-member
@@ -566,7 +562,6 @@ class Birthday(commands.Cog):
                 try:
                     response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
-                    # hide the birthday portion within the previous message
                     await ctx.author.send(
                         f"{headerBad}: You took too long. Not setting your birthday."
                     )
@@ -602,12 +597,12 @@ class Birthday(commands.Cog):
                 def check(msg: discord.Message):
                     return msg.author == ctx.author and msg.channel == ctx.channel
 
+                await ctx.send(
+                    "You have disabled DMs from this server. Would you "
+                    "still like to continue here?"
+                    f"Type {bold('`yes`', escape_formatting=False)} to confirm."
+                )
                 try:
-                    await ctx.send(
-                        "You have disabled DMs from this server. Would you "
-                        "still like to continue here?"
-                        f"Type {bold('`yes`', escape_formatting=False)} to confirm."
-                    )
                     response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
                     await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
@@ -616,59 +611,52 @@ class Birthday(commands.Cog):
                 if response.content.lower() != "yes":
                     await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
                     return
-                can_delete = ctx.channel.permissions_for(ctx.me).manage_messages
 
-                if can_delete:
-                    msg: discord.Message = await ctx.send(f"{headerWarn}: {confirmationStr}")
-                    try:
-                        response = await self.bot.wait_for("message", timeout=10.0, check=check)
-                    except asyncio.TimeoutError:
-                        try:
-                            await ctx.send(f"{headerBad}: No response. Aborting", delete_after=10)
-                            await msg.delete()
-                            return
-                        except (discord.NotFound, discord.HTTPException):
-                            return
+            msg: discord.Message = await ctx.send(f"{headerWarn}: {confirmationStr}")
+            try:
+                response = await self.bot.wait_for("message", timeout=10.0, check=check)
+            except asyncio.TimeoutError:
+                try:
+                    await ctx.send(f"{headerBad}: No response. Aborting.")
+                    await msg.delete()
+                    return
+                except (discord.NotFound, discord.HTTPException, discord.Forbidden) as e:
+                    self.logger.debug(e)
+                    return
 
-                    if response.content.lower() != "yes":
-                        await ctx.send(
-                            f"{headerBad}: Declined. Not setting your birthday.", delete_after=5
-                        )
-                        try:
-                            await msg.delete()
-                        except (discord.NotFound, discord.HTTPException):
-                            return
-                        return
+            if response.content.lower() != "yes":
+                await ctx.send(
+                    f"{headerBad}: Declined. Not setting your birthday.",
+                )
+                try:
+                    await msg.delete()
+                    return
+                except (discord.NotFound, discord.HTTPException) as e:
+                    self.logger.debug(e)
+                    return
 
-                    await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
-                    await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
-                    await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
-                    await ctx.send(
-                        f"{headerGood}: Successfully set your birthday to "
-                        f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
-                        delete_after=5,
-                    )
-                    self.logger.info(
-                        "%s#%s (%s) added their birthday as %s",
-                        ctx.author.name,
-                        ctx.author.discriminator,
-                        ctx.author.id,
-                        birthdayStr,
-                    )
-                    await self.checkBirthday()
-                    try:
-                        await msg.delete()
-                        return
-                    except (discord.NotFound, discord.HTTPException):
-                        return
-
-                    else:
-                        await ctx.send(
-                            f"{headerBad}: Unable to delete messages. Please "
-                            "notify the server administrators to give me the "
-                            '"Manage Messages" permission'
-                        )
-                        return
+            await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
+            await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
+            await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+            await ctx.send(
+                f"{headerGood}: Successfully set your birthday to "
+                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
+                delete_after=5,
+            )
+            self.logger.info(
+                "%s#%s (%s) added their birthday as %s",
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
+                birthdayStr,
+            )
+            await self.checkBirthday()
+            try:
+                await msg.delete()
+                return
+            except (discord.NotFound, discord.HTTPException, discord.Forbidden) as e:
+                self.logger.debug(e)
+                return
         raise Exception("Error while accessing member's birthday config. This should not happen!")
 
     @_birthday.command(name="selfbirthday")
