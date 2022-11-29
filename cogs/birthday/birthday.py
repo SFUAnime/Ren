@@ -461,9 +461,7 @@ class Birthday(commands.Cog):
                             return
 
                         if response.content.lower() != "yes":
-                            await ctx.send(
-                                    f"{headerBad}: Aborting."
-                                    )
+                            await ctx.send(f"{headerBad}: Aborting.")
                             return
 
                         await ctx.send(
@@ -631,7 +629,7 @@ class Birthday(commands.Cog):
                 try:
                     await msg.delete()
                     return
-                except (discord.NotFound, discord.HTTPException) as e:
+                except (discord.NotFound, discord.HTTPException, discord.Forbidden) as e:
                     self.logger.debug(e)
                     return
 
