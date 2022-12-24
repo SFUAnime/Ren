@@ -587,7 +587,7 @@ class Birthday(commands.Cog):
 
                 try:
                     response = await self.bot.wait_for(
-                        "message", timeout=10.0, check=check
+                        "message", timeout=6.0, check=check
                     )
                 except asyncio.TimeoutError:
                     await channel.send(
