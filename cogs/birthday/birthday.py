@@ -35,9 +35,7 @@ class Birthday(commands.Cog):
             logPath = os.path.join(saveFolder, "info.log")
             handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
             handler.setFormatter(
-                logging.Formatter(
-                    "%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]"
-                )
+                logging.Formatter("%(asctime)s %(message)s", datefmt="[%d/%m/%Y %H:%M:%S]")
             )
             self.logger.addHandler(handler)
 
@@ -82,9 +80,7 @@ class Birthday(commands.Cog):
         """
 
         if channel:
-            await self.config.guild(ctx.guild).get_attr(KEY_BDAY_CHANNEL).set(
-                channel.id
-            )
+            await self.config.guild(ctx.guild).get_attr(KEY_BDAY_CHANNEL).set(channel.id)
             self.logger.info(
                 "%s#%s (%s) set the birthday channel to %s",
                 ctx.author.name,
@@ -190,9 +186,7 @@ class Birthday(commands.Cog):
                     )
                 )
                 try:
-                    response = await self.bot.wait_for(
-                        "message", timeout=30.0, check=check
-                    )
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
                     await ctx.send(f"You took too long, not re-adding them.")
                     return
@@ -207,9 +201,7 @@ class Birthday(commands.Cog):
         confMsg = await ctx.send(
             ":white_check_mark: **Birthday - Add**: Successfully {0} **{1}**'s birthday "
             "as **{2:%B} {2:%d}**. The role will be assigned automatically on this "
-            "day.".format(
-                "updated" if birthdayExists else "added", member.name, birthday
-            )
+            "day.".format("updated" if birthdayExists else "added", member.name, birthday)
         )
 
         # Explicitly check to see if user should be added to role, if the month
@@ -244,9 +236,7 @@ class Birthday(commands.Cog):
         """Lists the birthdays of users in the server."""
 
         sortedList = []  # List to sort by month, day.
-        display = (
-            []
-        )  # List of text for paginator to use.  Will be constructed from sortedList.
+        display = []  # List of text for paginator to use.  Will be constructed from sortedList.
 
         # Add only the users we care about (e.g. the ones that have birthdays set).
         membersData = await self.config.all_members(ctx.guild)
@@ -291,9 +281,7 @@ class Birthday(commands.Cog):
         pages = list(pagify(msg, page_length=300))
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
-            embed = discord.Embed(
-                title=f"Birthdays in **{ctx.guild.name}**", description=page
-            )
+            embed = discord.Embed(title=f"Birthdays in **{ctx.guild.name}**", description=page)
             embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
             embed.colour = discord.Colour.red()
             pageList.append(embed)
@@ -467,18 +455,14 @@ class Birthday(commands.Cog):
                         )
 
                         def check(msg: discord.Message):
-                            return (
-                                msg.author == ctx.author and msg.channel == ctx.channel
-                            )
+                            return msg.author == ctx.author and msg.channel == ctx.channel
 
                         try:
                             response = await self.bot.wait_for(
                                 "message", timeout=30.0, check=check
                             )
                         except asyncio.TimeoutError:
-                            await ctx.send(
-                                f"{headerBad}: No response detected. Aborting."
-                            )
+                            await ctx.send(f"{headerBad}: No response detected. Aborting.")
                             return
 
                         if response.content.lower() != "yes":
@@ -568,7 +552,7 @@ class Birthday(commands.Cog):
                         f"Type {bold('`yes`', escape_formatting=False)} to confirm.",
                     )
                 )
-                # define the time for the message to live for
+                # define the time for sensitive messages to live for
                 SENSITIVE_MSG_TTL = None if carefree else 5.0
                 try:
                     await channel.send(
@@ -578,7 +562,7 @@ class Birthday(commands.Cog):
                 except discord.Forbidden:
                     # this means messages cannot be sent to the the destination channel
                     # so we abort the flow now by re-raising the exception
-                    # and the caller shall handle it gracefullyu
+                    # and the caller shall handle it gracefully
                     raise
 
                 # wait for answer
@@ -586,9 +570,7 @@ class Birthday(commands.Cog):
                     return msg.author == ctx.author and msg.channel == channel
 
                 try:
-                    response = await self.bot.wait_for(
-                        "message", timeout=6.0, check=check
-                    )
+                    response = await self.bot.wait_for("message", timeout=6.0, check=check)
                 except asyncio.TimeoutError:
                     await channel.send(
                         f"{headerBad}: You took too long. Not setting your birthday."
@@ -596,9 +578,7 @@ class Birthday(commands.Cog):
                     return
 
                 if response.content.lower() != "yes":
-                    await channel.send(
-                        f"{headerBad}: Declined. Not setting your birthday."
-                    )
+                    await channel.send(f"{headerBad}: Declined. Not setting your birthday.")
                     return
 
                 # Set birthday and notify user that their birthday has been set
@@ -643,13 +623,9 @@ class Birthday(commands.Cog):
                     return msg.author == ctx.author and msg.channel == ctx.channel
 
                 try:
-                    response = await self.bot.wait_for(
-                        "message", timeout=10.0, check=check
-                    )
+                    response = await self.bot.wait_for("message", timeout=10.0, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send(
-                        f"{headerBad}: You took too long. Not setting your birthday."
-                    )
+                    await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
                     return
 
                 if response.content.lower() != "yes":
@@ -657,10 +633,6 @@ class Birthday(commands.Cog):
                     return
                 await mainFlow(ctx.channel, carefree=False)
                 return
-
-        raise Exception(
-            "Error while accessing member's birthday config. This should not happen!"
-        )
 
     @_birthday.command(name="selfbirthday")
     @commands.guild_only()
@@ -681,7 +653,9 @@ class Birthday(commands.Cog):
             f"{bold('Enabled')}. Members can set their birthdays themselves "
             f"{bold('ONCE')} and {bold('ONLY IF')} their birthdays were not already set."
         )
-        msgNotAllow = f"{headerGood}: {bold('Disabled')}. Members cannot set their birthdays themselves."
+        msgNotAllow = (
+            f"{headerGood}: {bold('Disabled')}. Members cannot set their birthdays themselves."
+        )
         guildConfig = self.config.guild(ctx.guild)
         allowSelfBirthdayConfig = guildConfig.get_attr(KEY_ALLOW_SELF_BDAY)
         if await allowSelfBirthdayConfig():
@@ -746,9 +720,9 @@ class Birthday(commands.Cog):
                 memberData = await self.config.all_members(guild)  # dict
                 for memberId, memberDetails in memberData.items():
                     # If assigned and the date is different than the date assigned, remove role.
-                    if memberDetails[KEY_IS_ASSIGNED] and memberDetails[
-                        KEY_BDAY_DAY
-                    ] != int(time.strftime("%d")):
+                    if memberDetails[KEY_IS_ASSIGNED] and memberDetails[KEY_BDAY_DAY] != int(
+                        time.strftime("%d")
+                    ):
 
                         role = discord.utils.get(guild.roles, id=bdayRoleId)
                         member = discord.utils.get(guild.members, id=memberId)
@@ -777,9 +751,7 @@ class Birthday(commands.Cog):
                             continue
 
                         # Update the list.
-                        await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(
-                            False
-                        )
+                        await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(False)
 
     async def _dailyAdd(self):  # pylint: disable=too-many-branches
         """Add guild members to the birthday role."""
@@ -796,9 +768,7 @@ class Birthday(commands.Cog):
                 # Make sure the guild is configured with birthday role.
                 # If it's not, skip over it.
                 bdayRoleId = await self.config.guild(guild).get_attr(KEY_BDAY_ROLE)()
-                bdayChannelId = await self.config.guild(guild).get_attr(
-                    KEY_BDAY_CHANNEL
-                )()
+                bdayChannelId = await self.config.guild(guild).get_attr(KEY_BDAY_CHANNEL)()
                 if not bdayRoleId:
                     continue
 
@@ -833,9 +803,9 @@ class Birthday(commands.Cog):
                                     member.id,
                                 )
                                 # Update the list.
-                                await self.config.member(member).get_attr(
-                                    KEY_IS_ASSIGNED
-                                ).set(True)
+                                await self.config.member(member).get_attr(KEY_IS_ASSIGNED).set(
+                                    True
+                                )
 
                             except discord.Forbidden:
                                 self.logger.error(
