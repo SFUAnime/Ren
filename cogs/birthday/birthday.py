@@ -428,6 +428,15 @@ class Birthday(commands.Cog):
         headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
         headerGood = f":white_check_mark: {bold(fnTitle)}"
         headerWarn = warning(bold(fnTitle))
+        noDmStr = "\n".join(
+            (
+                f"{headerWarn}: I would like to DM you your birthday but it seeems that "
+                "you have disabled DMs from this server. Would you still like to continue here? "
+                "Your birthday will be sent here and deleted after a short delay. ",
+                f"Type {bold('`yes`', escape_formatting=False)} to confirm. ",
+                "Anything else will be treated as no.",
+            )
+        )
 
         birthdayConfig = self.config.member(ctx.author)
         if birthdayConfig:
@@ -446,13 +455,7 @@ class Birthday(commands.Cog):
                         await ctx.author.send(birthdayInfoMsg)
                         return
                     except discord.Forbidden:
-                        await ctx.send(
-                            f"{headerWarn}: I would like to DM you your birthday but it seeems that "
-                            "you have disabled DMs from this server. Would you still like to continue here? "
-                            "Your birthday will be sent here and deleted after a short delay. "
-                            f"Type {bold('`yes`', escape_formatting=False)} to confirm. "
-                            "Anything else will be treated as no."
-                        )
+                        await ctx.send(noDmStr)
 
                         def check(msg: discord.Message):
                             return msg.author == ctx.author and msg.channel == ctx.channel
@@ -569,6 +572,8 @@ class Birthday(commands.Cog):
                 def check(msg: discord.Message):
                     return msg.author == ctx.author and msg.channel == channel
 
+                # define response wait time
+                timeout = SENSITIVE_MSG_TTL + 1 if SENSITIVE_MSG_TTL else 30
                 try:
                     response = await self.bot.wait_for("message", timeout=6.0, check=check)
                 except asyncio.TimeoutError:
@@ -632,7 +637,6 @@ class Birthday(commands.Cog):
                     await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
                     return
                 await mainFlow(ctx.channel, carefree=False)
-                return
 
     @_birthday.command(name="selfbirthday")
     @commands.guild_only()
