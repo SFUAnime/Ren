@@ -573,9 +573,9 @@ class Birthday(commands.Cog):
                     return msg.author == ctx.author and msg.channel == channel
 
                 # define response wait time
-                timeout = SENSITIVE_MSG_TTL + 1 if SENSITIVE_MSG_TTL else 30
+                responseTimeout = SENSITIVE_MSG_TTL + 1 if SENSITIVE_MSG_TTL else 30
                 try:
-                    response = await self.bot.wait_for("message", timeout=6.0, check=check)
+                    response = await self.bot.wait_for("message", timeout=responseTimeout, check=check)
                 except asyncio.TimeoutError:
                     await channel.send(
                         f"{headerBad}: You took too long. Not setting your birthday."
