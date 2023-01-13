@@ -120,7 +120,7 @@ class SFURoads(SFUBase):
             udn:    University Drive North
             wmc:    West Mall Centre (WMC) Roof
         """
-        await ctx.trigger_typing()
+        await ctx.typing()
 
         camera = self.cameras.get(cam.lower(), "help")
         if camera == "help":
