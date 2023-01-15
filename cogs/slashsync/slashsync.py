@@ -5,9 +5,9 @@ Sync slash commands from the bot to the server.
 import logging
 
 from redbot.core import checks, commands
+from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 from redbot.core.utils.chat_formatting import info, success
-from redbot.core.bot import Red
 
 
 class SlashSync(commands.Cog):
@@ -31,7 +31,7 @@ class SlashSync(commands.Cog):
 
     @commands.command(name="sync")
     @checks.is_owner()
-    async def sync(self, ctx):
+    async def sync(self, ctx: Context):
         """Synchronize slash commands to Discord"""
         msg = await ctx.send(info("Syncing slash commands to Discord, please wait..."))
         await self.bot.tree.sync()
