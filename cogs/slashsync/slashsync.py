@@ -16,9 +16,9 @@ class SlashSync(commands.Cog):
     def __init__(self, bot: Red):
         self.bot = bot
         self.logger = logging.getLogger("red.luicogs.SlashSync")
-        self.bgTask = self.bot.loop.create_task(self.onBotReady())
+        self.bgTask = self.bot.loop.create_task(self.waitUntilBotReady())
 
-    async def onBotReady(self):
+    async def waitUntilBotReady(self):
         self.logger.debug("Waiting for bot to be ready")
         await self.bot.wait_until_red_ready()
         self.logger.debug("Bot is ready, synchronizing command tree")
