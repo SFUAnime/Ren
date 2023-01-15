@@ -29,44 +29,41 @@ class Triggered(commands.Cog):
         # We need a custom header or else we get a HTTP 403 Unauthorized
         self.headers = {"User-agent": "Mozilla/5.0"}
 
-    @commands.command(name="triggered")
+    @commands.hybrid_command(name="triggered")
     async def triggered(self, ctx: Context, user: discord.Member = None):
         """Are you triggered? Say no more."""
+        await ctx.defer()
         if not user:
             user = ctx.message.author
-        async with ctx.typing():
-            # bot is typing here...
-            data = await self._createTrigger(user, mode=Modes.triggered)
-            if not data:
-                await ctx.send("Something went wrong, try again.")
-                return
-            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
+        data = await self._createTrigger(user, mode=Modes.triggered)
+        if not data:
+            await ctx.send("Something went wrong, try again.")
+            return
+        await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
-    @commands.command(name="reallytriggered")
+    @commands.hybrid_command(name="reallytriggered")
     async def hypertriggered(self, ctx: Context, user: discord.Member = None):
         """Are you in an elevated state of triggered? Say no more."""
+        await ctx.defer()
         if not user:
             user = ctx.message.author
-        async with ctx.typing():
-            # bot is typing here...
-            data = await self._createTrigger(user, mode=Modes.reallytriggered)
-            if not data:
-                await ctx.send("Something went wrong, try again.")
-                return
-            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
+        data = await self._createTrigger(user, mode=Modes.reallytriggered)
+        if not data:
+            await ctx.send("Something went wrong, try again.")
+            return
+        await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
-    @commands.command(name="hypertriggered")
+    @commands.hybrid_command(name="hypertriggered")
     async def deepfry(self, ctx: Context, user: discord.Member = None):
         """Are you incredibly triggered? Say no more."""
+        await ctx.defer()
         if not user:
             user = ctx.message.author
-        async with ctx.typing():
-            # bot is typing here...
-            data = await self._createTrigger(user, mode=Modes.hypertriggered)
-            if not data:
-                await ctx.send("Something went wrong, try again.")
-                return
-            await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
+        data = await self._createTrigger(user, mode=Modes.hypertriggered)
+        if not data:
+            await ctx.send("Something went wrong, try again.")
+            return
+        await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
     async def _createTrigger(self, user: discord.User, mode=Modes.triggered):
         """Fetches the user's avatar, and creates a triggered GIF, applies additional PIL image transformations based on specified mode
