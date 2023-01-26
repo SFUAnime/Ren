@@ -3,7 +3,7 @@ import logging
 from redbot.core.bot import Red
 
 
-class SlashSyncCore:
+class Core:
     def __init__(self, bot: Red):
         self.bot = bot
         self.logger = logging.getLogger("red.luicogs.SlashSync")
