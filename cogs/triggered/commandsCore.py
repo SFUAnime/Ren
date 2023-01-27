@@ -6,7 +6,7 @@ from .core import AVATAR_FILE_NAME, Core, Modes
 
 
 class CommandsCore(Core):
-    async def cmdTriggered(self, ctx: Context, user: discord.Member = None):
+    async def cmdTriggered(self, ctx: Context, user: discord.User = None):
         """Are you triggered? Say no more."""
         await ctx.defer()
         if not user:
@@ -17,7 +17,7 @@ class CommandsCore(Core):
             return
         await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
-    async def cmdHypertriggered(self, ctx: Context, user: discord.Member = None):
+    async def cmdHypertriggered(self, ctx: Context, user: discord.User = None):
         """Are you in an elevated state of triggered? Say no more."""
         await ctx.defer()
         if not user:
@@ -28,7 +28,7 @@ class CommandsCore(Core):
             return
         await ctx.send(file=discord.File(data, filename=AVATAR_FILE_NAME.format(user)))
 
-    async def cmdDeepfry(self, ctx: Context, user: discord.Member = None):
+    async def cmdDeepfry(self, ctx: Context, user: discord.User = None):
         """Are you incredibly triggered? Say no more."""
         await ctx.defer()
         if not user:
