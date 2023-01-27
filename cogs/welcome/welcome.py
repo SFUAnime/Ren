@@ -244,7 +244,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             else:
                 if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
                     await channel.send(
-                        f":o: ``Server Welcome:`` User {newUser.mention} "
+                        f":white_check_mark: ``Server Welcome:`` User {newUser.mention} "
                         f"{newUser.name}#{newUser.discriminator} "
                         f"({newUser.id}) has joined. DM sent."
                     )
