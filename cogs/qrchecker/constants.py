@@ -1,0 +1,3 @@
+KEY_ENABLED = "enabled"
+
+BASE_GUILD = {KEY_ENABLED: False}
