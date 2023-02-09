@@ -5,7 +5,6 @@ from discord import AllowedMentions, Message
 from PIL import Image
 from pyzbar.pyzbar import Decoded, decode, ZBarSymbol
 
-
 from redbot.core.commands import Context
 from redbot.core.utils.chat_formatting import box, pagify
 
@@ -16,8 +15,12 @@ from .core import Core
 class EventsCore(Core):
     async def evtListener(self, message: Message):
         """Find QR code in message attachments"""
+        if not self.initialized:
+            return
+
         if not message.guild:
             return
+
         # check if enabled
         if not await self.config.guild(message.guild).get_attr(KEY_ENABLED)():
             self.logger.debug(
@@ -39,14 +42,18 @@ class EventsCore(Core):
                 continue
 
             # At this point we decern that it's an image.
-            try:
-                fp = BytesIO(await attachment.read())
-                image = Image.open(fp)
-                codes: List[Decoded] = decode(image, symbols=[ZBarSymbol.QRCODE])
-                self.logger.debug("Found %s codes", len(codes))
-            except Exception:
-                self.logger.error("Couldn't check file.", exc_info=True)
-                return
+            async with self.lock:
+                try:
+                    fp: BytesIO = BytesIO(await attachment.read())
+                    image: Image = Image.open(fp)
+                    codes: List[Decoded] = decode(image, symbols=[ZBarSymbol.QRCODE])
+                    self.logger.debug("Found %s codes", len(codes))
+                except Image.DecompressionBombError as error:
+                    self.logger.error("Couldn't check file, image too large: %s", error)
+                    return
+                except Exception:
+                    self.logger.error("Couldn't check file.", exc_info=True)
+                    return
 
             if not codes:
                 self.logger.debug("No QR codes found.")
