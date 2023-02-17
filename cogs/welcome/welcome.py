@@ -35,7 +35,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config.register_guild(**DEFAULT_GUILD)
 
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
-        self.img_dir = os.path.join(self.data_dir, "welcome_imgs")
+        self.img_dir = self.data_dir/WELCOME_IMG_FOLDER
 
         # create folder to hold welcome images
         try:
@@ -542,7 +542,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
                 if len(os.listdir(self.img_dir)) < 1:
                     await ctx.send(
-                        "There are currently no images in the image_base folder. Add at least one before turning the randomiser on"
+                        "Add at least one before turning the randomiser on"
                     )
                     return
 
@@ -616,9 +616,15 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await greeting.add_reaction("✅")
         await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
+      
+    # [p]welcomeset greetings image
+    @greetings.group(name="image")
+    async def image(self, ctx: Context):
+        '''Base command for the image command group'''
+        pass
 
-    # [p]welcomeset greetings addimg
-    @greetings.command(name="addimg")
+    # [p]welcomeset greetings image add
+    @image.command(name="add")
     async def imgAdd(self, ctx: Context):
         """adds the attached image to the pool of random based images used to generate custom welcome images. Attaches only the first image attached.
 
@@ -647,6 +653,14 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # alert user that their image has been added
         await ctx.reply("Image added")
+
+    # [p]welcomeset greetings image remove
+    @image.command(name="remove")
+    async def imgRemove(self, ctx: Context, img_name):
+        '''Removes the specified image from the pool'''
+
+
+        pass
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
