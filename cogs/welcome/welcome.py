@@ -626,16 +626,19 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     # [p]welcomeset greetings image add
     @image.command(name="add")
-    async def imgAdd(self, ctx: Context):
+    async def imgAdd(self, ctx: Context, name: str):
         """adds the attached image to the pool of random based images used to generate custom welcome images. Attaches only the first image attached.
 
 
         Additionally automatically makes the sent image conform to the dimensions and dpi that's been tested for: 72dpi, 1193x671. Mileage may vary
 
         """
-        num_pictures = len(os.listdir(self.img_dir))
         file_name = "{}.png"
-        img_path = os.path.join(self.img_dir, file_name.format(num_pictures))
+        try:
+            img_path = os.path.join(self.img_dir, file_name.format(name))
+        except:
+            num_pictures = len(os.listdir(self.img_dir))
+            img_path = os.path.join(self.img_dir, file_name.format(name))
 
         image = None
         if len(ctx.message.attachments) == 1:
@@ -657,11 +660,19 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     # [p]welcomeset greetings image remove
     @image.command(name="remove")
-    async def imgRemove(self, ctx: Context, img_name):
+    async def imgRemove(self, ctx: Context, img_name: str):
         '''Removes the specified image from the pool'''
 
+        try:
+            os.remove(os.path.join(self.img_dir, img_name));
+        except:
+            await ctx.reply(
+                "the named picture doesn't exist"
+            )
 
-        pass
+        await ctx.reply(
+            "the named picture doesn't exist"
+        )
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
