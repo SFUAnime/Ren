@@ -40,7 +40,7 @@ class TagInfo:
         if owner is None:
             owner = await ctx.bot.fetch_user(self.owner_id)
 
-        e.set_author(name=str(owner), icon_url=owner.avatar_url or owner.default_avatar_url)
+        e.set_author(name=str(owner), icon_url=owner.display_avatar.url)
         e.set_footer(text="Generic" if self.is_generic else "Server-specific")
         return e
 
@@ -74,7 +74,7 @@ class TagAlias:
         if owner is None:
             owner = await ctx.bot.get_user(self.owner_id)
 
-        e.set_author(name=str(owner), icon_url=owner.avatar_url or owner.default_avatar_url)
+        e.set_author(name=str(owner), icon_url=owner.display_avatar.url)
         return e
 
 

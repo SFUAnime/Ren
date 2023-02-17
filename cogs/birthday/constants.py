@@ -20,6 +20,7 @@ BASE_GUILD = {
     KEY_ALLOW_SELF_BDAY: False,
 }
 
+BOT_BIRTHDAY_MSG = "Wow! It's my own birthday! Happy birthday to myself!"
 CANNED_MESSAGES = [
     "Wow look, it's {}'s birthday today! Happy birthday, hope you have a good one!",
     "お誕生日おめでとう、{}! (TL note: Happy birthday!)",

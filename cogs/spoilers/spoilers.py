@@ -144,7 +144,7 @@ class Spoilers(commands.Cog):
             if userObj:
                 embed.set_author(
                     name="{0.name}#{0.discriminator}".format(userObj),
-                    icon_url=userObj.avatar_url,
+                    icon_url=userObj.display_avatar.url,
                 )
             else:
                 embed.set_author(name=msg[KEY_AUTHOR_NAME])

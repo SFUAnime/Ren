@@ -1,0 +1,10 @@
+{
+    "author": ["Injabie3#1660"],
+    "name": "SlashSync",
+    "short": "Sync slash commands to Discord",
+    "description": "This cog syncs slash commands when Red connects to Discord and exposes a `sync` command to do it on the fly.",
+    "end_user_data_statement": "This cog does not store any user information.",
+    "install_msg": "Thanks for installing SlashSync. Please run [p]sync to sync slash commands after loading a cog with them.",
+    "requirements": [],
+    "tags": ["slash commands", "hybrid commands"]
+}

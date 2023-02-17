@@ -187,14 +187,17 @@ def _extract(data: dict):
             sectionTime = "Unknown Time"
         else:
             sectionTime = "{} - {}".format(time["startTime"], time["endTime"])
-        classtimes += "[{}] {} {}, {} {}, {}\n".format(
-            time["sectionCode"],
-            time["days"],
-            sectionTime,
-            time["buildingCode"],
-            time["roomNumber"],
-            time["campus"],
-        )
+        try:
+            classtimes += "[{}] {} {}, {} {}, {}\n".format(
+                time["sectionCode"],
+                time["days"],
+                sectionTime,
+                time["buildingCode"],
+                time["roomNumber"],
+                time["campus"],
+            )
+        except KeyError:
+            classtimes += "TBA"
     examtime = ""
     try:
         for time in data["examSchedule"]:

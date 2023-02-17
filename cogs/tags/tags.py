@@ -7,7 +7,7 @@ from .config import Config
 from .constants import *
 from .data import TagAlias, TagEncoder, TagInfo
 from .exceptions import *
-from .helpers import createSimplePages, tagDecoder
+from .helpers import checkLengthInRaw, createSimplePages, tagDecoder
 from .rolecheck import roles_or_mod_or_permissions
 
 from collections import defaultdict
@@ -421,6 +421,11 @@ class Tags(commands.Cog):
             return
 
         content = self.clean_tag_content(content)
+
+        if not checkLengthInRaw(content):
+            await ctx.send("Your content is too long. Consider splitting it into two tags.")
+            return
+
         lookup = name.lower().strip()
         try:
             self.verify_lookup(lookup)
@@ -471,6 +476,11 @@ class Tags(commands.Cog):
         a generic tag and not a server-specific one.
         """
         content = self.clean_tag_content(content)
+
+        if not checkLengthInRaw(content):
+            await ctx.send("Your content is too long. Consider splitting it into two tags.")
+            return
+
         lookup = name.lower().strip()
         try:
             self.verify_lookup(lookup)
@@ -648,6 +658,9 @@ class Tags(commands.Cog):
             content = content.attachments[0].get("url", "*Could not get attachment data*")
         else:
             content = self.clean_tag_content(content.content)
+            if not checkLengthInRaw(content):
+                await ctx.send("Your content is too long. Consider splitting it into two tags.")
+                return
 
         db[lookup] = TagInfo(
             name.content,
@@ -726,6 +739,11 @@ class Tags(commands.Cog):
         """
 
         content = self.clean_tag_content(content)
+
+        if not checkLengthInRaw(content):
+            await ctx.send("Your content is too long. Consider splitting it into two tags.")
+            return
+
         lookup = name.lower()
         server = ctx.message.guild
         try:

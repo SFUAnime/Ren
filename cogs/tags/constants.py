@@ -9,3 +9,4 @@ DUMP_IN = "data/tags/tags.json"
 DUMP_OUT = "data/tags/export.csv"
 
 NO_LIMIT = float("inf")
+MAX_MSG_LEN = 2000

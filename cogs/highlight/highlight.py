@@ -218,9 +218,10 @@ class Highlight(commands.Cog):
                     msg += "{}\n".format(word)
 
                 embed = discord.Embed(description=msg, colour=discord.Colour.red())
-                embed.set_author(
-                    name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url
-                )
+                if ctx.message.author.avatar:
+                    embed.set_author(
+                        name=ctx.message.author.name, icon_url=ctx.message.author.avatar.url
+                    )
                 try:
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
@@ -335,7 +336,8 @@ class Highlight(commands.Cog):
 
                 embed = discord.Embed(description=msg, colour=discord.Colour.red())
                 embed.title = "Blacklisted users on {}".format(ctx.message.guild.name)
-                embed.set_author(name=userName, icon_url=ctx.message.author.avatar_url)
+                if ctx.message.author.avatar:
+                    embed.set_author(name=userName, icon_url=ctx.message.author.avatar.url)
                 try:
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
@@ -424,9 +426,10 @@ class Highlight(commands.Cog):
                     msg += "{}\n".format(word)
 
                 embed = discord.Embed(description=msg, colour=discord.Colour.red())
-                embed.set_author(
-                    name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url
-                )
+                if ctx.message.author.avatar:
+                    embed.set_author(
+                        name=ctx.message.author.name, icon_url=ctx.message.author.avatar.url
+                    )
                 try:
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:
@@ -547,9 +550,10 @@ class Highlight(commands.Cog):
                 for channelId in removedChannels:
                     channelList.remove(channelId)
                 embed = discord.Embed(description=msg, colour=discord.Colour.red())
-                embed.set_author(
-                    name=ctx.message.author.name, icon_url=ctx.message.author.avatar_url
-                )
+                if ctx.message.author.avatar:
+                    embed.set_author(
+                        name=ctx.message.author.name, icon_url=ctx.message.author.avatar.url
+                    )
                 try:
                     await ctx.message.author.send(embed=embed)
                 except discord.Forbidden:

@@ -7,7 +7,7 @@ import time  # To auto remove birthday role on the next day.
 import asyncio
 from datetime import date, datetime, timedelta
 import discord
-import typing
+from typing import Union
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
@@ -22,9 +22,7 @@ class Birthday(commands.Cog):
     """Adds a role to someone on their birthday, and automatically remove them
     from this role after the day is over."""
 
-    # Class constructor
-    def __init__(self, bot: Red):
-        self.bot = bot
+    def initializeConfigAndLogger(self):
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         # Register default (empty) settings.
         self.config.register_guild(**BASE_GUILD)
@@ -41,9 +39,21 @@ class Birthday(commands.Cog):
             )
             self.logger.addHandler(handler)
 
+    def initializeBgTask(self):
         # On cog load, we want the loop to run once.
         self.lastChecked = datetime.now() - timedelta(days=1)
         self.bgTask = self.bot.loop.create_task(self.birthdayLoop())
+
+    # Class constructor
+    def __init__(self, bot: Red):
+        self.bot = bot
+        self.bgTask: asyncio.Task = None
+        self.config: Config = None
+        self.lastChecked: datetime = None
+        self.logger: logging.Logger = None
+
+        self.initializeConfigAndLogger()
+        self.initializeBgTask()
 
     # Cancel the background task on cog unload.
     def __unload(self):  # pylint: disable=invalid-name
@@ -127,7 +137,11 @@ class Birthday(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addMemberBirthday(
-        self, ctx: Context, member: discord.Member, *, birthday: MonthDayConverter = None
+        self,
+        ctx: Context,
+        member: discord.Member,
+        *,
+        birthday: MonthDayConverter = None,
     ):
         """Add a user's birthday to the list.
 
@@ -153,14 +167,10 @@ class Birthday(commands.Cog):
             )
             return
 
-        # Check if both the inputs are empty, for this case set the birthday as current day
-        # If one of the parameters are missing, then send error message
         if not birthday:
-            day = int(time.strftime("%d"))
-            month = int(time.strftime("%m"))
-        else:
-            day = birthday.day
-            month = birthday.month
+            birthday = datetime.today()
+        day = birthday.day
+        month = birthday.month
 
         def check(msg: discord.Message):
             return msg.author == ctx.author and msg.channel == ctx.channel
@@ -417,6 +427,16 @@ class Birthday(commands.Cog):
         fnTitle = "Birthday - Get Self's Birthday"
         headerBad = f":negative_squared_cross_mark: {bold(fnTitle)}"
         headerGood = f":white_check_mark: {bold(fnTitle)}"
+        headerWarn = warning(bold(fnTitle))
+        noDmStr = "\n".join(
+            (
+                f"{headerWarn}: I would like to DM you your birthday but it seeems that "
+                "you have disabled DMs from this server. Would you still like to continue here? "
+                "Your birthday will be sent here and deleted after a short delay. ",
+                f"Type {bold('`yes`', escape_formatting=False)} to confirm. ",
+                "Anything else will be treated as no.",
+            )
+        )
 
         birthdayConfig = self.config.member(ctx.author)
         if birthdayConfig:
@@ -427,12 +447,32 @@ class Birthday(commands.Cog):
                 if month and day:
                     birthday = date(2020, month, day)
                     birthdayStr = "{0:%B} {0:%d}".format(birthday)
-                    await ctx.author.send(
+                    birthdayInfoMsg = (
                         f"{headerGood}: Your birthday is "
                         f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
                     )
-                    return
+                    try:
+                        await ctx.author.send(birthdayInfoMsg)
+                        return
+                    except discord.Forbidden:
+                        await ctx.send(noDmStr)
 
+                        def check(msg: discord.Message):
+                            return msg.author == ctx.author and msg.channel == ctx.channel
+
+                        try:
+                            response = await self.bot.wait_for(
+                                "message", timeout=30.0, check=check
+                            )
+                        except asyncio.TimeoutError:
+                            await ctx.send(f"{headerBad}: No response detected. Aborting.")
+                            return
+
+                        if response.content.lower() != "yes":
+                            await ctx.send(f"{headerBad}: Aborting.")
+                            return
+                        await ctx.send(birthdayInfoMsg, delete_after=5)
+                        return
         setSelfBirthdayCmd: commands.Command = self.setSelfBirthday
         helpSetSelfBirthdayCmdStr = (
             # pylint: disable=no-member
@@ -504,56 +544,101 @@ class Birthday(commands.Cog):
             return
 
         birthdayStr = "{0:%B} {0:%d}".format(birthday)
-
         if birthdayConfig:
-            confirmationStr = (
-                f"Are you sure you want to set your birthday to "
-                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}? "
-                "Only administrators and moderators can reset your birthday afterwards. "
-                f"Type {bold('`yes`', escape_formatting=False)} to confirm."
-            )
 
-            await ctx.author.send(f"{headerWarn}: {confirmationStr}")
-
-            def check(msg: discord.Message):
-                return msg.author == ctx.author and msg.channel == ctx.author.dm_channel
-
-            try:
-                response = await self.bot.wait_for("message", timeout=30.0, check=check)
-            except asyncio.TimeoutError:
-                # hide the birthday portion within the previous message
-                await ctx.author.send(
-                    f"{headerBad}: You took too long. Not setting your birthday."
+            async def mainFlow(channel: discord.TextChannel, carefree: bool = False):
+                confirmationStr = "\n".join(
+                    (
+                        f"Are you sure you want to set your birthday to "
+                        f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}? "
+                        "Only administrators and moderators can reset your birthday afterwards.",
+                        f"Type {bold('`yes`', escape_formatting=False)} to confirm.",
+                    )
                 )
+                # define the time for sensitive messages to live for
+                SENSITIVE_MSG_TTL = None if carefree else 5.0
+                try:
+                    await channel.send(
+                        f"{headerWarn}: {confirmationStr}",
+                        delete_after=SENSITIVE_MSG_TTL,
+                    )
+                except discord.Forbidden:
+                    # this means messages cannot be sent to the the destination channel
+                    # so we abort the flow now by re-raising the exception
+                    # and the caller shall handle it gracefully
+                    raise
+
+                # wait for answer
+                def check(msg: discord.Message):
+                    return msg.author == ctx.author and msg.channel == channel
+
+                # define response wait time
+                responseTimeout = SENSITIVE_MSG_TTL + 1 if SENSITIVE_MSG_TTL else 30
+                try:
+                    response = await self.bot.wait_for(
+                        "message", timeout=responseTimeout, check=check
+                    )
+                except asyncio.TimeoutError:
+                    await channel.send(
+                        f"{headerBad}: You took too long. Not setting your birthday."
+                    )
+                    return
+
+                if response.content.lower() != "yes":
+                    await channel.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    return
+
+                # Set birthday and notify user that their birthday has been set
+                await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
+                await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
+                await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+
+                await channel.send(
+                    f"{headerGood}: Successfully set your birthday to "
+                    f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}.",
+                    delete_after=SENSITIVE_MSG_TTL,
+                )
+
+                self.logger.info(
+                    "%s#%s (%s) added their birthday as %s",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    birthdayStr,
+                )
+
+                # explicitly check to see if the role should be applied to the user
+                # if the month and day just so happen to be the same as it is now.
+                await self.checkBirthday()
                 return
 
-            if response.content.lower() != "yes":
-                await ctx.author.send(f"{headerBad}: Declined. Not setting your birthday.")
+            noDmStr = "\n".join(
+                (
+                    "You have disabled DMs from this server. Would you "
+                    "still like to continue here? All messages containing your "
+                    "birthday will be deleted after a short delay.",
+                    f"Type {bold('`yes`', escape_formatting=False)} to confirm.",
+                )
+            )
+            try:
+                await mainFlow(ctx.author.dm_channel, carefree=True)
                 return
+            except discord.Forbidden:
+                await ctx.send(noDmStr)
 
-            await birthdayConfig.get_attr(KEY_BDAY_MONTH).set(birthday.month)
-            await birthdayConfig.get_attr(KEY_BDAY_DAY).set(birthday.day)
-            await birthdayConfig.get_attr(KEY_ADDED_BEFORE).set(True)
+                def check(msg: discord.Message):
+                    return msg.author == ctx.author and msg.channel == ctx.channel
 
-            await ctx.author.send(
-                f"{headerGood}: Successfully set your birthday to "
-                f"{spoiler(bold(birthdayStr, escape_formatting=False), escape_formatting=False)}."
-            )
+                try:
+                    response = await self.bot.wait_for("message", timeout=10.0, check=check)
+                except asyncio.TimeoutError:
+                    await ctx.send(f"{headerBad}: You took too long. Not setting your birthday.")
+                    return
 
-            self.logger.info(
-                "%s#%s (%s) added their birthday as %s",
-                ctx.author.name,
-                ctx.author.discriminator,
-                ctx.author.id,
-                birthdayStr,
-            )
-
-            # explicitly check to see if user should be added to role, if the month
-            # and day just so happen to be the same as it is now.
-            await self.checkBirthday()
-            return
-
-        raise Exception("Error while accessing member's birthday config. This should not happen!")
+                if response.content.lower() != "yes":
+                    await ctx.send(f"{headerBad}: Declined. Not setting your birthday.")
+                    return
+                await mainFlow(ctx.channel, carefree=False)
 
     @_birthday.command(name="selfbirthday")
     @commands.guild_only()
@@ -586,6 +671,23 @@ class Birthday(commands.Cog):
             await allowSelfBirthdayConfig.set(True)
             await ctx.send(msgAllow)
 
+    def getBirthdayMessage(self, member: discord.Member) -> str:
+        """Get the birthday message.
+
+        Parameters
+        ----------
+        member: discord.Member
+            The member that we want the birthday message for.
+
+        Returns
+        -------
+        str
+            The birthday message, already formatted.
+        """
+        if self.bot.user.id == member.id:
+            return BOT_BIRTHDAY_MSG
+        return choice(CANNED_MESSAGES).format(member.mention)
+
     async def checkBirthday(self):
         """Check birthday list once."""
         await self._dailySweep()
@@ -593,6 +695,9 @@ class Birthday(commands.Cog):
 
     async def birthdayLoop(self):
         """The main event loop that will call the add and sweep methods."""
+        self.logger.info("Waiting for bot to be ready")
+        await self.bot.wait_until_red_ready()
+        self.logger.info("Bot is ready")
         while self == self.bot.get_cog("Birthday"):
             if self.lastChecked.day != datetime.now().day:
                 self.lastChecked = datetime.now()
@@ -719,8 +824,8 @@ class Birthday(commands.Cog):
                             if not channel:
                                 continue
                             try:
-                                msg = choice(CANNED_MESSAGES)
-                                await channel.send(msg.format(member.mention))
+                                msg = self.getBirthdayMessage(member)
+                                await channel.send(msg)
                             except discord.Forbidden:
                                 self.logger.error(
                                     "Could not send message!",
