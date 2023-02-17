@@ -667,12 +667,27 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             os.remove(os.path.join(self.img_dir, img_name));
         except:
             await ctx.reply(
-                "the named picture doesn't exist"
+                "the named image doesn't exist"
             )
 
         await ctx.reply(
-            "the named picture doesn't exist"
+            "the named image doesn't exist"
         )
+
+    # [p]welcomeset greetings image view
+    @image.command(name="view")
+    async def showImg(self, ctx: Context, img_name: str):
+        '''shows the named image from the image pool if it exists'''
+        try:
+            await channel.send(message, file=discord.File(os.path.join(self.img_dir, img_name)))
+        except:
+            await ctx.reply(
+                "the named image doesn't exist"
+            )
+
+    
+
+
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
