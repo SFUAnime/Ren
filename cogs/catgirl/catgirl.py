@@ -106,7 +106,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def catgirlCmd(self, ctx):
         """Displays a random, cute catgirl :3"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await ctx.channel.trigger_typing()
+        await ctx.channel.typing()
         nekoToggle = await self.config.guild(ctx.guild).waifuneko()
 
         if nekoToggle:
@@ -129,7 +129,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def catboyCmd(self, ctx):
         """This command says it all (database still WIP)"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await ctx.channel.trigger_typing()
+        await ctx.channel.typing()
 
         embed = getImage(self.catboys, "Catboy")
 
@@ -215,7 +215,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def local(self, ctx):
         """Displays a random, cute catgirl from the local database."""
         # Send typing indicator, useful for when Discord explicit filter is on.
-        await ctx.channel.trigger_typing()
+        await ctx.channel.typing()
 
         embed = getImage(self.catgirlsLocal, "Catgirl")
 
@@ -230,7 +230,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def trap(self, ctx):
         """Say no more fam, gotchu covered ;)"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await ctx.channel.trigger_typing()
+        await ctx.channel.typing()
 
         embed = getImage(self.catgirlsLocalTrap, "Nekomimi")
 
@@ -307,7 +307,7 @@ class Catgirl(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def toggle(self, ctx):
         """Toggle using waifu.pics API"""
         # Send typing indicator, useful when Discord explicit filter is on.
-        await ctx.channel.trigger_typing()
+        await ctx.channel.typing()
 
         waifuneko_val = await self.config.guild(ctx.guild).waifuneko()
         await self.config.guild(ctx.guild).waifuneko.set(False if waifuneko_val else True)

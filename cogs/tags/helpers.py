@@ -1,10 +1,23 @@
 from typing import List
 
-from .constants import COLOUR_BLURPLE
+from .constants import COLOUR_BLURPLE, MAX_MSG_LEN
 from .data import TagAlias, TagInfo
 
 import discord
 from redbot.core.utils import AsyncIter, chat_formatting
+
+
+def checkLengthInRaw(content: str) -> bool:
+    """Checks if the length of the specified content with markdown escaped
+    exceeds Discord's max message length or not.
+
+    Returns
+    -------
+    bool
+        False if the content length exceeds Discord's max message length
+        when all markdown characters are escape, and True otherwise.
+    """
+    return len(discord.utils.escape_markdown(content)) <= MAX_MSG_LEN
 
 
 async def createSimplePages(
@@ -51,7 +64,7 @@ async def createSimplePages(
         if embedAuthor:
             embed.set_author(
                 name=embedAuthor.display_name,
-                icon_url=embedAuthor.avatar_url or embedAuthor.default_avatar_url,
+                icon_url=embedAuthor.display_avatar.url,
             )
         pageList.append(embed)
 

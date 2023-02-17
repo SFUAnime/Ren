@@ -1,5 +1,5 @@
 from .heist import Heist
 
 
-def setup(bot):
-    bot.add_cog(Heist(bot))
+async def setup(bot):
+    await bot.add_cog(Heist(bot))

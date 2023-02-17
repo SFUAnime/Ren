@@ -23,7 +23,7 @@ def checkFolders():
         os.makedirs(LOG_FOLDER)
 
 
-def setup(bot: Red):
+async def setup(bot: Red):
     """Add the cog to the bot."""
     highlightCog = Highlight(bot)
-    bot.add_cog(highlightCog)
+    await bot.add_cog(highlightCog)

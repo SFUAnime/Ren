@@ -227,7 +227,7 @@ class Heist(commands.Cog):
             await ctx.send("Target creation cancelled.")
             return
 
-        if vault_max.content.isdigit() and int(vault_max.content) >= ((2 ** 64) - 1):
+        if vault_max.content.isdigit() and int(vault_max.content) >= ((2**64) - 1):
             return await ctx.send("Number is too high, canceling target creation.")
 
         await ctx.send("What is the individual chance of success for this target? 1-100")
