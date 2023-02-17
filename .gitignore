@@ -17,7 +17,7 @@ Pipfile.lock
 .vscode/
 *.sublime-project
 *.sublime-workspace
-
+.vs
 ## Plugin-specific files:
 
 # IntelliJ

@@ -36,6 +36,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
         self.img_dir = self.data_dir/WELCOME_IMG_FOLDER
+        self.bundled_assets = data_manager.bundled_data_path(self)
 
         # create folder to hold welcome images
         try:
@@ -338,7 +339,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     async def generateRandWelcomeImg(self, user):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
-        base = Image.open(os.path.join(self.img_dir, random.choice(os.listdir(self.img_dir))))
+        base = Image.open(self.img_dir/random.choice(os.listdir(self.img_dir))
         mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
         border_overlay = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png")
