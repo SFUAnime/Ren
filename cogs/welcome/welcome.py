@@ -1,7 +1,6 @@
 """Welcome cog
 Sends welcome DMs to users that join the server.
 """
-
 import asyncio
 import discord
 import logging
@@ -9,6 +8,7 @@ import random
 import aiohttp
 import os
 import io
+
 from PIL import Image, ImageChops, ImageOps
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.bot import Red
@@ -35,14 +35,17 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         self.config.register_guild(**DEFAULT_GUILD)
 
         self.data_dir = data_manager.cog_data_path(cog_instance=self)
-        self.img_dir = self.data_dir/WELCOME_IMG_FOLDER
+        self.img_dir = self.data_dir / WELCOME_IMG_FOLDER
         self.bundled_assets = data_manager.bundled_data_path(self)
 
         # create folder to hold welcome images
         try:
             self.img_dir.mkdir(parents=True, exist_ok=True)
         except OSError as error:
-            pass
+            LOGGER.error(
+                "Could not create folder for images!",
+                exc_info=True,
+            )
 
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
@@ -163,6 +166,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         isSet = await self.config.guild(guild).get_attr(KEY_WELCOME_CHANNEL_ENABLED)()
         # if channel isn't set
         if not isSet:
+            print("not set")
             return
         channel = discord.utils.get(guild.channels, id=channelID)
 
@@ -339,13 +343,15 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     async def generateRandWelcomeImg(self, user):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
-        base = Image.open(self.img_dir/random.choice(os.listdir(self.img_dir))
-        mask = Image.open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "MASK.png"))
+        base = Image.open(self.img_dir / random.choice(os.listdir(self.img_dir)))
+        mask = Image.open(
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "MASK.png")
+        )
         border_overlay = Image.open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER.png")
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER.png")
         )
         border_overlay_mask = Image.open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "BORDER_mask.png")
+            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER_mask.png")
         )
         # get avatar from User
         avatar: bytes
@@ -353,9 +359,8 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         # a header to successfully download user avatars for use
         used_headers = {"User-agent": "Mozilla/5.0"}
 
-
         try:
-            async with session.get(str(user.avatar_url), headers= used_headers) as webp:
+            async with session.get(str(user.avatar.url), headers=used_headers) as webp:
                 avatar = await webp.read()
         except aiohttp.ClientResponseError:
             pass
@@ -365,7 +370,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 base.close()
                 mask.close()
                 border_overlay.close()
-                border_overlay_mask.close()                
+                border_overlay_mask.close()
                 return
             else:
                 retrieved_avatar = retrieved_avatar.resize((325, 325), 1)
@@ -542,14 +547,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             elif guildData[KEY_TOGGLE_RANDOM_MSG] == False:
                 # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
                 if len(os.listdir(self.img_dir)) < 1:
-                    await ctx.send(
-                        "Add at least one before turning the randomiser on"
-                    )
+                    await ctx.send("Add at least one image before turning the randomiser on")
                     return
 
                 guildData[KEY_TOGGLE_RANDOM_MSG] = True
 
-            await ctx.send(f'Sending randomised welcome image: {guildData["KEY_TOGGLE_RANDOM_MSG"]}')
+            await ctx.send(f"Sending randomised welcome image: {guildData[KEY_TOGGLE_RANDOM_MSG]}")
 
     # [p]welcomeset greetings add
     @greetings.command(name="add")
@@ -617,11 +620,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         await greeting.add_reaction("✅")
         await self.config.guild(ctx.guild).get_attr(key).set(greetings)
         return
-      
+
     # [p]welcomeset greetings image
     @greetings.group(name="image")
     async def image(self, ctx: Context):
-        '''Base command for the image command group'''
+        """Base command for the image command group"""
         pass
 
     # [p]welcomeset greetings image add
@@ -634,16 +637,19 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         """
         file_name = "{}.png"
-        try:
-            img_path = os.path.join(self.img_dir, file_name.format(name))
-        except:
-            num_pictures = len(os.listdir(self.img_dir))
-            img_path = os.path.join(self.img_dir, file_name.format(name))
+        fp = os.path.join(self.img_dir, file_name.format(name))
+
+        if os.path.exists(fp):
+            await ctx.reply(
+                "This name is already in use! For ease of management, please use another name."
+            )
+            return
 
         image = None
         if len(ctx.message.attachments) == 1:
             image = ctx.message.attachments[0]
-            await image.save(img_path)
+            await image.save(fp)
+
         else:
             await ctx.reply(
                 "You need to attach exactly 1 image in the message that uses this command"
@@ -651,9 +657,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             return
 
         # Performing necessary checks to ensure that this base can produce a good generated image
-        temp = Image.open(img_path)
+        temp = Image.open(fp)
         temp_resize = temp.resize((1193, 671), 2)
-        temp_resize.save(img_path, dpi=(72, 72))
+        temp_resize.save(fp, dpi=(72, 72))
 
         # alert user that their image has been added
         await ctx.reply("Image added")
@@ -661,33 +667,42 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings image remove
     @image.command(name="remove")
     async def imgRemove(self, ctx: Context, img_name: str):
-        '''Removes the specified image from the pool'''
-
+        """Removes the specified image from the pool"""
+        file_name = "{}.png"
         try:
-            os.remove(os.path.join(self.img_dir, img_name));
+            os.remove(os.path.join(self.img_dir, file_name.format(img_name)))
         except:
-            await ctx.reply(
-                "the named image doesn't exist"
-            )
+            await ctx.reply("the named image doesn't exist")
+            return
 
-        await ctx.reply(
-            "the named image doesn't exist"
-        )
+        if len(os.listdir(self.img_dir)) == 0:
+            async with self.config.guild(ctx.guild).all() as guildData:
+                guildData[KEY_TOGGLE_RANDOM_MSG] = False
+            await ctx.reply("Last image deleted. Image randomiser turned off.")
+
+        await ctx.reply("Image sucessfully removed")
 
     # [p]welcomeset greetings image view
     @image.command(name="view")
     async def showImg(self, ctx: Context, img_name: str):
-        '''shows the named image from the image pool if it exists'''
+        """shows the named image from the image pool if it exists"""
+        file_name = "{}.png"
         try:
-            await channel.send(message, file=discord.File(os.path.join(self.img_dir, img_name)))
-        except:
-            await ctx.reply(
-                "the named image doesn't exist"
+            await ctx.send(
+                img_name + ":",
+                file=discord.File(os.path.join(self.img_dir, file_name.format(img_name))),
             )
+        except:
+            await ctx.reply("the named image doesn't exist")
 
-    
-
-
+    # [p]welcomeset greetings image list
+    @image.command(name="list")
+    async def listImg(self, ctx: Context):
+        listOfImages = "\n".join(os.listdir(self.img_dir))
+        if len(listOfImages) == 0:
+            await ctx.reply("No images added yet.")
+            return
+        await ctx.reply(listOfImages.replace(".png", ""))
 
     # [p]welcomeset greetings channelset
     @greetings.group(name="channelset", aliases=["channelconfig", "chconfig", "chset"])
