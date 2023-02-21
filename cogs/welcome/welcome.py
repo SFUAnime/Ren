@@ -385,6 +385,20 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 border_overlay_mask.close()
                 return generated
 
+    async def ensureCurrentServerHasImgCache(self, guild_id):
+        """
+        given a guild ID, checks if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
+        """
+        id_str = str(guild_id)
+        try:
+            os.path.join(self.img_dir, id_str).mkdir(parents=True, exist_ok=True)
+        except OSError as info:
+            LOGGER.info(
+                "No folder for given server ID found. Created folder for server: " + id_str,
+                exc_info=True,
+            )
+        pass
+
     ####################
     # MESSAGE COMMANDS #
     ####################
@@ -636,8 +650,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         Additionally automatically makes the sent image conform to the dimensions and dpi that's been tested for: 72dpi, 1193x671. Mileage may vary
 
         """
+        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
         file_name = "{}.png"
-        fp = os.path.join(self.img_dir, file_name.format(name))
+        fp = os.path.join(self.img_dir, str(ctx.channel.guild.id), file_name.format(name))
 
         if os.path.exists(fp):
             await ctx.reply(
@@ -662,20 +677,23 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         temp_resize.save(fp, dpi=(72, 72))
 
         # alert user that their image has been added
-        await ctx.reply("Image added")
+        await ctx.reply("Image added to this server's image cache")
 
     # [p]welcomeset greetings image remove
     @image.command(name="remove")
     async def imgRemove(self, ctx: Context, img_name: str):
         """Removes the specified image from the pool"""
+        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
         file_name = "{}.png"
         try:
-            os.remove(os.path.join(self.img_dir, file_name.format(img_name)))
+            os.remove(
+                os.path.join(self.img_dir, str(ctx.channel.guild.id), file_name.format(img_name))
+            )
         except:
             await ctx.reply("the named image doesn't exist")
             return
 
-        if len(os.listdir(self.img_dir)) == 0:
+        if len(os.listdir(os.path.join(self.img_dir, str(ctx.channel.guild.id)))) == 0:
             async with self.config.guild(ctx.guild).all() as guildData:
                 guildData[KEY_TOGGLE_RANDOM_MSG] = False
             await ctx.reply("Last image deleted. Image randomiser turned off.")
@@ -686,11 +704,16 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @image.command(name="view")
     async def showImg(self, ctx: Context, img_name: str):
         """shows the named image from the image pool if it exists"""
+        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
         file_name = "{}.png"
         try:
             await ctx.send(
                 img_name + ":",
-                file=discord.File(os.path.join(self.img_dir, file_name.format(img_name))),
+                file=discord.File(
+                    os.path.join(
+                        self.img_dir, str(ctx.channel.guild.id), file_name.format(img_name)
+                    )
+                ),
             )
         except:
             await ctx.reply("the named image doesn't exist")
@@ -698,7 +721,9 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings image list
     @image.command(name="list")
     async def listImg(self, ctx: Context):
-        listOfImages = "\n".join(os.listdir(self.img_dir))
+        """Displays a list of all the images in this server's image cache"""
+        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
+        listOfImages = "\n".join(os.listdir(os.path.join(self.img_dir, str(ctx.channel.guild.id))))
         if len(listOfImages) == 0:
             await ctx.reply("No images added yet.")
             return
