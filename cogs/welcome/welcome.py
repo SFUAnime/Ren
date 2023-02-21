@@ -649,6 +649,16 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Base command for the image command group"""
         pass
 
+    # [p]welcomeset greetings image template
+    @image.command(name="template")
+    async def imageTemplate(self, ctx: Context):
+        await ctx.send(
+            "Here is the welcome image template so you can make your own! For best results please render the image at 72dpi, 1193 x 671. The bot will try to make it conform automatically but mileage may vary.",
+            file=discord.File(
+                os.path.join(data_manager.bundled_data_path(self), "welcome_template.png")
+            ),
+        )
+
     # [p]welcomeset greetings image add
     @image.command(name="add")
     async def imgAdd(self, ctx: Context, name: str):
