@@ -34,13 +34,13 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         self.config.register_guild(**DEFAULT_GUILD)
 
-        self.data_dir = data_manager.cog_data_path(cog_instance=self)
-        self.img_dir = self.data_dir / WELCOME_IMG_FOLDER
+        self.dataDir = data_manager.cog_data_path(cog_instance=self)
+        self.imgDir = self.dataDir / WELCOME_IMG_FOLDER
         self.bundled_assets = data_manager.bundled_data_path(self)
 
         # create folder to hold welcome images
         try:
-            self.img_dir.mkdir(parents=True, exist_ok=True)
+            self.imgDir.mkdir(parents=True, exist_ok=True)
         except OSError as error:
             LOGGER.error(
                 "Could not create folder for images!",
@@ -343,24 +343,24 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     async def generateRandWelcomeImg(self, user):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
-        base = Image.open(self.img_dir / random.choice(os.listdir(self.img_dir)))
+        base = Image.open(self.imgDir / random.choice(os.listdir(self.imgDir)))
         mask = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "MASK.png")
         )
-        border_overlay = Image.open(
+        borderOverlay = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER.png")
         )
-        border_overlay_mask = Image.open(
+        borderOverlayMask = Image.open(
             os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER_mask.png")
         )
         # get avatar from User
         avatar: bytes
         session = aiohttp.ClientSession()
         # a header to successfully download user avatars for use
-        used_headers = {"User-agent": "Mozilla/5.0"}
+        usedHeader = {"User-agent": "Mozilla/5.0"}
 
         try:
-            async with session.get(str(user.avatar.url), headers=used_headers) as webp:
+            async with session.get(str(user.avatar.url), headers=usedHeader) as webp:
                 avatar = await webp.read()
         except aiohttp.ClientResponseError:
             pass
@@ -369,32 +369,32 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             if not retrieved_avatar:
                 base.close()
                 mask.close()
-                border_overlay.close()
-                border_overlay_mask.close()
+                borderOverlay.close()
+                borderOverlayMask.close()
                 return
             else:
                 retrieved_avatar = retrieved_avatar.resize((325, 325), 1)
-                base.paste(border_overlay, (434, 0), border_overlay_mask)
+                base.paste(borderOverlay, (434, 0), borderOverlayMask)
                 base.paste(retrieved_avatar, (434, 0), mask)
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
                 base.close()
                 mask.close()
-                border_overlay.close()
-                border_overlay_mask.close()
+                borderOverlay.close()
+                borderOverlayMask.close()
                 return generated
 
     async def ensureCurrentServerHasImgCache(self, guild_id):
         """
         given a guild ID, checks if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
         """
-        id_str = str(guild_id)
+        idStr = str(guild_id)
         try:
-            os.path.join(self.img_dir, id_str).mkdir(parents=True, exist_ok=True)
+            os.path.join(self.imgDir, idStr).mkdir(parents=True, exist_ok=True)
         except OSError as info:
             LOGGER.info(
-                "No folder for given server ID found. Created folder for server: " + id_str,
+                "No folder for given server ID found. Created folder for server: " + idStr,
                 exc_info=True,
             )
         pass
@@ -560,7 +560,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 guildData[KEY_TOGGLE_RANDOM_MSG] = False
             elif guildData[KEY_TOGGLE_RANDOM_MSG] == False:
                 # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
-                if len(os.listdir(self.img_dir)) < 1:
+                if len(os.listdir(self.imgDir)) < 1:
                     await ctx.send("Add at least one image before turning the randomiser on")
                     return
 
@@ -652,7 +652,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """
         self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
         file_name = "{}.png"
-        fp = os.path.join(self.img_dir, str(ctx.channel.guild.id), file_name.format(name))
+        fp = os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name.format(name))
 
         if os.path.exists(fp):
             await ctx.reply(
@@ -687,13 +687,13 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         file_name = "{}.png"
         try:
             os.remove(
-                os.path.join(self.img_dir, str(ctx.channel.guild.id), file_name.format(img_name))
+                os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name.format(img_name))
             )
         except:
             await ctx.reply("the named image doesn't exist")
             return
 
-        if len(os.listdir(os.path.join(self.img_dir, str(ctx.channel.guild.id)))) == 0:
+        if len(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id)))) == 0:
             async with self.config.guild(ctx.guild).all() as guildData:
                 guildData[KEY_TOGGLE_RANDOM_MSG] = False
             await ctx.reply("Last image deleted. Image randomiser turned off.")
@@ -711,7 +711,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 img_name + ":",
                 file=discord.File(
                     os.path.join(
-                        self.img_dir, str(ctx.channel.guild.id), file_name.format(img_name)
+                        self.imgDir, str(ctx.channel.guild.id), file_name.format(img_name)
                     )
                 ),
             )
@@ -723,7 +723,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def listImg(self, ctx: Context):
         """Displays a list of all the images in this server's image cache"""
         self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
-        listOfImages = "\n".join(os.listdir(os.path.join(self.img_dir, str(ctx.channel.guild.id))))
+        listOfImages = "\n".join(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id))))
         if len(listOfImages) == 0:
             await ctx.reply("No images added yet.")
             return
