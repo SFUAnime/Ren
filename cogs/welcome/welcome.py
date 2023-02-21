@@ -344,14 +344,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def generateRandWelcomeImg(self, user):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
         base = Image.open(self.imgDir / random.choice(os.listdir(self.imgDir)))
-        mask = Image.open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "MASK.png")
-        )
+        mask = Image.open(os.path.join(data_manager.bundled_data_path, "data", "MASK.png"))
         borderOverlay = Image.open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER.png")
+            os.path.join(data_manager.bundled_data_path, "data", "BORDER.png")
         )
         borderOverlayMask = Image.open(
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "data", "BORDER_mask.png")
+            os.path.join(data_manager.bundled_data_path, "data", "BORDER_mask.png")
         )
         # get avatar from User
         avatar: bytes
