@@ -40,7 +40,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         # create folder to hold welcome images
         try:
-            self.imgDir.mkdir(parents=True, exist_ok=True)
+            os.makedirs(self.imgDir, exist_ok=True)
         except OSError as error:
             LOGGER.error(
                 "Could not create folder for images!",
@@ -179,7 +179,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         message = rawMessage.replace("{USER}", newUser.mention)
 
         try:
-            img = await self.generateRandWelcomeImg(newUser)
+            img = await self.generateRandWelcomeImg(newUser, newUser.guild)
             if await self.config.guild(guild).get_attr(KEY_TOGGLE_RANDOM_MSG)():
                 await channel.send(message, file=discord.File(img, filename="generated.png"))
             else:
@@ -341,15 +341,19 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     leaveUser.id,
                 )
 
-    async def generateRandWelcomeImg(self, user):
+    async def generateRandWelcomeImg(self, user, guild):
         """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
-        base = Image.open(self.imgDir / random.choice(os.listdir(self.imgDir)))
-        mask = Image.open(os.path.join(data_manager.bundled_data_path, "data", "MASK.png"))
+        base = Image.open(
+            self.imgDir
+            / str(guild.id)
+            / random.choice(os.listdir(os.path.join(self.imgDir, str(guild.id))))
+        )
+        mask = Image.open(os.path.join(data_manager.bundled_data_path(self), "MASK.png"))
         borderOverlay = Image.open(
-            os.path.join(data_manager.bundled_data_path, "data", "BORDER.png")
+            os.path.join(data_manager.bundled_data_path(self), "BORDER.png")
         )
         borderOverlayMask = Image.open(
-            os.path.join(data_manager.bundled_data_path, "data", "BORDER_mask.png")
+            os.path.join(data_manager.bundled_data_path(self), "BORDER_mask.png")
         )
         # get avatar from User
         avatar: bytes
@@ -383,19 +387,24 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 borderOverlayMask.close()
                 return generated
 
-    async def ensureCurrentServerHasImgCache(self, guild_id):
+    async def ensureCurrentServerHasImgCache(self, channel):
         """
-        given a guild ID, checks if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
+        given a channel, checks if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
         """
-        idStr = str(guild_id)
+        idStr = str(channel.guild.id)
+        fp = os.path.join(self.imgDir, idStr)
+        if os.path.exists(fp):
+            return
+
         try:
-            os.path.join(self.imgDir, idStr).mkdir(parents=True, exist_ok=True)
+            os.makedirs(fp, exist_ok=True)
+            await channel.send("No image cache folder found for this server! Created one")
+
         except OSError as info:
             LOGGER.info(
                 "No folder for given server ID found. Created folder for server: " + idStr,
                 exc_info=True,
             )
-        pass
 
     ####################
     # MESSAGE COMMANDS #
@@ -553,13 +562,14 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @greetings.command(name="toggleimg")
     async def toggleImg(self, ctx: Context):
         """Toggles the random image on and off"""
+        await self.ensureCurrentServerHasImgCache(ctx.channel)
         toggleImgConfig = self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_RANDOM_MSG)
         randomImageEnabled = await toggleImgConfig()
 
         if randomImageEnabled:
             await toggleImgConfig.set(False)
         else:
-            if len(os.listdir(self.imgDir)) < 1:
+            if len(os.listdir(os.path.join(self.imgDir, str(ctx.guild.id)))) < 1:
                 await ctx.send("Add at least one image before turning the randomiser on")
                 return
             await toggleImgConfig.set(True)
@@ -648,7 +658,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         Additionally automatically makes the sent image conform to the dimensions and dpi that's been tested for: 72dpi, 1193x671. Mileage may vary
 
         """
-        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
+        await self.ensureCurrentServerHasImgCache(ctx.channel)
         file_name = "{}.png"
         fp = os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name.format(name))
 
@@ -682,7 +692,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @image.command(name="remove")
     async def imgRemove(self, ctx: Context, img_name: str):
         """Removes the specified image from the pool"""
-        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
+        await self.ensureCurrentServerHasImgCache(ctx.channel)
         file_name = "{}.png"
         try:
             os.remove(
@@ -702,7 +712,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @image.command(name="view")
     async def showImg(self, ctx: Context, img_name: str):
         """shows the named image from the image pool if it exists"""
-        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
+        await self.ensureCurrentServerHasImgCache(ctx.channel)
         file_name = "{}.png"
         try:
             await ctx.send(
@@ -720,7 +730,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @image.command(name="list")
     async def listImg(self, ctx: Context):
         """Displays a list of all the images in this server's image cache"""
-        self.ensureCurrentServerHasImgCache(ctx.channel.guild.id)
+        await self.ensureCurrentServerHasImgCache(ctx.channel)
         listOfImages = "\n".join(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id))))
         if len(listOfImages) == 0:
             await ctx.reply("No images added yet.")
