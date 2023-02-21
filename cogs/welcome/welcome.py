@@ -553,18 +553,18 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     @greetings.command(name="toggleimg")
     async def toggleImg(self, ctx: Context):
         """Toggles the random image on and off"""
-        async with self.config.guild(ctx.guild).all() as guildData:
-            if guildData[KEY_TOGGLE_RANDOM_MSG]:
-                guildData[KEY_TOGGLE_RANDOM_MSG] = False
-            elif guildData[KEY_TOGGLE_RANDOM_MSG] == False:
-                # check if there is at least one image in the pool at least, otherwise tell user to add one before enabling
-                if len(os.listdir(self.imgDir)) < 1:
-                    await ctx.send("Add at least one image before turning the randomiser on")
-                    return
+        toggleImgConfig = self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_RANDOM_MSG)
+        randomImageEnabled = await toggleImgConfig()
 
-                guildData[KEY_TOGGLE_RANDOM_MSG] = True
+        if randomImageEnabled:
+            await toggleImgConfig.set(False)
+        else:
+            if len(os.listdir(self.imgDir)) < 1:
+                await ctx.send("Add at least one image before turning the randomiser on")
+                return
+            await toggleImgConfig.set(True)
 
-            await ctx.send(f"Sending randomised welcome image: {guildData[KEY_TOGGLE_RANDOM_MSG]}")
+        await ctx.send(f"Sending randomised welcome image: {await toggleImgConfig()}")
 
     # [p]welcomeset greetings add
     @greetings.command(name="add")
@@ -661,13 +661,14 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         image = None
         if len(ctx.message.attachments) == 1:
             image = ctx.message.attachments[0]
-            await image.save(fp)
 
         else:
             await ctx.reply(
                 "You need to attach exactly 1 image in the message that uses this command"
             )
             return
+
+        await image.save(fp)
 
         # Performing necessary checks to ensure that this base can produce a good generated image
         temp = Image.open(fp)
@@ -692,8 +693,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
             return
 
         if len(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id)))) == 0:
-            async with self.config.guild(ctx.guild).all() as guildData:
-                guildData[KEY_TOGGLE_RANDOM_MSG] = False
+            self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_RANDOM_MSG).set(False)
             await ctx.reply("Last image deleted. Image randomiser turned off.")
 
         await ctx.reply("Image sucessfully removed")
