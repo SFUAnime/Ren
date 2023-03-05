@@ -46,6 +46,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 "Could not create folder for images!",
                 exc_info=True,
             )
+            raise OSError("Could not create folder for images!")
 
     async def getRandomMessage(self, guild: discord.Guild, pool: Optional[GreetingPools] = None):
         """Gets a random message from a greeting pool.
@@ -342,7 +343,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 )
 
     async def generateRandWelcomeImg(self, user, guild):
-        """creates an image for the specific player using their avatar and an image from the random image pool, then returns it"""
+        """create an image for the specific player using their avatar and an image from the random image pool, then returns it"""
         base = Image.open(
             self.imgDir
             / str(guild.id)
@@ -367,17 +368,17 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         except aiohttp.ClientResponseError:
             pass
 
-        with Image.open(io.BytesIO(avatar)) as retrieved_avatar:
-            if not retrieved_avatar:
+        with Image.open(io.BytesIO(avatar)) as retrievedAvatar:
+            if not retrievedAvatar:
                 base.close()
                 mask.close()
                 borderOverlay.close()
                 borderOverlayMask.close()
                 return
             else:
-                retrieved_avatar = retrieved_avatar.resize((325, 325), 1)
+                retrievedAvatar = retrievedAvatar.resize((325, 325), 1)
                 base.paste(borderOverlay, (434, 0), borderOverlayMask)
-                base.paste(retrieved_avatar, (434, 0), mask)
+                base.paste(retrievedAvatar, (434, 0), mask)
                 generated = io.BytesIO()
                 base.save(generated, format="png")
                 generated.seek(0)
@@ -389,7 +390,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
     async def ensureCurrentServerHasImgCache(self, channel):
         """
-        given a channel, checks if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
+        Check if there is a folder in the image cache for the associated server. If one doesn't exist, creates it.
         """
         idStr = str(channel.guild.id)
         fp = os.path.join(self.imgDir, idStr)
@@ -402,7 +403,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         except OSError as info:
             LOGGER.info(
-                "No folder for given server ID found. Created folder for server: " + idStr,
+                "No folder for given server ID found. Created folder for server: %s" % idStr,
                 exc_info=True,
             )
 
@@ -561,7 +562,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings toggleimg
     @greetings.command(name="toggleimg")
     async def toggleImg(self, ctx: Context):
-        """Toggles the random image on and off"""
+        """Toggle the random image on and off"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
         toggleImgConfig = self.config.guild(ctx.guild).get_attr(KEY_TOGGLE_RANDOM_MSG)
         randomImageEnabled = await toggleImgConfig()
@@ -669,8 +670,8 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
 
         """
         await self.ensureCurrentServerHasImgCache(ctx.channel)
-        file_name = "{}.png"
-        fp = os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name.format(name))
+        file_name = f"{name}.png"
+        fp = os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name)
 
         if os.path.exists(fp):
             await ctx.reply(
@@ -703,13 +704,11 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     async def imgRemove(self, ctx: Context, img_name: str):
         """Removes the specified image from the pool"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
-        file_name = "{}.png"
+        file_name = f"{img_name}.png"
         try:
-            os.remove(
-                os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name.format(img_name))
-            )
+            os.remove(os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name))
         except:
-            await ctx.reply("the named image doesn't exist")
+            await ctx.reply("The named image doesn't exist")
             return
 
         if len(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id)))) == 0:
@@ -721,25 +720,21 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # [p]welcomeset greetings image view
     @image.command(name="view")
     async def showImg(self, ctx: Context, img_name: str):
-        """shows the named image from the image pool if it exists"""
+        """Show the named image from the image pool if it exists"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
-        file_name = "{}.png"
+        file_name = f"{img_name}.png"
         try:
             await ctx.send(
                 img_name + ":",
-                file=discord.File(
-                    os.path.join(
-                        self.imgDir, str(ctx.channel.guild.id), file_name.format(img_name)
-                    )
-                ),
+                file=discord.File(os.path.join(self.imgDir, str(ctx.channel.guild.id), file_name)),
             )
         except:
-            await ctx.reply("the named image doesn't exist")
+            await ctx.reply("The named image doesn't exist")
 
     # [p]welcomeset greetings image list
     @image.command(name="list")
     async def listImg(self, ctx: Context):
-        """Displays a list of all the images in this server's image cache"""
+        """Display a list of all the images in this server's image cache"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
         listOfImages = "\n".join(os.listdir(os.path.join(self.imgDir, str(ctx.channel.guild.id))))
         if len(listOfImages) == 0:
