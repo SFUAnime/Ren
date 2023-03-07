@@ -38,7 +38,7 @@ class CommandsCore(Core):
 
         if messages < 1 or messages > 100:
             await ctx.send(
-                ":negative_squared_cross_mark: Please enter a number " "between 1 and 100!"
+                ":negative_squared_cross_mark: Please enter a number between 1 and 100!"
             )
             return
 
@@ -85,7 +85,7 @@ class CommandsCore(Core):
         """
         if seconds < 1 or seconds > 100:
             await ctx.send(
-                ":negative_squared_cross_mark: Please enter a number " "between 1 and 100!"
+                ":negative_squared_cross_mark: Please enter a number between 1 and 100!"
             )
             return
 
