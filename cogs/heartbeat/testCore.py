@@ -58,6 +58,13 @@ async def testLoopBad(
     caplog.clear()
     caplog.set_level(level=logging.ERROR)
 
+    # mock + patch asyncio.sleep:
+    # we do not care about whether the realtime sleep duration has been as expected,
+    # but rather the fact that the loop should have done asyncio.sleep maxFailedPings
+    # times, and should stop due to maxFailedPings fails.
+    mockSleep = mock.AsyncMock()
+    monkeypatch.setattr(target=asyncio, name="sleep", value=mockSleep)
+
     # test
     try:
         await asyncio.wait_for(
@@ -66,6 +73,15 @@ async def testLoopBad(
         )
     except asyncio.TimeoutError:
         pytest.fail(reason="The main loop should have failed, but is still running.")
+
+    assert (
+        mockSleep.await_count == 3 + 1
+    )  # plus 1 because the loop sleeps before checking failed ping count
+
+    for call_args in mockSleep.call_args_list:
+        sleepDuration = call_args.kwargs.get("delay") or call_args.args[0]
+        assert sleepDuration == testInterval
+
     assert (
         caplog.records[-1].getMessage()
         == f"Heartbeat main loop stopped after exceeding {maxFailedPings} failed attempts"
