@@ -75,7 +75,7 @@ async def testLoopBad(
         pytest.fail(reason="The main loop should have failed, but is still running.")
 
     assert (
-        mockSleep.await_count == 3 + 1
+        mockSleep.await_count == maxFailedPings + 1
     )  # plus 1 because the loop sleeps before checking failed ping count
 
     for call_args in mockSleep.call_args_list:
