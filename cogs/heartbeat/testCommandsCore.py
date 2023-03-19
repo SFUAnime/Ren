@@ -10,9 +10,9 @@ from .constants import KEY_INSTANCE_NAME, KEY_INTERVAL, KEY_PUSH_URL, MIN_INTERV
 
 
 def contentFromMockContextSend(ctxSend: mock.Mock):
-    """The value of the `content` argument of `contextSend`.
+    """The value of the `content` argument of `ctxSend`.
 
-    The provided `contextSend` should be a mock object resembling
+    The provided `ctxSend` should be a mock object resembling
     `redbot.core.commands.context.Context.send`.
     """
 
