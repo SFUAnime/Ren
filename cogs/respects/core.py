@@ -1,39 +1,50 @@
-import logging
 import os
 from asyncio import Lock
 from datetime import datetime, timedelta
+from logging import FileHandler, Formatter, Logger, getLogger
+from pathlib import Path
 from random import choice
-import discord
+from typing import Optional
+from discord import Embed, Guild, Message, MessageReference
 from discord.errors import NotFound, HTTPException
-import discord.utils
+from discord.guild import Member
 from redbot.core import Config, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
+from redbot.core.config import Group
 from redbot.core.utils.chat_formatting import humanize_list
 
 from .constants import *
 
 
 class Core:
-    def __init__(self, bot: Red):
-        self.bot = bot
-        self.plusFLock = Lock()
-        self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
+    def __init__(self, bot: Red) -> None:
+        self.bot: Red = bot
+        self.plusFLock: Lock = Lock()
+        self.config: Config = Config.get_conf(
+            self,
+            identifier=5842647,
+            force_registration=True,
+        )
         self.config.register_guild(**BASE_GUILD)
         self.config.register_channel(**BASE_CHANNEL)
 
         # Initialize logger and save to cog folder.
-        saveFolder = data_manager.cog_data_path(cog_instance=self)
-        self.logger = logging.getLogger("red.luicogs.Respects")
+        saveFolder: Path = data_manager.cog_data_path(cog_instance=self)
+        self.logger: Logger = getLogger("red.luicogs.Respects")
         if not self.logger.handlers:
-            logPath = os.path.join(saveFolder, "info.log")
-            handler = logging.FileHandler(filename=logPath, encoding="utf-8", mode="a")
+            logPath: str = os.path.join(saveFolder, "info.log")
+            handler: FileHandler = FileHandler(
+                filename=logPath,
+                encoding="utf-8",
+                mode="a",
+            )
             handler.setFormatter(
-                logging.Formatter("%(asctime)s %(message)s", datefmt="[%Y/%m/%d %H:%M:%S]")
+                Formatter("%(asctime)s %(message)s", datefmt="[%Y/%m/%d %H:%M:%S]")
             )
             self.logger.addHandler(handler)
 
-    async def checkLastRespect(self, ctx: Context):
+    async def checkLastRespect(self, ctx: Context) -> bool:
         """Check to see if respects have been paid already.
 
         This method only checks the time portion, previous messages
@@ -52,15 +63,15 @@ class Core:
         Otherwise, this method returns `True`.
         """
 
-        chConfig = self.config.channel(ctx.channel)
-        guildConfig = self.config.guild(ctx.guild)
+        chConfig: Group = self.config.channel(ctx.channel)
+        guildConfig: Group = self.config.guild(ctx.guild)
 
-        oldRespectMsgId = await chConfig.get_attr(KEY_MSG)()
+        oldRespectMsgId: Optional[int] = await chConfig.get_attr(KEY_MSG)()
 
         if not oldRespectMsgId:
             return False
         else:
-            oldRespect = None
+            oldRespect: Optional[Message] = None
             try:
                 oldRespect = await ctx.channel.fetch_message(oldRespectMsgId)
             except (NotFound, HTTPException) as e:
@@ -73,12 +84,12 @@ class Core:
                     self.logger.error("Could not retrieve the old respect", exc_info=True)
                 return False
             else:
-                oldReference = None
+                oldReference: Optional[MessageReference] = None
                 if oldRespect:
                     oldReference = oldRespect.reference
 
-                currentRespect = ctx.message
-                currentReference = currentRespect.reference
+                currentRespect: Message = ctx.message
+                currentReference: Optional[MessageReference] = currentRespect.reference
 
                 if currentReference:
                     if not oldReference or oldReference.message_id != currentReference.message_id:
@@ -89,11 +100,11 @@ class Core:
                         await chConfig.clear()
                         return False
 
-        confMsgsBetween = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
-        confTimeBetween = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
-        oldRespectTime = await chConfig.get_attr(KEY_TIME)()
+        confMsgsBetween: int = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
+        confTimeBetween: float = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
+        oldRespectTime: Optional[float] = await chConfig.get_attr(KEY_TIME)()
 
-        prevMsgIds = []
+        prevMsgIds: List[int] = []
 
         async for msg in ctx.channel.history(
             limit=confMsgsBetween,
@@ -101,8 +112,8 @@ class Core:
         ):
             prevMsgIds.append(msg.id)
 
-        exceedMessages = oldRespectMsgId not in prevMsgIds
-        exceedTime = datetime.now() - datetime.fromtimestamp(oldRespectTime) > timedelta(
+        exceedMessages: bool = oldRespectMsgId not in prevMsgIds
+        exceedTime: bool = datetime.now() - datetime.fromtimestamp(oldRespectTime) > timedelta(
             seconds=confTimeBetween
         )
 
@@ -121,19 +132,19 @@ class Core:
 
         return True
 
-    async def checkIfUserPaidRespect(self, ctx):
+    async def checkIfUserPaidRespect(self, ctx: Context) -> bool:
         """Check to see if the user has already paid their respects.
 
         This assumes that `checkLastRespectTime` returned True.
         """
 
-        paidRespectsUsers = await self.config.channel(ctx.channel).get_attr(KEY_USERS)()
+        paidRespectsUsers: List[int] = await self.config.channel(ctx.channel).get_attr(KEY_USERS)()
         if ctx.author.id in paidRespectsUsers:
             self.logger.debug("The user has already paid their respects")
             return True
         return False
 
-    async def payRespects(self, ctx: Context):
+    async def payRespects(self, ctx: Context) -> None:
         """Pay respects.
 
         This assumes that `checkLastRespectTime` has been invoked.
@@ -143,11 +154,13 @@ class Core:
             chData[KEY_USERS].append(ctx.author.id)
             chData[KEY_TIME] = datetime.now().timestamp()
 
-            oldReference = None
+            oldReference: Optional[MessageReference] = None
 
             if chData[KEY_MSG]:
                 try:
-                    oldRespect = await ctx.channel.fetch_message(chData[KEY_MSG])
+                    oldRespect: Message = await ctx.channel.fetch_message(
+                        chData[KEY_MSG]
+                    )
                     oldReference = oldRespect.reference if oldRespect else None
                     await oldRespect.delete()
                 except NotFound:
@@ -157,29 +170,31 @@ class Core:
                 finally:
                     chData[KEY_MSG] = None
 
-            confUserIds = chData[KEY_USERS]
-            currentGuild: discord.Guild = ctx.guild
-            members = list(
+            confUserIds: List[int] = chData[KEY_USERS]
+            currentGuild: Optional[Guild] = ctx.guild
+            members: List[Optional[Member]] = list(
                 filter(
                     lambda member: member,
                     (currentGuild.get_member(uid) for uid in reversed(confUserIds)),
                 )
             )
 
-            message = "{memberNames} {haveHas} paid their respects {heartEmote}".format(
+            message: str = "{memberNames} {haveHas} paid their respects {heartEmote}".format(
                 memberNames=humanize_list([member.mention for member in members]),
                 haveHas=("has" if len(members) == 1 else "have"),
                 heartEmote=choice(HEARTS),
             )
 
-            newReference = ctx.message.reference if ctx.message.reference else oldReference
+            newReference: Optional[MessageReference] = (
+                ctx.message.reference if ctx.message.reference else oldReference
+            )
             if newReference:
                 newReference.fail_if_not_exists = False
 
-            messageEmbed = discord.Embed(description=message)
+            messageEmbed: Embed = Embed(description=message)
             messageEmbed.set_footer(text=f"Use {ctx.clean_prefix}f to pay respects")
 
-            messageObj = await ctx.send(
+            messageObj: Message = await ctx.send(
                 embed=messageEmbed,
                 reference=newReference,
                 mention_author=False,

@@ -8,7 +8,7 @@ class CommandHandlers(CommandsCore):
     @commands.bot_has_permissions(send_messages=True, manage_messages=True)
     @commands.hybrid_command(name="f")
     @commands.guild_only()
-    async def _cmdPlusF(self, ctx: Context):
+    async def _cmdPlusF(self, ctx: Context) -> None:
         """Pay your respects."""
 
         await self.cmdPlusF(ctx=ctx)
@@ -16,12 +16,12 @@ class CommandHandlers(CommandsCore):
     @checks.mod_or_permissions(manage_messages=True)
     @commands.group(name="setf")
     @commands.guild_only()
-    async def _grpSetF(self, ctx: Context):
+    async def _grpSetF(self, ctx: Context) -> None:
         """Respect settings."""
 
     @_grpSetF.command(name="messages", aliases=["msgs"])
     @commands.guild_only()
-    async def _cmdSetFMessages(self, ctx: Context, messages: int):
+    async def _cmdSetFMessages(self, ctx: Context, messages: int) -> None:
         """Set the number of messages that must appear before a new respect is paid.
 
         Parameters:
@@ -34,14 +34,14 @@ class CommandHandlers(CommandsCore):
 
     @_grpSetF.command(name="show")
     @commands.guild_only()
-    async def _cmdSetFShow(self, ctx: Context):
+    async def _cmdSetFShow(self, ctx: Context) -> None:
         """Show the current settings."""
 
         await self.cmdSetFShow(ctx=ctx)
 
     @_grpSetF.command(name="time", aliases=["seconds"])
     @commands.guild_only()
-    async def _cmdSetFTime(self, ctx: Context, seconds: int):
+    async def _cmdSetFTime(self, ctx: Context, seconds: int) -> None:
         """Set the number of seconds that must pass before a new respect is paid.
 
         Parameters:

@@ -1,12 +1,13 @@
 from discord.errors import NotFound, HTTPException
 from redbot.core.commands.context import Context
+from redbot.core.config import Group
 
 from .constants import KEY_MSGS_BETWEEN, KEY_TIME_BETWEEN
 from .core import Core
 
 
 class CommandsCore(Core):
-    async def cmdPlusF(self, ctx: Context):
+    async def cmdPlusF(self, ctx: Context) -> None:
         """Pay your respects."""
 
         async with self.plusFLock:
@@ -27,7 +28,7 @@ class CommandsCore(Core):
         except HTTPException:
             self.logger.error("Could not retrieve the old respect", exc_info=True)
 
-    async def cmdSetFMessages(self, ctx: Context, messages: int):
+    async def cmdSetFMessages(self, ctx: Context, messages: int) -> None:
         """Set the number of messages that must appear before a new respect is paid.
 
         Parameters:
@@ -42,10 +43,10 @@ class CommandsCore(Core):
             )
             return
 
-        guildConfig = self.config.guild(ctx.guild)
+        guildConfig: Group = self.config.guild(ctx.guild)
 
         await guildConfig.get_attr(KEY_MSGS_BETWEEN).set(messages)
-        timeBetween = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
+        timeBetween: float = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
 
         await ctx.send(
             ":white_check_mark: **Respects - Messages**: A new respect will be "
@@ -61,21 +62,21 @@ class CommandsCore(Core):
             messages,
         )
 
-    async def cmdSetFShow(self, ctx: Context):
+    async def cmdSetFShow(self, ctx: Context) -> None:
         """Show the current settings."""
 
-        guildConfig = self.config.guild(ctx.guild)
+        guildConfig: Group = self.config.guild(ctx.guild)
 
-        timeBetween = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
-        msgsBetween = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
+        timeBetween: float = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
+        msgsBetween: int = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
 
-        msg = ":information_source: **Respects - Current Settings:**\n"
+        msg: str = ":information_source: **Respects - Current Settings:**\n"
         msg += "A new respect will be made if a previous respect does not exist, or:\n"
         msg += "- **{}** messages have been passed since the last respect, **and**\n"
         msg += "- **{}** seconds have passed since the last respect."
         await ctx.send(msg.format(msgsBetween, timeBetween))
 
-    async def cmdSetFTime(self, ctx: Context, seconds: int):
+    async def cmdSetFTime(self, ctx: Context, seconds: int) -> None:
         """Set the number of seconds that must pass before a new respect is paid.
 
         Parameters:
@@ -89,10 +90,10 @@ class CommandsCore(Core):
             )
             return
 
-        guildConfig = self.config.guild(ctx.guild)
+        guildConfig: Group = self.config.guild(ctx.guild)
 
         await guildConfig.get_attr(KEY_TIME_BETWEEN).set(seconds)
-        messagesBetween = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
+        messagesBetween: int = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
 
         await ctx.send(
             ":white_check_mark: **Respects - Time**: A new respect will be "
