@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from logging import FileHandler, Formatter, Logger, getLogger
 from pathlib import Path
 from random import choice
-from typing import Optional
+from typing import List, Optional
 from discord import Embed, Guild, Message, MessageReference
 from discord.errors import NotFound, HTTPException
 from discord.guild import Member
@@ -158,9 +158,7 @@ class Core:
 
             if chData[KEY_MSG]:
                 try:
-                    oldRespect: Message = await ctx.channel.fetch_message(
-                        chData[KEY_MSG]
-                    )
+                    oldRespect: Message = await ctx.channel.fetch_message(chData[KEY_MSG])
                     oldReference = oldRespect.reference if oldRespect else None
                     await oldRespect.delete()
                 except NotFound:

@@ -17,19 +17,23 @@ HEARTS: Final[Tuple[str, ...]] = (
 DEFAULT_TIME_BETWEEN: Final[float] = 30.0  # Time between paid respects in seconds
 DEFAULT_MSGS_BETWEEN: Final[int] = 20  # The number of messages in between
 
+
 class BaseGuild(TypedDict):
     timeSinceLastRespect: float
     msgsSinceLastRespect: int
+
 
 BASE_GUILD: Final[BaseGuild] = {
     KEY_TIME_BETWEEN: DEFAULT_TIME_BETWEEN,
     KEY_MSGS_BETWEEN: DEFAULT_MSGS_BETWEEN,
 }
 
+
 class BaseChannel(TypedDict):
     msg: Optional[int]
     time: Optional[float]
     users: List[int]
+
 
 BASE_CHANNEL: Final[BaseChannel] = {
     KEY_MSG: None,
