@@ -6,26 +6,35 @@ import pytest
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
 
+from .core import Core
 from .heartbeat import Heartbeat
 
 
 @pytest.fixture()
-async def cogHeartbeat(red: Red, event_loop: asyncio.AbstractEventLoop):
-    """A fixture of `Heartbeat` loaded by a Red instance."""
+async def cogHeartbeat(
+    monkeypatch: pytest.MonkeyPatch,
+    red: Red,
+    event_loop: asyncio.AbstractEventLoop,
+):
+    """A fixture of `Heartbeat` loaded by a Red instance.
+    Note that the background loop of the cog provided by this fixture will not run upon cog instantiation."""
 
     red.loop = event_loop
 
     try:
-        await red.add_cog(Heartbeat(bot=red))
+        with monkeypatch.context() as patchContext:
+            # In test environments, we intentionally disable
+            # the background task of the cog to avoid the
+            # coroutine being unexpectedly terminated when
+            # the test session completes. If the background
+            # task needs to be tested, then method _loop
+            # can be examined accordingly.
+            patchContext.setattr(target=Core, name="_loop", value=unittest.mock.AsyncMock())
+            await red.add_cog(Heartbeat(bot=red))
+
         cog = red.get_cog(Heartbeat.__name__)
         assert isinstance(cog, Heartbeat)
 
-        # In test environments, we intentionally cancel
-        # the background task of the cog to avoid the
-        # coroutine being unexpectedly terminated when
-        # the test session completes. If the background
-        # task needs to be tested, then method _loop can
-        # be examined accordingly.
         cog.bgTask.cancel()
 
         yield cog
