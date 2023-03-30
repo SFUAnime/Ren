@@ -169,8 +169,8 @@ class Core:
                     chData[KEY_MSG] = None
 
             confUserIds: List[int] = chData[KEY_USERS]
-            currentGuild: Optional[Guild] = ctx.guild
-            members: List[Optional[Member]] = list(
+            currentGuild: Guild = ctx.guild
+            members: List[Member] = list(
                 filter(
                     lambda member: member,
                     (currentGuild.get_member(uid) for uid in reversed(confUserIds)),
