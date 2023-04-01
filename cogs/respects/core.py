@@ -5,9 +5,8 @@ from logging import FileHandler, Formatter, Logger, getLogger
 from pathlib import Path
 from random import choice
 from typing import List, Optional
-from discord import Embed, Guild, Message, MessageReference
+from discord import Embed, Guild, Member, Message, MessageReference
 from discord.errors import NotFound, HTTPException
-from discord.guild import Member
 from redbot.core import Config, data_manager
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
