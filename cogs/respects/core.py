@@ -101,7 +101,7 @@ class Core:
 
         confMsgsBetween: int = await guildConfig.get_attr(KEY_MSGS_BETWEEN)()
         confTimeBetween: float = await guildConfig.get_attr(KEY_TIME_BETWEEN)()
-        oldRespectTime: Optional[float] = await chConfig.get_attr(KEY_TIME)()
+        oldRespectTime: float = await chConfig.get_attr(KEY_TIME)()
 
         prevMsgIds: List[int] = []
 
