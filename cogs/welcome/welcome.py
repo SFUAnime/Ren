@@ -60,6 +60,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
     # The async function that is triggered on new member join.
     @commands.Cog.listener()
     async def on_member_join(self, newMember: discord.Member):
+        await self.logServerJoin(newMember)
         await self.sendWelcomeMessageChannel(newMember)
         await self.sendWelcomeMessage(newMember)
         await self.sendLogUserDescription(newMember)
@@ -241,19 +242,6 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                             exc_info=True,
                         )
                         LOGGER.error(errorMsg)
-            else:
-                if guildData[KEY_LOG_JOIN_ENABLED] and not test and channel:
-                    await channel.send(
-                        f":white_check_mark: ``Server Welcome:`` User {newUser.mention} "
-                        f"{newUser.name}#{newUser.discriminator} "
-                        f"({newUser.id}) has joined. DM sent."
-                    )
-                    LOGGER.info(
-                        "User %s#%s (%s) has joined. DM sent.",
-                        newUser.name,
-                        newUser.discriminator,
-                        newUser.id,
-                    )
 
     async def sendLogUserDescription(self, user: discord.Member):
         """Sends the user's tagged description to the log channel if it exists"""
@@ -298,6 +286,30 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                     user.id,
                 )
 
+    async def logServerJoin(self, joinUser: discord.Member):
+        """Logs the server join to a channel, if enabled."""
+        guildConfig: Group = self.config.guild(joinUser.guild)
+        if await guildConfig.get_attr(KEY_LOG_JOIN_ENABLED)():
+            logJoinChannelId: Optional[int] = await guildConfig.get_attr(KEY_LOG_JOIN_CHANNEL)()
+            if logJoinChannelId:
+                channel: Optional[TextChannel] = discord.utils.get(
+                    joinUser.guild.text_channels, id=logJoinChannelId
+                )
+                if channel:
+                    await channel.send(
+                        f":white_check_mark: ``Server Welcome:`` User {joinUser.mention} "
+                        f"{joinUser.name}#{joinUser.discriminator} "
+                        f"({joinUser.id}) has joined."
+                    )
+                LOGGER.info(
+                    "User %s#%s (%s) has joined server %s (%s).",
+                    joinUser.name,
+                    joinUser.discriminator,
+                    joinUser.id,
+                    joinUser.guild.name,
+                    joinUser.guild.id,
+                )
+
     async def logServerLeave(self, leaveUser: discord.Member):
         """Logs the server leave to a channel, if enabled."""
         async with self.config.guild(leaveUser.guild).all() as guildData:
@@ -312,10 +324,12 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                         f"({leaveUser.id}) has left the server."
                     )
                 LOGGER.info(
-                    "User %s#%s (%s) has left the server.",
+                    "User %s#%s (%s) has left server %s (%s).",
                     leaveUser.name,
                     leaveUser.discriminator,
                     leaveUser.id,
+                    leaveUser.guild.name,
+                    leaveUser.guild.id,
                 )
 
     ####################
