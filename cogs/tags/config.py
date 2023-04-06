@@ -1,7 +1,8 @@
+import asyncio
 import json
 import os
+import pathlib
 import uuid
-import asyncio
 
 """
 NOTE: I wrote none of this (well, updated some things),
@@ -14,7 +15,7 @@ class Config:
 
     def __init__(self, directory, name, **options):
         self.name = name
-        self.directory = "{}/".format(directory)
+        self.directory = pathlib.Path(directory)
         self.object_hook = options.pop("object_hook", None)
         self.encoder = options.pop("encoder", None)
         self.loop = options.pop("loop", asyncio.get_event_loop())
@@ -36,7 +37,7 @@ class Config:
             await self.loop.run_in_executor(None, self.load_from_file)
 
     def _dump(self):
-        temp = "%s-%s.tmp" % (uuid.uuid4(), self.name)
+        temp = self.directory / f"{uuid.uuid4()}-{self.name}.tmp"
         with open(temp, "w", encoding="utf-8") as tmp:
             json.dump(
                 self._db.copy(), tmp, ensure_ascii=True, cls=self.encoder, separators=(",", ":")
