@@ -2,6 +2,7 @@ import asyncio
 import unittest.mock
 
 import pytest
+import pytest_asyncio
 
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
@@ -10,7 +11,7 @@ from .core import Core
 from .heartbeat import Heartbeat
 
 
-@pytest.fixture()
+@pytest_asyncio.fixture()
 async def cogHeartbeat(
     monkeypatch: pytest.MonkeyPatch,
     red: Red,
