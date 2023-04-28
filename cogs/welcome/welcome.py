@@ -746,7 +746,8 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
         """Display a list of all the images in this server's image cache"""
         await self.ensureCurrentServerHasImgCache(ctx.channel)
         listOfImages = "\n".join(
-            imagePath.stem for imagePath in pathlib.Path(self.imgDir / str(ctx.channel.guild.id)).iterdir()
+            imagePath.stem
+            for imagePath in pathlib.Path(self.imgDir / str(ctx.channel.guild.id)).iterdir()
         )
         if len(listOfImages) == 0:
             await ctx.reply("No images added yet.")
