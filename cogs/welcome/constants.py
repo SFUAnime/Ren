@@ -17,8 +17,8 @@ KEY_WELCOME_CHANNEL_SETTINGS = "welcomeChannelSettings"
 KEY_POST_FAILED_DM = "postFailedDm"
 KEY_JOINED_USER_IDS = "joinedUserIds"
 KEY_TOGGLE_RANDOM_IMG = "toggleImg"
-KEY_WELCOME_IMG_FOLDER = "welcomeImgs"
-KEY_WELCOME_IMG_TEMPLATE = "welcome_template.png"
+WELCOME_IMG_FOLDER = "welcomeImgs"
+WELCOME_IMG_TEMPLATE = "welcome_template.png"
 
 MAX_MESSAGE_LENGTH = 2000
 MAX_DESCRIPTION_LENGTH = 500
