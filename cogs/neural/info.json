@@ -1,0 +1,9 @@
+{
+    "name" : "Neural",
+    "author" : ["octtariv"],
+    "short" : "Chat with Ren.",
+    "description" : "This cog allows Ren to chat on text channels.",
+    "install_msg" : "This cog requires a self-hosted OpenAI-compatible LLM API.",
+    "requirements" : ["langchain", "openai"],
+    "end_user_data_statement" : "This cog does not store user-specific settings."
+}
