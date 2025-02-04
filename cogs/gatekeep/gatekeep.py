@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Gatekeep cog to automatically ban new users that send suspected spam as their first message."""
 import logging
 import os
@@ -5,11 +6,27 @@ import time
 import asyncio
 from datetime import datetime, timedelta, timezone
 import discord
+=======
+"""Birthday cog Automatically add users to a specified birthday role on their
+birthday."""
+import logging
+import os
+from random import choice
+import time  # To auto remove birthday role on the next day.
+import asyncio
+from datetime import datetime, timedelta, timezone
+import discord
+from typing import Union
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
+<<<<<<< HEAD
 from redbot.core.utils.chat_formatting import pagify, warning
+=======
+from redbot.core.utils.chat_formatting import bold, pagify, spoiler, warning
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 from redbot.core.bot import Red
 from .constants import *
 import string
@@ -17,7 +34,11 @@ import string
 
 class Gatekeep(commands.Cog):
     """Cog to automatically detect spam messages from accounts that meet a specific criteria.
+<<<<<<< HEAD
     An account must have joined the server less than a specified amount of days ago. Only their first message will
+=======
+    An account must have joined the server less than 14 days ago. Only their first message will
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
     be checked. If their first message is deemed not spam, then they will be marked safe.
     """
 
@@ -25,6 +46,10 @@ class Gatekeep(commands.Cog):
         self.config = Config.get_conf(self, identifier=5842647, force_registration=True)
         # Register default (empty) settings.
         self.config.register_guild(**BASE_GUILD)
+<<<<<<< HEAD
+=======
+        self.config.register_member(**BASE_GUILD_MEMBER)
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 
         # Initialize logger, and save to cog folder.
         saveFolder = data_manager.cog_data_path(cog_instance=self)
@@ -38,7 +63,11 @@ class Gatekeep(commands.Cog):
             self.logger.addHandler(handler)
 
     def initializeBgTask(self):
+<<<<<<< HEAD
         # On cog load, update the watchlist daily to remove accounts older than the specified amount of days
+=======
+        # On cog load, update the watchlist daily to remove accounts older than 14 days
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
         self.lastChecked = datetime.now() - timedelta(days=1)
         self.bgTask = self.bot.loop.create_task(self.watchlistLoop())
 
@@ -100,8 +129,13 @@ class Gatekeep(commands.Cog):
     @_gatekeep.command(name="threshold", aliases=["th"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
+<<<<<<< HEAD
     async def setThreshold(self, ctx: Context, threshold: int):
         """Set the threshold for a message to be considered spam.
+=======
+    async def setThreshold(self, ctx: Context, *, threshold: int):
+        """Set the channel to log bans.
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 
         Parameters:
         -----------
@@ -109,6 +143,7 @@ class Gatekeep(commands.Cog):
             Threshold for a message to be considered spam.
         """
 
+<<<<<<< HEAD
 
         if threshold > 0:
             await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD).set(threshold)
@@ -157,13 +192,44 @@ class Gatekeep(commands.Cog):
                 "The value for the days should be greater than 0!"
             )
 
+=======
+        if threshold:
+            # Case when an integer is passed, assign if greater than 0, otherwise do nothing and notify
+            if threshold > 0:
+                await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD).set(threshold)
+                self.logger.info(
+                    "%s#%s (%s) set the threshold to %s",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    str(threshold),
+                )
+                await ctx.send(
+                    ":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{}**".format(threshold)
+                )
+            else:
+                await ctx.send(
+                    "The value for the threshold should be greater than 0!"
+                )
+        else:
+            # No integer passed, display current threshold value
+            th = await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL)()
+            await ctx.send(
+                ":white_check_mark: **Gatekeep - Threshold**: The threshold is currently set to **{}**".format(th)
+            )
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
     
     @_gatekeep.command(name="initialize", aliases=["init"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def initWatchList(self, ctx: Context):
+<<<<<<< HEAD
         """ Initialize the list of user IDs to place on the watchlist.
         Users that joined the server for less than X days will be placed on the watchlist. (X is configurable)
+=======
+        """ Initialize the list of user IDs to place on the watchlist. Users that
+        joined the server for less than 14 days will be placed on the watchlist.
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
         """
         def check(msg: discord.Message):
             return msg.author == ctx.author and msg.channel == ctx.channel
@@ -188,11 +254,18 @@ class Gatekeep(commands.Cog):
         # Confirmed, so initialization process begins
         start = time.time()
         current = datetime.now(timezone.utc)
+<<<<<<< HEAD
         nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
         watchList = []
         for member in ctx.guild.members:
             # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
             if not current - member.joined_at > timedelta(days=nDays):
+=======
+        watchList = []
+        for member in ctx.guild.members:
+            # If a member has been in the server for less than 14 days, then they get added to the watch list
+            if not current - member.joined_at > timedelta(days=14):
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
                 watchList.append(int(member.id))
                 self.logger.info(
                     "%s#%s (%s) added to the watch list.",
@@ -210,8 +283,13 @@ class Gatekeep(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def activate(self, ctx: Context):
+<<<<<<< HEAD
         """ Activate the gatekeeping cog"""
 
+=======
+        """ Activate the gatekeeping cog
+        """
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
         await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE).set(True)
         await ctx.send(":warning: Gatekeeping is now active.")
     
@@ -219,8 +297,13 @@ class Gatekeep(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def deactivate(self, ctx: Context):
+<<<<<<< HEAD
         """ Deactivate the gatekeeping cog"""
 
+=======
+        """ Activate the gatekeeping cog
+        """
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
         await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE).set(False)
         await ctx.send(":zzz: Gatekeeping is now inactive.")
     
@@ -228,6 +311,7 @@ class Gatekeep(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def status(self, ctx: Context):
+<<<<<<< HEAD
         """ Show current status of the gatekeeping cog"""
 
         log = await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL)()
@@ -235,14 +319,27 @@ class Gatekeep(commands.Cog):
         threshold = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
         nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
         await ctx.send(f":information_source: Current Status :information_source:\n- Log Channel: <#{log}>\n- Gatekeeping: {active}\n- Threshold: {threshold}\n- Days to watch: {nDays}")
+=======
+        """ Show current status of the gatekeeping cog
+        """
+        log = await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL)()
+        active = await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE)()
+        threshold = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
+        await ctx.send(f":information_source: Current Status :information_source:\n- Log Channel: <#{log}>\n- Gatekeeping: {active}\n- Threshold: {threshold}")
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 
     @_gatekeep.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addWord(self, ctx: Context, word: str, weight: int):
+<<<<<<< HEAD
         """Add a word to the gatekeeping list.
         If the word already exists on the list,
         then update the word weight to the new weight.
+=======
+        """Add a word to the gatekeeping list. If the word already exists on the
+        list, then update the word weight to the new weight.
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
 
         Parameters:
         -----------
@@ -419,12 +516,20 @@ class Gatekeep(commands.Cog):
         current = datetime.now(timezone.utc)
         for guild in guilds:
             watchList = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
+<<<<<<< HEAD
             nDays = await self.config.guild(guild).get_attr(KEY_NEW_USER_DAYS)()
             for id in watchList:
                 member = discord.utils.get(guild.members, id=id)
                 if member:
                     # Remove member from watch list if they have been in the server for over the required amount of days
                     if current - member.joined_at > timedelta(days=nDays):
+=======
+            for id in watchList:
+                member = discord.utils.get(guild.members, id=id)
+                if member:
+                    # Remove member from watch list if they have been in the server for over 14 days
+                    if current - member.joined_at > timedelta(days=14):
+>>>>>>> 3f5369d4 ([Gatekeep] Initial commit of cog, should be ready to deploy)
                         watchList.remove(int(id))
                 else:
                     # Remove member if they are no longer in the server
