@@ -62,6 +62,7 @@ class Gatekeep(commands.Cog):
 
     @commands.group(name="gatekeep")
     @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
     async def _gatekeep(self, ctx: Context):
         """Gatekeep settings."""
 
@@ -498,8 +499,11 @@ class Gatekeep(commands.Cog):
             # Determine if spam
             if score >= th:
                 # Proceed to ban and announce to mod log channel
+                await message.author.ban(delete_message_days=7, reason="Message was flagged as spam by Ren's gatekeep cog.")
+
                 ch = await self.config.guild(message.guild).get_attr(KEY_LOG_CHANNEL)()
-                await self.bot.get_channel(ch).send(f'Banned <@{author.id}> `{author.id}` for posting spam. The message score was {score}, which exceeded the threshold of {th}. Their message was:\n `{message.content}`')
+                m = message.content if len(message.content) < 300 else message.content[:300] + "..." 
+                await self.bot.get_channel(ch).send(f'Banned {author.mention} `{author.id}` for posting spam. The message score was {score}, which exceeded the threshold of {th}. Their message was:\n `{m}`')
 
                 self.logger.info(
                     "%s#%s (%s) was banned from %s for spam. Message score was %s, which exceed threshold of %s.",
@@ -511,8 +515,7 @@ class Gatekeep(commands.Cog):
                     str(th)
                 )
 
-                # Do the deed
-                await message.author.ban(delete_message_days=7)
+                
 
             # Remove the author from the watch list. Ban = gone from server, no ban = they're probably not a bot
             watchList.remove(int(author.id))
