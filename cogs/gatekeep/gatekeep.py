@@ -9,7 +9,7 @@ from redbot.core import Config, checks, commands, data_manager
 from redbot.core.commands.context import Context
 from redbot.core.utils import AsyncIter
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
-from redbot.core.utils.chat_formatting import pagify, warning
+from redbot.core.utils.chat_formatting import pagify, warning, escape
 from redbot.core.bot import Red
 from .constants import *
 import string
@@ -88,8 +88,8 @@ class Gatekeep(commands.Cog):
                 channel.name,
             )
             await ctx.send(
-                ":white_check_mark: **Gatekeep - Channel**: **{}** has been set "
-                "as the moderation log channel!".format(channel.name)
+                f":white_check_mark: **Gatekeep - Channel**: **{channel.name}** has been set "
+                "as the moderation log channel!"
             )
         else:
             await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL).set(None)
@@ -106,7 +106,7 @@ class Gatekeep(commands.Cog):
 
         Parameters:
         -----------
-        threshold: Integer
+        threshold: int
             Threshold for a message to be considered spam.
         """
 
@@ -121,7 +121,7 @@ class Gatekeep(commands.Cog):
                 str(threshold),
             )
             await ctx.send(
-                ":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{}**".format(threshold)
+                f":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{threshold}**"
             )
         else:
             await ctx.send(
@@ -136,7 +136,7 @@ class Gatekeep(commands.Cog):
 
         Parameters:
         -----------
-        days: Integer
+        days: int
             Number of days that an account's age must exceed to be considered 'safe'
         """
 
@@ -151,7 +151,7 @@ class Gatekeep(commands.Cog):
                 str(days),
             )
             await ctx.send(
-                ":white_check_mark: **Gatekeep - Days**: The number of days has been updated to **{}**".format(days)
+                f":white_check_mark: **Gatekeep - Days**: The number of days has been updated to **{days}**"
             )
         else:
             await ctx.send(
@@ -178,11 +178,11 @@ class Gatekeep(commands.Cog):
         try:
             response = await self.bot.wait_for("message", timeout=30.0, check=check)
         except asyncio.TimeoutError:
-            await ctx.send(f"No response after 30 seconds, this operation will not be executed.")
+            await ctx.send("No response after 30 seconds, this operation will not be executed.")
             return
 
         if response.content.lower() != "yes":
-            await ctx.send(f"This operation will not be executed.")
+            await ctx.send("This operation will not be executed.")
             return
         
 
@@ -193,7 +193,7 @@ class Gatekeep(commands.Cog):
         watchList = []
         for member in ctx.guild.members:
             # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
-            if not current - member.joined_at > timedelta(days=nDays):
+            if current - member.joined_at < timedelta(days=nDays) and not member.guild_permissions.administrator and not await self.bot.is_automod_immune(member):
                 watchList.append(int(member.id))
                 self.logger.info(
                     "%s#%s (%s) added to the watch list.",
@@ -235,7 +235,10 @@ class Gatekeep(commands.Cog):
         active = await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE)()
         threshold = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
         nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
-        await ctx.send(f":information_source: Current Status :information_source:\n- Log Channel: <#{log}>\n- Gatekeeping: {active}\n- Threshold: {threshold}\n- Days to watch: {nDays}")
+        await ctx.send(":information_source: Current Status :information_source:\n"
+                       f"- Log Channel: <#{log}>\n- Gatekeeping: {active}\n"
+                       f"- Threshold: {threshold}\n- Days to watch: {nDays}"
+                       )
 
     @_gatekeep.command(name="add")
     @commands.guild_only()
@@ -247,18 +250,21 @@ class Gatekeep(commands.Cog):
 
         Parameters:
         -----------
-        word: String
-            The word to be added to the gatekeep list. These will automatically be
-            converted to lowercase.
+        word: str
+            The word to be added to the gatekeep list. This will automatically be
+            converted to lowercase and have all punctuation removed. If the word
+            already exists in the gatekeep list, then it will update the weight.
 
-        weight: Integer
+        weight: int
             The weight that the word has in the gatekeep list. Higher weights mean
             the word is more likely to flag the entire message as spam.
         """
 
+        # Sanitize word by removing all punctuation
+        w = word.translate(str.maketrans('', '', string.punctuation)).lower()
+
         # Ensure both the word is non-empty and the weight is greater than 0
-        if word and weight > 0:
-            w = word.lower()
+        if w and weight > 0:
             async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
                 update = False
                 prev = 0
@@ -282,12 +288,12 @@ class Gatekeep(commands.Cog):
                     ctx.author.name,
                     ctx.author.discriminator,
                     ctx.author.id,
-                    word,
+                    w,
                     str(weight)
                 )
 
         else:
-            # Integer passed was not a positive value
+            # Empty string "" passed or the integer passed was not a positive value
             await ctx.send(
                 "The word should be non-empty and/or the value for the weight should be greater than 0!"
             )
@@ -302,19 +308,29 @@ class Gatekeep(commands.Cog):
 
         Parameters:
         -----------
-        word: String
-            The word to be added to the gatekeep list. These will automatically be
-            converted to lowercase.
+        word: str
+            The word to be removed to the gatekeep list. This will automatically be
+            converted to lowercase and have all punctuation removed.
         """
 
+        # Sanitize word by removing all punctuation
+        w = word.translate(str.maketrans('', '', string.punctuation)).lower()
+
         # Ensure the word is non-empty
-        if word:
-            w = word.lower()
+        if w:
+            
             async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
                 # Pop removes the item with key 'w' from the dictionary if it exists. Othewise it returns None
                 if wordDict.pop(w, None):
                     await ctx.send(
                         f"Removed `{w}` from the list."
+                    )
+                    self.logger.info(
+                        "%s#%s (%s) removed %s.",
+                        ctx.author.name,
+                        ctx.author.discriminator,
+                        ctx.author.id,
+                        w
                     )
                 else:
                     await ctx.send(
@@ -322,20 +338,13 @@ class Gatekeep(commands.Cog):
                     )
 
         else:
-            # Empty string passed
+            # Empty string "" passed
             await ctx.send(
-                "The word should be non-empty string!"
+                "The word should be a non-empty string!"
             )
+        
 
-        self.logger.info(
-            "%s#%s (%s) removed %s.",
-            ctx.author.name,
-            ctx.author.discriminator,
-            ctx.author.id,
-            word
-        )
-
-    @_gatekeep.command(name="list", aliases=["ls"])
+    @_gatekeep.command(name="list", aliases=["ls", "words"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWords(self, ctx: Context):
@@ -368,15 +377,15 @@ class Gatekeep(commands.Cog):
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
-    @_gatekeep.command(name="watchlist", aliases=["wl"])
+    @_gatekeep.command(name="watchlist", aliases=["wl", "users"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWatch(self, ctx: Context):
         """Lists the users on the watch list for the server"""
 
-        display = []  # List of text for paginator to use.  Will be constructed from KEY_WORD_DICT.
+        display = []  # List of text for paginator to use.  Will be constructed from KEY_WATCH_LIST.
 
-        # Loop through the word dictionary object
+        # Loop through the watch list
         watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
         for id in watchList:
             # Construct the display list
@@ -425,11 +434,21 @@ class Gatekeep(commands.Cog):
                 member = discord.utils.get(guild.members, id=id)
                 if member:
                     # Remove member from watch list if they have been in the server for over the required amount of days
-                    if current - member.joined_at > timedelta(days=nDays):
+                    if current - member.joined_at > timedelta(days=nDays) or member.guild_permissions.administrator or await self.bot.is_automod_immune(member):
                         watchList.remove(int(id))
+                        self.logger.info(
+                            "%s#%s (%s) removed from the watch list. (Trusted user)",
+                            member.name,
+                            member.discriminator,
+                            member.id
+                        )
                 else:
-                    # Remove member if they are no longer in the server
+                    # Remove member if they are no longer in the server (can't log because of it being an id)
                     watchList.remove(int(id))
+                    self.logger.info(
+                        "Member with id (%s) removed from the watch list. (Not in server)",
+                        id
+                    )
             
             await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(watchList)        
             self.logger.info("Refreshed the watch list for %s", guild.name)
@@ -464,7 +483,8 @@ class Gatekeep(commands.Cog):
         if not valid_user:
             return
 
-        if await self.bot.is_automod_immune(message):
+        # Author has the 'Administrator' permissions OR they have a role that is granted immunity in the server's config
+        if message.author.guild_permissions.administrator or await self.bot.is_automod_immune(message):
             return
         
 
@@ -499,11 +519,12 @@ class Gatekeep(commands.Cog):
             # Determine if spam
             if score >= th:
                 # Proceed to ban and announce to mod log channel
-                await message.author.ban(delete_message_days=7, reason="Message was flagged as spam by Ren's gatekeep cog.")
+                await message.author.ban(delete_message_seconds=604800, reason="Message was flagged as spam by Ren's gatekeep cog.")
 
                 ch = await self.config.guild(message.guild).get_attr(KEY_LOG_CHANNEL)()
                 m = message.content if len(message.content) < 300 else message.content[:300] + "..." 
-                await self.bot.get_channel(ch).send(f'Banned {author.mention} `{author.id}` for posting spam. The message score was {score}, which exceeded the threshold of {th}. Their message was:\n `{m}`')
+                await self.bot.get_channel(ch).send(f"Banned {author.mention} `{author.id}` for posting spam. The message score was {score}, "
+                                                    f"which exceeded the threshold of {th}. Their message was:```\n{escape(m, formatting=True)}\n```")
 
                 self.logger.info(
                     "%s#%s (%s) was banned from %s for spam. Message score was %s, which exceed threshold of %s.",
@@ -516,11 +537,6 @@ class Gatekeep(commands.Cog):
                 )
 
                 
-
             # Remove the author from the watch list. Ban = gone from server, no ban = they're probably not a bot
             watchList.remove(int(author.id))
             await self.config.guild(author.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-
-
-
-

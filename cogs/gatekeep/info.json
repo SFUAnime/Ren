@@ -3,7 +3,7 @@
     "name": "Gatekeep",
     "short": "Automatically ban scammers that send messages with user-defined keywords",
     "description": "Automatically detects and bans scammers that send messages containing user-defined keywords.",
-    "end_user_data_statement": "This cog will store users' Discord ID of those who joined the server less than 14 days ago.",
+    "end_user_data_statement": "This cog will store users' Discord ID.",
     "install_msg": "Thanks for installing Gatekeep. Please run [p]gatekeep to see all the relevant commands.",
     "requirements": ["python-dateutil"],
     "tags": ["automation", "moderation"]
