@@ -64,7 +64,7 @@ class Gatekeep(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def _gatekeep(self, ctx: Context):
-        """Gatekeep settings."""
+        """Automatically gatekeep accounts that post spam messages."""
 
     @_gatekeep.command(name="channel", aliases=["ch"])
     @commands.guild_only()
@@ -96,8 +96,7 @@ class Gatekeep(commands.Cog):
             await ctx.send(
                 ":white_check_mark: **Gatekeep - Channel**: Moderation logs are now disabled."
             )
-        
-    
+
     @_gatekeep.command(name="threshold", aliases=["th"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
@@ -109,7 +108,6 @@ class Gatekeep(commands.Cog):
         threshold: int
             Threshold for a message to be considered spam.
         """
-
 
         if threshold > 0:
             await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD).set(threshold)
@@ -124,9 +122,7 @@ class Gatekeep(commands.Cog):
                 f":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{threshold}**"
             )
         else:
-            await ctx.send(
-                "The value for the threshold should be greater than 0!"
-            )
+            await ctx.send("The value for the threshold should be greater than 0!")
 
     @_gatekeep.command(name="days")
     @commands.guild_only()
@@ -139,7 +135,6 @@ class Gatekeep(commands.Cog):
         days: int
             Number of days that an account's age must exceed to be considered 'safe'
         """
-
 
         if days > 0:
             await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS).set(days)
@@ -154,27 +149,21 @@ class Gatekeep(commands.Cog):
                 f":white_check_mark: **Gatekeep - Days**: The number of days has been updated to **{days}**"
             )
         else:
-            await ctx.send(
-                "The value for the days should be greater than 0!"
-            )
+            await ctx.send("The value for the days should be greater than 0!")
 
-    
     @_gatekeep.command(name="initialize", aliases=["init"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def initWatchList(self, ctx: Context):
-        """ Initialize the list of user IDs to place on the watchlist.
+        """Initialize the list of user IDs to place on the watchlist.
         Users that joined the server for less than X days will be placed on the watchlist. (X is configurable)
         """
+
         def check(msg: discord.Message):
             return msg.author == ctx.author and msg.channel == ctx.channel
 
         # Get confirmation before initializing. It loops through every member in a server, so it could take a while
-        await ctx.send(
-            warning(
-                "This operation may take a while. Type 'yes' to confirm."
-            )
-        )
+        await ctx.send(warning("This operation may take a while. Type 'yes' to confirm."))
         try:
             response = await self.bot.wait_for("message", timeout=30.0, check=check)
         except asyncio.TimeoutError:
@@ -184,7 +173,6 @@ class Gatekeep(commands.Cog):
         if response.content.lower() != "yes":
             await ctx.send("This operation will not be executed.")
             return
-        
 
         # Confirmed, so initialization process begins
         start = time.time()
@@ -193,52 +181,55 @@ class Gatekeep(commands.Cog):
         watchList = []
         for member in ctx.guild.members:
             # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
-            if current - member.joined_at < timedelta(days=nDays) and not member.guild_permissions.administrator and not await self.bot.is_automod_immune(member):
+            if (current - member.joined_at < timedelta(days=nDays)
+                and not member.guild_permissions.administrator
+                and not await self.bot.is_automod_immune(member)
+            ):
                 watchList.append(int(member.id))
                 self.logger.info(
                     "%s#%s (%s) added to the watch list.",
                     member.name,
                     member.discriminator,
-                    member.id
+                    member.id,
                 )
         await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-        
-        
+
         end = time.time() - start
         await ctx.send(f"Operation took {end:.3f} seconds.")
-        
-    @_gatekeep.command(name="activate", aliases=['enable', 'on'])
+
+    @_gatekeep.command(name="activate", aliases=["enable", "on"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def activate(self, ctx: Context):
-        """ Activate the gatekeeping cog"""
+        """Activate the gatekeeping cog."""
 
         await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE).set(True)
         await ctx.send(":warning: Gatekeeping is now active.")
-    
-    @_gatekeep.command(name="deactivate", aliases=['disable', 'off'])
+
+    @_gatekeep.command(name="deactivate", aliases=["disable", "off"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def deactivate(self, ctx: Context):
-        """ Deactivate the gatekeeping cog"""
+        """Deactivate the gatekeeping cog."""
 
         await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE).set(False)
         await ctx.send(":zzz: Gatekeeping is now inactive.")
-    
-    @_gatekeep.command(name="status", aliases=['info', '?'])
+
+    @_gatekeep.command(name="status", aliases=["info", "?"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def status(self, ctx: Context):
-        """ Show current status of the gatekeeping cog"""
+        """Show current status of the gatekeeping cog."""
 
         log = await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL)()
         active = await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE)()
         threshold = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
         nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
-        await ctx.send(":information_source: Current Status :information_source:\n"
-                       f"- Log Channel: <#{log}>\n- Gatekeeping: {active}\n"
-                       f"- Threshold: {threshold}\n- Days to watch: {nDays}"
-                       )
+        await ctx.send(
+            ":information_source: Current Status :information_source:\n"
+            f"- Log Channel: <#{log}>\n- Gatekeeping: {active}\n"
+            f"- Threshold: {threshold}\n- Days to watch: {nDays}"
+        )
 
     @_gatekeep.command(name="add")
     @commands.guild_only()
@@ -261,7 +252,7 @@ class Gatekeep(commands.Cog):
         """
 
         # Sanitize word by removing all punctuation
-        w = word.translate(str.maketrans('', '', string.punctuation)).lower()
+        w = word.translate(str.maketrans("", "", string.punctuation)).lower()
 
         # Ensure both the word is non-empty and the weight is greater than 0
         if w and weight > 0:
@@ -271,25 +262,21 @@ class Gatekeep(commands.Cog):
                 if w in wordDict:
                     update = True
                     prev = wordDict[w]
-                
+
                 wordDict[w] = weight
 
                 if update:
-                    await ctx.send(
-                        f"Updated the weight of `{w}` from **{prev}** to **{weight}**."
-                    )
+                    await ctx.send(f"Updated the weight of `{w}` from **{prev}** to **{weight}**.")
                 else:
-                    await ctx.send(
-                        f"Added the word `{w}` with a weight of **{weight}**."
-                    )
-                
+                    await ctx.send(f"Added the word `{w}` with a weight of **{weight}**.")
+
                 self.logger.info(
                     "%s#%s (%s) added/updated %s with weight %s.",
                     ctx.author.name,
                     ctx.author.discriminator,
                     ctx.author.id,
                     w,
-                    str(weight)
+                    str(weight),
                 )
 
         else:
@@ -298,8 +285,6 @@ class Gatekeep(commands.Cog):
                 "The word should be non-empty and/or the value for the weight should be greater than 0!"
             )
 
-        
-    
     @_gatekeep.command(name="remove", aliases=["delete", "del"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
@@ -314,41 +299,33 @@ class Gatekeep(commands.Cog):
         """
 
         # Sanitize word by removing all punctuation
-        w = word.translate(str.maketrans('', '', string.punctuation)).lower()
+        w = word.translate(str.maketrans("", "", string.punctuation)).lower()
 
         # Ensure the word is non-empty
         if w:
-            
             async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
                 # Pop removes the item with key 'w' from the dictionary if it exists. Othewise it returns None
                 if wordDict.pop(w, None):
-                    await ctx.send(
-                        f"Removed `{w}` from the list."
-                    )
+                    await ctx.send(f"Removed `{w}` from the list.")
                     self.logger.info(
                         "%s#%s (%s) removed %s.",
                         ctx.author.name,
                         ctx.author.discriminator,
                         ctx.author.id,
-                        w
+                        w,
                     )
                 else:
-                    await ctx.send(
-                        f"`{w}` is not in the list."
-                    )
+                    await ctx.send(f"`{w}` is not in the list.")
 
         else:
             # Empty string "" passed
-            await ctx.send(
-                "The word should be a non-empty string!"
-            )
-        
+            await ctx.send("The word should be a non-empty string!")
 
     @_gatekeep.command(name="list", aliases=["ls", "words"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWords(self, ctx: Context):
-        """Lists the words on the word list for the server"""
+        """Lists the words on the word list for the server."""
 
         display = []  # List of text for paginator to use.  Will be constructed from KEY_WORD_DICT.
 
@@ -361,9 +338,7 @@ class Gatekeep(commands.Cog):
 
         # Check if the display list is empty
         if not display:
-            await ctx.send(
-                "The word list is empty."
-            )
+            await ctx.send("The word list is empty.")
             return
 
         pageList = []
@@ -371,7 +346,9 @@ class Gatekeep(commands.Cog):
         pages = list(pagify(msg, page_length=300))
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
-            embed = discord.Embed(title=f"List of words to gatekeep in **{ctx.guild.name}**", description=page)
+            embed = discord.Embed(
+                title=f"List of words to gatekeep in **{ctx.guild.name}**", description=page
+            )
             embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
             embed.colour = discord.Colour.red()
             pageList.append(embed)
@@ -381,9 +358,11 @@ class Gatekeep(commands.Cog):
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWatch(self, ctx: Context):
-        """Lists the users on the watch list for the server"""
+        """Lists the users on the watch list for the server."""
 
-        display = []  # List of text for paginator to use.  Will be constructed from KEY_WATCH_LIST.
+        display = (
+            []
+        )  # List of text for paginator to use.  Will be constructed from KEY_WATCH_LIST.
 
         # Loop through the watch list
         watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
@@ -396,9 +375,7 @@ class Gatekeep(commands.Cog):
 
         # Check if the display list is empty
         if not display:
-            await ctx.send(
-                "The watch list is empty."
-            )
+            await ctx.send("The watch list is empty.")
             return
 
         pageList = []
@@ -406,14 +383,16 @@ class Gatekeep(commands.Cog):
         pages = list(pagify(msg, page_length=300))
         totalPages = len(pages)
         async for pageNumber, page in AsyncIter(pages).enumerate(start=1):
-            embed = discord.Embed(title=f"List of users to watch in **{ctx.guild.name}**", description=page)
+            embed = discord.Embed(
+                title=f"List of users to watch in **{ctx.guild.name}**", description=page
+            )
             embed.set_footer(text=f"Page {pageNumber}/{totalPages}")
             embed.colour = discord.Colour.red()
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
     async def watchlistLoop(self):
-        """Daily update loop to keep the watchlist small"""
+        """Daily update loop to keep the watchlist small."""
         self.logger.info("Waiting for bot to be ready")
         await self.bot.wait_until_red_ready()
         self.logger.info("Bot is ready")
@@ -422,7 +401,7 @@ class Gatekeep(commands.Cog):
                 self.lastChecked = datetime.now()
                 await self.checkWatchlist()
             await asyncio.sleep(60)  # pylint: disable=no-member
-        
+
     async def checkWatchlist(self):
         """Check watch list once."""
         guilds = self.bot.guilds
@@ -434,25 +413,28 @@ class Gatekeep(commands.Cog):
                 member = discord.utils.get(guild.members, id=id)
                 if member:
                     # Remove member from watch list if they have been in the server for over the required amount of days
-                    if current - member.joined_at > timedelta(days=nDays) or member.guild_permissions.administrator or await self.bot.is_automod_immune(member):
+                    if (
+                        current - member.joined_at > timedelta(days=nDays)
+                        or member.guild_permissions.administrator
+                        or await self.bot.is_automod_immune(member)
+                    ):
                         watchList.remove(int(id))
                         self.logger.info(
                             "%s#%s (%s) removed from the watch list. (Trusted user)",
                             member.name,
                             member.discriminator,
-                            member.id
+                            member.id,
                         )
                 else:
                     # Remove member if they are no longer in the server (can't log because of it being an id)
                     watchList.remove(int(id))
                     self.logger.info(
-                        "Member with id (%s) removed from the watch list. (Not in server)",
-                        id
+                        "Member with id (%s) removed from the watch list. (Not in server)", id
                     )
-            
+
             await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(watchList)        
             self.logger.info("Refreshed the watch list for %s", guild.name)
-    
+
     # The async function that is triggered on new member join.
     @commands.Cog.listener()
     async def on_member_join(self, newMember: discord.Member):
@@ -461,13 +443,13 @@ class Gatekeep(commands.Cog):
         if int(newMember.id) not in watchList:
             watchList.append(int(newMember.id))
             self.logger.info(
-                    "%s#%s (%s) added to the watch list.",
-                    newMember.name,
-                    newMember.discriminator,
-                    newMember.id
-                )
+                "%s#%s (%s) added to the watch list.",
+                newMember.name,
+                newMember.discriminator,
+                newMember.id,
+            )
             await self.config.guild(newMember.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-    
+
     # The async function that is triggered on any message being sent.
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -484,9 +466,10 @@ class Gatekeep(commands.Cog):
             return
 
         # Author has the 'Administrator' permissions OR they have a role that is granted immunity in the server's config
-        if message.author.guild_permissions.administrator or await self.bot.is_automod_immune(message):
+        if message.author.guild_permissions.administrator or await self.bot.is_automod_immune(
+            message
+        ):
             return
-        
 
         # Cog handles message checking from here on out
 
@@ -499,18 +482,18 @@ class Gatekeep(commands.Cog):
         # Do nothing if the message author is not on the watch list to begin with
         if int(author.id) not in watchList: 
             return
-            
+
         # Evaluation of the message contents happen here
         async with self.config.guild(message.guild).get_attr(KEY_WORD_DICT)() as wordDict:
             # Break down into words
-            words = message.content.strip().split(' ')
+            words = message.content.strip().split(" ")
             th = await self.config.guild(message.guild).get_attr(KEY_THRESHOLD)()
 
             score = 0
             # Begin scoring
             for word in words:
                 # Remove any punctuation leftover in each word and lowercase all letters
-                w = word.translate(str.maketrans('', '', string.punctuation)).lower()
+                w = word.translate(str.maketrans("", "", string.punctuation)).lower()
 
                 # If word is found, add to the message score
                 if w in wordDict:
@@ -519,12 +502,21 @@ class Gatekeep(commands.Cog):
             # Determine if spam
             if score >= th:
                 # Proceed to ban and announce to mod log channel
-                await message.author.ban(delete_message_seconds=604800, reason="Message was flagged as spam by Ren's gatekeep cog.")
+                await message.author.ban(
+                    delete_message_seconds=604800,
+                    reason="Message was flagged as spam by Ren's gatekeep cog."
+                )
 
                 ch = await self.config.guild(message.guild).get_attr(KEY_LOG_CHANNEL)()
-                m = message.content if len(message.content) < 300 else message.content[:300] + "..." 
-                await self.bot.get_channel(ch).send(f"Banned {author.mention} `{author.id}` for posting spam. The message score was {score}, "
-                                                    f"which exceeded the threshold of {th}. Their message was:```\n{escape(m, formatting=True)}\n```")
+                m = (
+                    message.content
+                    if len(message.content) < 300
+                    else message.content[:300] + "..."
+                )
+                await self.bot.get_channel(ch).send(
+                    f"Banned {author.mention} `{author.id}` for posting spam. The message score was {score}, "
+                    f"which exceeded the threshold of {th}. Their message was:```\n{escape(m, formatting=True)}\n```"
+                )
 
                 self.logger.info(
                     "%s#%s (%s) was banned from %s for spam. Message score was %s, which exceed threshold of %s.",
@@ -533,10 +525,9 @@ class Gatekeep(commands.Cog):
                     author.id,
                     message.guild.name,
                     str(score),
-                    str(th)
+                    str(th),
                 )
 
-                
             # Remove the author from the watch list. Ban = gone from server, no ban = they're probably not a bot
             watchList.remove(int(author.id))
             await self.config.guild(author.guild).get_attr(KEY_WATCH_LIST).set(watchList)
