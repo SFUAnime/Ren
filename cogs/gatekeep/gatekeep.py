@@ -181,7 +181,8 @@ class Gatekeep(commands.Cog):
         watchList = []
         for member in ctx.guild.members:
             # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
-            if (current - member.joined_at < timedelta(days=nDays)
+            if (
+                current - member.joined_at < timedelta(days=nDays)
                 and not member.guild_permissions.administrator
                 and not await self.bot.is_automod_immune(member)
             ):
@@ -432,7 +433,7 @@ class Gatekeep(commands.Cog):
                         "Member with id (%s) removed from the watch list. (Not in server)", id
                     )
 
-            await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(watchList)        
+            await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(watchList)
             self.logger.info("Refreshed the watch list for %s", guild.name)
 
     # The async function that is triggered on new member join.
@@ -480,7 +481,7 @@ class Gatekeep(commands.Cog):
         # Check the list
         watchList = await self.config.guild(message.guild).get_attr(KEY_WATCH_LIST)()
         # Do nothing if the message author is not on the watch list to begin with
-        if int(author.id) not in watchList: 
+        if int(author.id) not in watchList:
             return
 
         # Evaluation of the message contents happen here
@@ -504,7 +505,7 @@ class Gatekeep(commands.Cog):
                 # Proceed to ban and announce to mod log channel
                 await message.author.ban(
                     delete_message_seconds=604800,
-                    reason="Message was flagged as spam by Ren's gatekeep cog."
+                    reason="Message was flagged as spam by Ren's gatekeep cog.",
                 )
 
                 ch = await self.config.guild(message.guild).get_attr(KEY_LOG_CHANNEL)()

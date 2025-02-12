@@ -11,5 +11,5 @@ BASE_GUILD = {
     KEY_NEW_USER_DAYS: 14,
     KEY_ACTIVE: False,
     KEY_WORD_DICT: {},
-    KEY_WATCH_LIST: []
+    KEY_WATCH_LIST: [],
 }
