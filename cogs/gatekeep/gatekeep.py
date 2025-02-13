@@ -12,6 +12,7 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, warning, escape
 from redbot.core.bot import Red
 from .constants import *
+from typing import Optional
 import string
 
 
