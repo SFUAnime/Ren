@@ -445,6 +445,9 @@ class Gatekeep(commands.Cog):
             if member:
                 text = f"{member.name}#{member.discriminator} ({member.id})"
                 display.append(text)
+            else:
+                text = f"Unknown User ({id})"
+                display.append(text)
 
         # Check if the display list is empty
         if not display:
@@ -481,6 +484,7 @@ class Gatekeep(commands.Cog):
         current = datetime.now(timezone.utc)
         for guild in guilds:
             watchList = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
+            wl = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
             nDays = await self.config.guild(guild).get_attr(KEY_NEW_USER_DAYS)()
             for id in watchList:
                 member = discord.utils.get(guild.members, id=id)
@@ -491,7 +495,7 @@ class Gatekeep(commands.Cog):
                         or member.guild_permissions.administrator
                         or await self.bot.is_automod_immune(member)
                     ):
-                        watchList.remove(int(id))
+                        wl.remove(int(id))
                         self.logger.info(
                             "%s#%s (%s) removed from the watch list. (Trusted user)",
                             member.name,
@@ -500,12 +504,12 @@ class Gatekeep(commands.Cog):
                         )
                 else:
                     # Remove member if they are no longer in the server (can't log because of it being an id)
-                    watchList.remove(int(id))
+                    wl.remove(int(id))
                     self.logger.info(
                         "Member with id (%s) removed from the watch list. (Not in server)", id
                     )
 
-            await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(watchList)
+            await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(wl)
             self.logger.info("Refreshed the watch list for %s", guild.name)
 
     # The async function that is triggered on new member join.
