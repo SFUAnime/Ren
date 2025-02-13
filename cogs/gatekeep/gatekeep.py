@@ -60,11 +60,19 @@ class Gatekeep(commands.Cog):
     def cog_unload(self):
         self.__unload()
 
-    @commands.group(name="gatekeep")
+    @commands.group(name="gatekeep", aliases=["gk"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def _gatekeep(self, ctx: Context):
         """Automatically gatekeep accounts that post spam messages."""
+
+    @_gatekeep.group(name="word", aliases=["w"])
+    async def word(self, ctx):
+        """Commands relating to words to gatekeep."""
+
+    @_gatekeep.group(name="user", aliases=["u"])
+    async def user(self, ctx):
+        """Commands relating to users and the watch list."""
 
     @_gatekeep.command(name="channel", aliases=["ch"])
     @commands.guild_only()
@@ -151,53 +159,6 @@ class Gatekeep(commands.Cog):
         else:
             await ctx.send("The value for the days should be greater than 0!")
 
-    @_gatekeep.command(name="initialize", aliases=["init"])
-    @commands.guild_only()
-    @checks.mod_or_permissions(administrator=True)
-    async def initWatchList(self, ctx: Context):
-        """Initialize the list of user IDs to place on the watchlist.
-        Users that joined the server for less than X days will be placed on the watchlist. (X is configurable)
-        """
-
-        def check(msg: discord.Message):
-            return msg.author == ctx.author and msg.channel == ctx.channel
-
-        # Get confirmation before initializing. It loops through every member in a server, so it could take a while
-        await ctx.send(warning("This operation may take a while. Type 'yes' to confirm."))
-        try:
-            response = await self.bot.wait_for("message", timeout=30.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send("No response after 30 seconds, this operation will not be executed.")
-            return
-
-        if response.content.lower() != "yes":
-            await ctx.send("This operation will not be executed.")
-            return
-
-        # Confirmed, so initialization process begins
-        start = time.time()
-        current = datetime.now(timezone.utc)
-        nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
-        watchList = []
-        for member in ctx.guild.members:
-            # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
-            if (
-                current - member.joined_at < timedelta(days=nDays)
-                and not member.guild_permissions.administrator
-                and not await self.bot.is_automod_immune(member)
-            ):
-                watchList.append(int(member.id))
-                self.logger.info(
-                    "%s#%s (%s) added to the watch list.",
-                    member.name,
-                    member.discriminator,
-                    member.id,
-                )
-        await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-
-        end = time.time() - start
-        await ctx.send(f"Operation took {end:.3f} seconds.")
-
     @_gatekeep.command(name="activate", aliases=["enable", "on"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
@@ -232,7 +193,7 @@ class Gatekeep(commands.Cog):
             f"- Threshold: {threshold}\n- Days to watch: {nDays}"
         )
 
-    @_gatekeep.command(name="add")
+    @word.command(name="add")
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def addWord(self, ctx: Context, word: str, weight: int):
@@ -286,7 +247,7 @@ class Gatekeep(commands.Cog):
                 "The word should be non-empty and/or the value for the weight should be greater than 0!"
             )
 
-    @_gatekeep.command(name="remove", aliases=["delete", "del"])
+    @word.command(name="remove", aliases=["delete", "del", "rm"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def removeWord(self, ctx: Context, word: str):
@@ -322,7 +283,7 @@ class Gatekeep(commands.Cog):
             # Empty string "" passed
             await ctx.send("The word should be a non-empty string!")
 
-    @_gatekeep.command(name="list", aliases=["ls", "words"])
+    @word.command(name="list", aliases=["ls", "words"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWords(self, ctx: Context):
@@ -355,7 +316,118 @@ class Gatekeep(commands.Cog):
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
-    @_gatekeep.command(name="watchlist", aliases=["wl", "users"])
+    @user.command(name="initialize", aliases=["init"])
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def initWatchList(self, ctx: Context):
+        """Initialize the list of user IDs to place on the watchlist.
+        Users that joined the server for less than X days will be placed on the watchlist. (X is configurable)
+        """
+
+        def check(msg: discord.Message):
+            return msg.author == ctx.author and msg.channel == ctx.channel
+
+        # Get confirmation before initializing. It loops through every member in a server, so it could take a while
+        await ctx.send(warning("This operation may take a while. Type 'yes' to confirm."))
+        try:
+            response = await self.bot.wait_for("message", timeout=30.0, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send("No response after 30 seconds, this operation will not be executed.")
+            return
+
+        if response.content.lower() != "yes":
+            await ctx.send("This operation will not be executed.")
+            return
+
+        # Confirmed, so initialization process begins
+        start = time.time()
+        current = datetime.now(timezone.utc)
+        nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
+        watchList = []
+        for member in ctx.guild.members:
+            # If a member has been in the server for less than X days, then they get added to the watch list (X is configurable)
+            if (
+                current - member.joined_at < timedelta(days=nDays)
+                and not member.guild_permissions.administrator
+                and not await self.bot.is_automod_immune(member)
+            ):
+                watchList.append(int(member.id))
+                self.logger.info(
+                    "%s#%s (%s) added to the watch list.",
+                    member.name,
+                    member.discriminator,
+                    member.id,
+                )
+        await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+
+        end = time.time() - start
+        await ctx.send(f"Operation took {end:.3f} seconds.")
+
+    @user.command(name="add")
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def addUser(self, ctx: Context, id: int):
+        """Add a user to the watch list.
+
+        Parameters:
+        -----------
+        id: int
+            The user ID to be added to the watch list.
+        """
+
+        if id > 0:
+            watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
+            if id not in watchList:
+                watchList.append(int(id))
+                await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+                await ctx.send(f"Added user ID `{id}` to the watch list.")
+
+                self.logger.info(
+                    "%s#%s (%s) added user ID %s to the watch list for %s.",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    id,
+                    ctx.guild.name,
+                )
+            else:
+                await ctx.send(f"User ID `{id}` is already in the watch list.")
+        else:
+            await ctx.send("The value for the user ID should be greater than 0!")
+
+    @user.command(name="remove", aliases=["delete", "del", "rm"])
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def removeUser(self, ctx: Context, id: int):
+        """Remove a user from the watch list.
+
+        Parameters:
+        -----------
+        id: int
+            The user ID to be removed from the watch list.
+        """
+
+        if id > 0:
+            watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
+            if id in watchList:
+                watchList.remove(int(id))
+                await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+                await ctx.send(f"Removed user ID `{id}` to the watch list.")
+
+                self.logger.info(
+                    "%s#%s (%s) removed user ID %s from the watch list for %s.",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    id,
+                    ctx.guild.name,
+                )
+            else:
+                await ctx.send(f"User ID `{id}` is not in the watch list.")
+        else:
+            await ctx.send("The value for the user ID should be greater than 0!")
+
+    @user.command(name="list", aliases=["ls", "users"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
     async def listWatch(self, ctx: Context):
