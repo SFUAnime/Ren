@@ -415,7 +415,7 @@ class Gatekeep(commands.Cog):
 
         if user.id > 0:
             watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
-            if id not in watchList:
+            if user.id not in watchList:
                 watchList.append(int(user.id))
                 await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
                 await ctx.send(f"Added user ID `{user.id}` to the watch list.")
