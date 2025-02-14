@@ -412,14 +412,14 @@ class Gatekeep(commands.Cog):
                 watchList.append(int(user.id))
                 await ctx.send(f"Added user ID `{user.id}` to the watch list.")
 
-            self.logger.info(
-                "%s#%s (%s) added user ID %s to the watch list for %s.",
-                ctx.author.name,
-                ctx.author.discriminator,
-                ctx.author.id,
-                user.id,
-                ctx.guild.name,
-            )
+                self.logger.info(
+                    "%s#%s (%s) added user ID %s to the watch list for %s.",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    user.id,
+                    ctx.guild.name,
+                )
             else:
                 await ctx.send(f"User ID `{user.id}` is already in the watch list.")
 
