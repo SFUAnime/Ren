@@ -204,28 +204,28 @@ class Gatekeep(commands.Cog):
         msg: str
             The message to evaluate the score, given that the word weights are defined.
         """
-        async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
-            # Break down into words
-            words = msg.strip().split(" ")
-            th = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
-            score = 0
-            # Begin scoring
-            for word in words:
-                # Remove any punctuation leftover in each word and lowercase all letters
-                w = word.translate(str.maketrans("", "", string.punctuation)).lower()
+        wordDict = await self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)()
+        # Break down into words
+        words = msg.strip().split(" ")
+        th = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
+        score = 0
+        # Begin scoring
+        for word in words:
+            # Remove any punctuation leftover in each word and lowercase all letters
+            w = word.translate(str.maketrans("", "", string.punctuation)).lower()
 
-                # If word is found, add to the message score
-                if w in wordDict:
-                    score += wordDict[w]
+            # If word is found, add to the message score
+            if w in wordDict:
+                score += wordDict[w]
 
-            if score >= th:
-                judge = "this message would warrant a ban."
-            else:
-                judge = "this message would not warrant a ban."
+        if score >= th:
+            judge = "this message would warrant a ban."
+        else:
+            judge = "this message would not warrant a ban."
 
-            await ctx.send(
-                f"This message scored {score} points. With a threshold of {th}, {judge}"
-            )
+        await ctx.send(
+            f"This message scored {score} points. With a threshold of {th}, {judge}"
+        )
 
     @word.command(name="add")
     @commands.guild_only()
@@ -409,22 +409,21 @@ class Gatekeep(commands.Cog):
             The user to be added to the watch list. This can be their username or ID.
         """
 
-        watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
-        if user.id not in watchList:
-            watchList.append(int(user.id))
-            await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-            await ctx.send(f"Added user ID `{user.id}` to the watch list.")
+        async with self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+            if user.id not in watchList:
+                watchList.append(int(user.id))
+                await ctx.send(f"Added user ID `{user.id}` to the watch list.")
 
-            self.logger.info(
-                "%s#%s (%s) added user ID %s to the watch list for %s.",
-                ctx.author.name,
-                ctx.author.discriminator,
-                ctx.author.id,
-                user.id,
-                ctx.guild.name,
-            )
-        else:
-            await ctx.send(f"User ID `{user.id}` is already in the watch list.")
+                self.logger.info(
+                    "%s#%s (%s) added user ID %s to the watch list for %s.",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    user.id,
+                    ctx.guild.name,
+                )
+            else:
+                await ctx.send(f"User ID `{user.id}` is already in the watch list.")
 
     @user.command(name="remove", aliases=["delete", "del", "rm"])
     @commands.guild_only()
@@ -438,22 +437,21 @@ class Gatekeep(commands.Cog):
             The user to be removed from the watch list. This can be their username or ID.
         """
 
-        watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
-        if user.id in watchList:
-            watchList.remove(user.id)
-            await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-            await ctx.send(f"Removed user ID `{user.id}` to the watch list.")
+        async with self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+            if user.id in watchList:
+                watchList.remove(user.id)
+                await ctx.send(f"Removed user ID `{user.id}` to the watch list.")
 
-            self.logger.info(
-                "%s#%s (%s) removed user ID %s from the watch list for %s.",
-                ctx.author.name,
-                ctx.author.discriminator,
-                ctx.author.id,
-                user.id,
-                ctx.guild.name,
-            )
-        else:
-            await ctx.send(f"User ID `{user.id}` is not in the watch list.")
+                self.logger.info(
+                    "%s#%s (%s) removed user ID %s from the watch list for %s.",
+                    ctx.author.name,
+                    ctx.author.discriminator,
+                    ctx.author.id,
+                    user.id,
+                    ctx.guild.name,
+                )
+            else:
+                await ctx.send(f"User ID `{user.id}` is not in the watch list.")
 
     @user.command(name="list", aliases=["ls", "users"])
     @commands.guild_only()
@@ -511,49 +509,47 @@ class Gatekeep(commands.Cog):
         guilds = self.bot.guilds
         current = datetime.now(timezone.utc)
         for guild in guilds:
-            watchList = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
-            wl = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
-            nDays = await self.config.guild(guild).get_attr(KEY_NEW_USER_DAYS)()
-            for id in watchList:
-                member = discord.utils.get(guild.members, id=id)
-                if member:
-                    # Remove member from watch list if they have been in the server for over the required amount of days
-                    if (
-                        current - member.joined_at > timedelta(days=nDays)
-                        or member.guild_permissions.administrator
-                        or await self.bot.is_automod_immune(member)
-                    ):
-                        wl.remove(int(id))
+            watchListIterator = await self.config.guild(guild).get_attr(KEY_WATCH_LIST)()
+            async with self.config.guild(guild).get_attr(KEY_WATCH_LIST)() as watchList:
+                nDays = await self.config.guild(guild).get_attr(KEY_NEW_USER_DAYS)()
+                for id in watchListIterator:
+                    member = discord.utils.get(guild.members, id=id)
+                    if member:
+                        # Remove member from watch list if they have been in the server for over the required amount of days
+                        if (
+                            current - member.joined_at > timedelta(days=nDays)
+                            or member.guild_permissions.administrator
+                            or await self.bot.is_automod_immune(member)
+                        ):
+                            watchList.remove(int(id))
+                            self.logger.info(
+                                "%s#%s (%s) removed from the watch list. (Trusted user)",
+                                member.name,
+                                member.discriminator,
+                                member.id,
+                            )
+                    else:
+                        # Remove member if they are no longer in the server (can't log because of it being an id)
+                        watchList.remove(int(id))
                         self.logger.info(
-                            "%s#%s (%s) removed from the watch list. (Trusted user)",
-                            member.name,
-                            member.discriminator,
-                            member.id,
+                            "Member with id (%s) removed from the watch list. (Not in server)", id
                         )
-                else:
-                    # Remove member if they are no longer in the server (can't log because of it being an id)
-                    wl.remove(int(id))
-                    self.logger.info(
-                        "Member with id (%s) removed from the watch list. (Not in server)", id
-                    )
 
-            await self.config.guild(guild).get_attr(KEY_WATCH_LIST).set(wl)
-            self.logger.info("Refreshed the watch list for %s", guild.name)
+                self.logger.info("Refreshed the watch list for %s", guild.name)
 
     # The async function that is triggered on new member join.
     @commands.Cog.listener()
     async def on_member_join(self, newMember: discord.Member):
         # Add member to list, if they joined and aren't already on the list
-        watchList = await self.config.guild(newMember.guild).get_attr(KEY_WATCH_LIST)()
-        if int(newMember.id) not in watchList:
-            watchList.append(int(newMember.id))
-            self.logger.info(
-                "%s#%s (%s) added to the watch list.",
-                newMember.name,
-                newMember.discriminator,
-                newMember.id,
-            )
-            await self.config.guild(newMember.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+        async with self.config.guild(newMember.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+            if int(newMember.id) not in watchList:
+                watchList.append(int(newMember.id))
+                self.logger.info(
+                    "%s#%s (%s) added to the watch list.",
+                    newMember.name,
+                    newMember.discriminator,
+                    newMember.id,
+                )
 
     # The async function that is triggered on any message being sent.
     @commands.Cog.listener()
@@ -583,13 +579,13 @@ class Gatekeep(commands.Cog):
             return
 
         # Check the list
-        watchList = await self.config.guild(message.guild).get_attr(KEY_WATCH_LIST)()
-        # Do nothing if the message author is not on the watch list to begin with
-        if int(author.id) not in watchList:
-            return
+        async with self.config.guild(message.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+            # Do nothing if the message author is not on the watch list to begin with
+            if int(author.id) not in watchList:
+                return
 
-        # Evaluation of the message contents happen here
-        async with self.config.guild(message.guild).get_attr(KEY_WORD_DICT)() as wordDict:
+            # Evaluation of the message contents happen here
+            wordDict = await self.config.guild(message.guild).get_attr(KEY_WORD_DICT)()
             # Break down into words
             words = message.content.strip().split(" ")
             th = await self.config.guild(message.guild).get_attr(KEY_THRESHOLD)()
@@ -635,4 +631,9 @@ class Gatekeep(commands.Cog):
 
             # Remove the author from the watch list. Ban = gone from server, no ban = they're probably not a bot
             watchList.remove(int(author.id))
-            await self.config.guild(author.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+            self.logger.info(
+                "%s#%s (%s) removed from the watch list.",
+                author.name,
+                author.discriminator,
+                author.id,
+            )
