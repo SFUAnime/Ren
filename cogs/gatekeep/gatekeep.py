@@ -223,9 +223,7 @@ class Gatekeep(commands.Cog):
         else:
             judge = "this message would not warrant a ban."
 
-        await ctx.send(
-            f"This message scored {score} points. With a threshold of {th}, {judge}"
-        )
+        await ctx.send(f"This message scored {score} points. With a threshold of {th}, {judge}")
 
     @word.command(name="add")
     @commands.guild_only()
