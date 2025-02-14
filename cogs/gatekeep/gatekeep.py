@@ -12,7 +12,6 @@ from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils.chat_formatting import pagify, warning, escape
 from redbot.core.bot import Red
 from .constants import *
-from typing import Optional
 import string
 
 
@@ -197,7 +196,7 @@ class Gatekeep(commands.Cog):
     @_gatekeep.command(name="test", aliases=["eval", "score"])
     @commands.guild_only()
     @checks.mod_or_permissions(administrator=True)
-    async def testMsg(self, ctx: Context, *, msg: Optional[str] = None):
+    async def testMsg(self, ctx: Context, *, msg: str):
         """Evaluate the score for a given message
 
         Parameters:
@@ -205,31 +204,28 @@ class Gatekeep(commands.Cog):
         msg: str
             The message to evaluate the score, given that the word weights are defined.
         """
-        if msg:
-            async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
-                # Break down into words
-                words = msg.strip().split(" ")
-                th = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
-                score = 0
-                # Begin scoring
-                for word in words:
-                    # Remove any punctuation leftover in each word and lowercase all letters
-                    w = word.translate(str.maketrans("", "", string.punctuation)).lower()
+        async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
+            # Break down into words
+            words = msg.strip().split(" ")
+            th = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
+            score = 0
+            # Begin scoring
+            for word in words:
+                # Remove any punctuation leftover in each word and lowercase all letters
+                w = word.translate(str.maketrans("", "", string.punctuation)).lower()
 
-                    # If word is found, add to the message score
-                    if w in wordDict:
-                        score += wordDict[w]
+                # If word is found, add to the message score
+                if w in wordDict:
+                    score += wordDict[w]
 
-                if score >= th:
-                    judge = "this message would warrant a ban."
-                else:
-                    judge = "this message would not warrant a ban."
+            if score >= th:
+                judge = "this message would warrant a ban."
+            else:
+                judge = "this message would not warrant a ban."
 
-                await ctx.send(
-                    f"This message scored {score} points. With a threshold of {th}, {judge}"
-                )
-        else:
-            await ctx.send("No message to test!")
+            await ctx.send(
+                f"This message scored {score} points. With a threshold of {th}, {judge}"
+            )
 
     @word.command(name="add")
     @commands.guild_only()
@@ -413,25 +409,22 @@ class Gatekeep(commands.Cog):
             The user to be added to the watch list. This can be their username or ID.
         """
 
-        if user.id > 0:
-            watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
-            if user.id not in watchList:
-                watchList.append(int(user.id))
-                await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-                await ctx.send(f"Added user ID `{user.id}` to the watch list.")
+        watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
+        if user.id not in watchList:
+            watchList.append(int(user.id))
+            await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+            await ctx.send(f"Added user ID `{user.id}` to the watch list.")
 
-                self.logger.info(
-                    "%s#%s (%s) added user ID %s to the watch list for %s.",
-                    ctx.author.name,
-                    ctx.author.discriminator,
-                    ctx.author.id,
-                    user.id,
-                    ctx.guild.name,
+            self.logger.info(
+                "%s#%s (%s) added user ID %s to the watch list for %s.",
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
+                user.id,
+                ctx.guild.name,
                 )
-            else:
-                await ctx.send(f"User ID `{user.id}` is already in the watch list.")
         else:
-            await ctx.send("Invalid user!")
+            await ctx.send(f"User ID `{user.id}` is already in the watch list.")
 
     @user.command(name="remove", aliases=["delete", "del", "rm"])
     @commands.guild_only()
@@ -445,25 +438,22 @@ class Gatekeep(commands.Cog):
             The user to be removed from the watch list. This can be their username or ID.
         """
 
-        if user.id > 0:
-            watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
-            if user.id in watchList:
-                watchList.remove(user.id)
-                await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
-                await ctx.send(f"Removed user ID `{user.id}` to the watch list.")
+        watchList = await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)()
+        if user.id in watchList:
+            watchList.remove(user.id)
+            await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set(watchList)
+            await ctx.send(f"Removed user ID `{user.id}` to the watch list.")
 
-                self.logger.info(
-                    "%s#%s (%s) removed user ID %s from the watch list for %s.",
-                    ctx.author.name,
-                    ctx.author.discriminator,
-                    ctx.author.id,
-                    user.id,
-                    ctx.guild.name,
-                )
-            else:
-                await ctx.send(f"User ID `{user.id}` is not in the watch list.")
+            self.logger.info(
+                "%s#%s (%s) removed user ID %s from the watch list for %s.",
+                ctx.author.name,
+                ctx.author.discriminator,
+                ctx.author.id,
+                user.id,
+                ctx.guild.name,
+            )
         else:
-            await ctx.send("Invalid user!")
+            await ctx.send(f"User ID `{user.id}` is not in the watch list.")
 
     @user.command(name="list", aliases=["ls", "users"])
     @commands.guild_only()
