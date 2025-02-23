@@ -357,20 +357,25 @@ class Gatekeep(commands.Cog):
         """Clears the entire word list for the server."""
 
         async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
+
             def check(msg: discord.Message):
                 return msg.author == ctx.author and msg.channel == ctx.channel
-            
+
             numWords = len(wordDict)
-            
+
             if numWords < 1:
                 await ctx.send("The word list is empty.")
             else:
                 # Get confirmation before clearing the word list
-                await ctx.send(warning(f"This will remove {numWords} word(s). Type 'yes' to confirm."))
+                await ctx.send(
+                    warning(f"This will remove {numWords} word(s). Type 'yes' to confirm.")
+                )
                 try:
                     response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send("No response after 30 seconds, this operation will not be executed.")
+                    await ctx.send(
+                        "No response after 30 seconds, this operation will not be executed."
+                    )
                     return
 
                 if response.content.lower() != "yes":
@@ -538,20 +543,25 @@ class Gatekeep(commands.Cog):
         """Clears the entire user list for the server."""
 
         async with self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+
             def check(msg: discord.Message):
                 return msg.author == ctx.author and msg.channel == ctx.channel
-            
+
             numUsers = len(watchList)
-            
+
             if numUsers < 1:
                 await ctx.send("The watch list is empty.")
             else:
                 # Get confirmation before clearing the watch list
-                await ctx.send(warning(f"This will remove {numUsers} user(s). Type 'yes' to confirm."))
+                await ctx.send(
+                    warning(f"This will remove {numUsers} user(s). Type 'yes' to confirm.")
+                )
                 try:
                     response = await self.bot.wait_for("message", timeout=30.0, check=check)
                 except asyncio.TimeoutError:
-                    await ctx.send("No response after 30 seconds, this operation will not be executed.")
+                    await ctx.send(
+                        "No response after 30 seconds, this operation will not be executed."
+                    )
                     return
 
                 if response.content.lower() != "yes":
