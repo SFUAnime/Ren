@@ -187,10 +187,12 @@ class Gatekeep(commands.Cog):
         active = await self.config.guild(ctx.guild).get_attr(KEY_ACTIVE)()
         threshold = await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD)()
         nDays = await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS)()
+        banCount = await self.config.guild(ctx.guild).get_attr(KEY_BAN_COUNT)()
         await ctx.send(
             ":information_source: Current Status :information_source:\n"
             f"- Log Channel: <#{log}>\n- Gatekeeping: {active}\n"
-            f"- Threshold: {threshold}\n- Days to watch: {nDays}"
+            f"- Threshold: {threshold}\n- Days to watch: {nDays}\n"
+            f"- Total Users Banned: {banCount}"
         )
 
     @_gatekeep.command(name="test", aliases=["eval", "score"])
@@ -312,8 +314,8 @@ class Gatekeep(commands.Cog):
                     await ctx.send(f"`{w}` is not in the list.")
 
         else:
-            # Invalid string passed
-            await ctx.send("The word should be a non-empty string!")
+            # Invalid string passed (ie: "" or "a b")
+            await ctx.send("The word is invalid!")
 
     @word.command(name="list", aliases=["ls", "words"])
     @commands.guild_only()
@@ -323,11 +325,11 @@ class Gatekeep(commands.Cog):
 
         display = []  # List of text for paginator to use.  Will be constructed from KEY_WORD_DICT.
 
-        # Loop through the word dictionary object
+        # Loop through the word dictionary object in alphabetical order
         wordDict = await self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)()
-        for word, weight in wordDict.items():
+        for word in sorted(wordDict):
             # Construct the display list
-            text = f"{word}: {weight}"
+            text = f"{word}: {wordDict[word]}"
             display.append(text)
 
         # Check if the display list is empty
@@ -347,6 +349,44 @@ class Gatekeep(commands.Cog):
             embed.colour = discord.Colour.red()
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
+
+    @word.command(name="clear", aliases=["reset"])
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def clearWords(self, ctx: Context):
+        """Clears the entire word list for the server."""
+
+        async with self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT)() as wordDict:
+            def check(msg: discord.Message):
+                return msg.author == ctx.author and msg.channel == ctx.channel
+            
+            numWords = len(wordDict)
+            
+            if numWords < 1:
+                await ctx.send("The word list is empty.")
+            else:
+                # Get confirmation before clearing the word list
+                await ctx.send(warning(f"This will remove {numWords} word(s). Type 'yes' to confirm."))
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    await ctx.send("No response after 30 seconds, this operation will not be executed.")
+                    return
+
+                if response.content.lower() != "yes":
+                    await ctx.send("This operation will not be executed.")
+                    return
+
+        # Confirmed, clear the word list
+        await self.config.guild(ctx.guild).get_attr(KEY_WORD_DICT).set({})
+        await ctx.send(":white_check_mark: Cleared the word list.")
+        self.logger.info(
+            "%s#%s (%s) cleared the word list for %s.",
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
+            ctx.guild.name,
+        )
 
     @user.command(name="initialize", aliases=["init"])
     @commands.guild_only()
@@ -491,6 +531,44 @@ class Gatekeep(commands.Cog):
             pageList.append(embed)
         await menu(ctx, pageList, DEFAULT_CONTROLS)
 
+    @user.command(name="clear", aliases=["reset"])
+    @commands.guild_only()
+    @checks.mod_or_permissions(administrator=True)
+    async def clearUsers(self, ctx: Context):
+        """Clears the entire user list for the server."""
+
+        async with self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST)() as watchList:
+            def check(msg: discord.Message):
+                return msg.author == ctx.author and msg.channel == ctx.channel
+            
+            numUsers = len(watchList)
+            
+            if numUsers < 1:
+                await ctx.send("The watch list is empty.")
+            else:
+                # Get confirmation before clearing the watch list
+                await ctx.send(warning(f"This will remove {numUsers} user(s). Type 'yes' to confirm."))
+                try:
+                    response = await self.bot.wait_for("message", timeout=30.0, check=check)
+                except asyncio.TimeoutError:
+                    await ctx.send("No response after 30 seconds, this operation will not be executed.")
+                    return
+
+                if response.content.lower() != "yes":
+                    await ctx.send("This operation will not be executed.")
+                    return
+
+        # Confirmed, clear the watch list
+        await self.config.guild(ctx.guild).get_attr(KEY_WATCH_LIST).set([])
+        await ctx.send(":white_check_mark: Cleared the watch list.")
+        self.logger.info(
+            "%s#%s (%s) cleared the watch list for %s.",
+            ctx.author.name,
+            ctx.author.discriminator,
+            ctx.author.id,
+            ctx.guild.name,
+        )
+
     async def watchlistLoop(self):
         """Daily update loop to keep the watchlist small."""
         self.logger.info("Waiting for bot to be ready")
@@ -626,6 +704,9 @@ class Gatekeep(commands.Cog):
                     str(score),
                     str(th),
                 )
+
+                banCount = await self.config.guild(message.guild).get_attr(KEY_BAN_COUNT)()
+                await self.config.guild(message.guild).get_attr(KEY_BAN_COUNT).set(banCount + 1)
 
             # Remove the author from the watch list. Ban = gone from server, no ban = they're probably not a bot
             watchList.remove(int(author.id))
