@@ -363,8 +363,9 @@ class Gatekeep(commands.Cog):
 
             numWords = len(wordDict)
 
-            if numWords < 1:
+            if not numWords:
                 await ctx.send("The word list is empty.")
+                return
             else:
                 # Get confirmation before clearing the word list
                 await ctx.send(
@@ -549,8 +550,9 @@ class Gatekeep(commands.Cog):
 
             numUsers = len(watchList)
 
-            if numUsers < 1:
+            if not numUsers:
                 await ctx.send("The watch list is empty.")
+                return
             else:
                 # Get confirmation before clearing the watch list
                 await ctx.send(
