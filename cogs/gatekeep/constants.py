@@ -1,5 +1,6 @@
 KEY_LOG_CHANNEL = "logChannel"
 KEY_THRESHOLD = "threshold"
+KEY_ATTACHMENT_WEIGHT = "attachmentWeight"
 KEY_NEW_USER_DAYS = "newUserDays"
 KEY_ACTIVE = "active"
 KEY_WORD_DICT = "wordDict"
@@ -9,6 +10,7 @@ KEY_BAN_COUNT = "banCount"
 BASE_GUILD = {
     KEY_LOG_CHANNEL: None,
     KEY_THRESHOLD: 1000000,
+    KEY_ATTACHMENT_WEIGHT: 0,
     KEY_NEW_USER_DAYS: 14,
     KEY_ACTIVE: False,
     KEY_WORD_DICT: {},
