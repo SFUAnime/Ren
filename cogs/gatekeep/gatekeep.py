@@ -93,7 +93,7 @@ class Gatekeep(commands.Cog):
         if channel:
             await self.config.guild(ctx.guild).get_attr(KEY_LOG_CHANNEL).set(channel.id)
             self.logger.info(
-                "%s#%s (%s) set the gatekeep logging channel to %s",
+                "%s#%s (%s) set the gatekeep logging channel to %s.",
                 ctx.author.name,
                 ctx.author.discriminator,
                 ctx.author.id,
@@ -124,14 +124,14 @@ class Gatekeep(commands.Cog):
         if threshold > 0:
             await self.config.guild(ctx.guild).get_attr(KEY_THRESHOLD).set(threshold)
             self.logger.info(
-                "%s#%s (%s) set the threshold to %s",
+                "%s#%s (%s) set the threshold to %d.",
                 ctx.author.name,
                 ctx.author.discriminator,
                 ctx.author.id,
-                str(threshold),
+                threshold,
             )
             await ctx.send(
-                f":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{threshold}**"
+                f":white_check_mark: **Gatekeep - Threshold**: The threshold has been updated to **{threshold}**."
             )
         else:
             await ctx.send("The value for the threshold should be greater than 0!")
@@ -152,15 +152,15 @@ class Gatekeep(commands.Cog):
         if weight >= 0:
             await self.config.guild(ctx.guild).get_attr(KEY_ATTACHMENT_WEIGHT).set(weight)
             self.logger.info(
-                "%s#%s (%s) set the attachment weight to %s",
+                "%s#%s (%s) set the attachment weight to %d.",
                 ctx.author.name,
                 ctx.author.discriminator,
                 ctx.author.id,
-                str(weight),
+                weight,
             )
             await ctx.send(
                 f":white_check_mark: **Gatekeep - Attachment Weight**: "
-                f"The attachment weight has been updated to **{weight}**"
+                f"The attachment weight has been updated to **{weight}**."
             )
         else:
             await ctx.send("The value for the threshold should be greater than or equal to 0!")
@@ -180,14 +180,14 @@ class Gatekeep(commands.Cog):
         if days > 0:
             await self.config.guild(ctx.guild).get_attr(KEY_NEW_USER_DAYS).set(days)
             self.logger.info(
-                "%s#%s (%s) set the number of days to %s",
+                "%s#%s (%s) set the number of days to %d.",
                 ctx.author.name,
                 ctx.author.discriminator,
                 ctx.author.id,
-                str(days),
+                days,
             )
             await ctx.send(
-                f":white_check_mark: **Gatekeep - Days**: The number of days has been updated to **{days}**"
+                f":white_check_mark: **Gatekeep - Days**: The number of days has been updated to **{days}**."
             )
         else:
             await ctx.send("The value for the days should be greater than 0!")
@@ -306,12 +306,12 @@ class Gatekeep(commands.Cog):
                     await ctx.send(f"Added the word `{w}` with a weight of **{weight}**.")
 
                 self.logger.info(
-                    "%s#%s (%s) added/updated %s with weight %s.",
+                    "%s#%s (%s) added/updated %s with weight %d.",
                     ctx.author.name,
                     ctx.author.discriminator,
                     ctx.author.id,
                     w,
-                    str(weight),
+                    weight,
                 )
 
         else:
@@ -622,9 +622,9 @@ class Gatekeep(commands.Cog):
 
     async def watchlistLoop(self):
         """Daily update loop to keep the watchlist small."""
-        self.logger.info("Waiting for bot to be ready")
+        self.logger.info("Waiting for bot to be ready...")
         await self.bot.wait_until_red_ready()
-        self.logger.info("Bot is ready")
+        self.logger.info("Bot is ready.")
         while self == self.bot.get_cog("Gatekeep"):
             if self.lastChecked.day != datetime.now().day:
                 self.lastChecked = datetime.now()
@@ -662,7 +662,7 @@ class Gatekeep(commands.Cog):
                             "Member with id (%s) removed from the watch list. (Not in server)", id
                         )
 
-                self.logger.info("Refreshed the watch list for %s", guild.name)
+                self.logger.info("Refreshed the watch list for %s.", guild.name)
 
     # The async function that is triggered on new member join.
     @commands.Cog.listener()
@@ -755,13 +755,13 @@ class Gatekeep(commands.Cog):
                 )
 
                 self.logger.info(
-                    "%s#%s (%s) was banned from %s for spam. Message score was %s, which exceed threshold of %s.",
+                    "%s#%s (%s) was banned from %s for spam. Message score was %d, which exceed threshold of %d.",
                     author.name,
                     author.discriminator,
                     author.id,
                     message.guild.name,
-                    str(score),
-                    str(th),
+                    score,
+                    th,
                 )
 
                 banCount = await self.config.guild(message.guild).get_attr(KEY_BAN_COUNT)()
