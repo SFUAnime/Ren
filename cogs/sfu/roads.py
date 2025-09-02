@@ -17,38 +17,40 @@ from redbot.core.commands.context import Context
 from .base import SFUBase
 
 WEBCAM_AQPOND = (
-    "http://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
+    "https://ns-webcams.its.sfu.ca/public/images/aqn-current.jpg"
     "?nocache=1&update=15000&timeout=1800000"
 )
-WEBCAM_BRH = "http://ns-webcams.its.sfu.ca/public/images/brhroof-current.jpg?nocache=1"
-WEBCAM_GAGLARDI = (
-    "http://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
-    "?nocache=0.8678792633247998&update=15000&timeout=1800000&offset=4"
+WEBCAM_BRH = (
+    "https://ns-webcams.its.sfu.ca/public/images/brh-current.jpg"
+    "?nocache=1&update=15000&timeout=1800000"
 )
-WEBCAM_SBH = "http://ns-webcams.its.sfu.ca/public/images/sbhroof-current.jpg?nocache=1"
+WEBCAM_GAGLARDI = (
+    "https://ns-webcams.its.sfu.ca/public/images/gaglardi-current.jpg"
+    "?nocache=1&update=15000&timeout=1800000&offset=4"
+)
 WEBCAM_SUB = (
     "http://ns-webcams.its.sfu.ca/public/images/aqsw-current.jpg"
-    "?nocache=0.3346598630889852&update=15000&timeout=1800000"
+    "?nocache=1&update=15000&timeout=1800000"
 )
 WEBCAM_SUR = "https://cosmos.surrey.ca/TrafficCameraImages/enc_102_cityparkway_cam1.jpg"
-WEBCAM_TFF = (
-    "http://ns-webcams.its.sfu.ca/public/images/terryfox-current.jpg"
+WEBCAM_OBS = (
+    "https://ns-webcams.its.sfu.ca/public/images/aqse-current.jpg"
     "?nocache=1&update=15000&timeout=1800000"
 )
 WEBCAM_TRN = (
-    "http://ns-webcams.its.sfu.ca/public/images/towern-current.jpg"
+    "https://ns-webcams.its.sfu.ca/public/images/towern-current.jpg"
     "?nocache=1&update=15000&timeout=1800000"
 )
 WEBCAM_TRS = (
-    "http://ns-webcams.its.sfu.ca/public/images/towers-current.jpg"
-    "?nocache=0.9550930672504077&update=15000&timeout=1800000"
+    "https://ns-webcams.its.sfu.ca/public/images/towers-current.jpg"
+    "?nocache=1&update=15000&timeout=1800000"
 )
 WEBCAM_UDN = (
-    "http://ns-webcams.its.sfu.ca/public/images/udn-current.jpg"
+    "https://ns-webcams.its.sfu.ca/public/images/udn-current.jpg"
     "?nocache=1&update=15000&timeout=1800000&offset=4"
 )
 WEBCAM_WMC = (
-    "http://ns-webcams.its.sfu.ca/public/images/wmcroof-current.jpg"
+    "https://ns-webcams.its.sfu.ca/public/images/wmcroof-current.jpg"
     "?nocache=1&update=15000&timeout=1800000"
 )
 
@@ -72,10 +74,9 @@ class SFURoads(SFUBase):
             "aqpond": WEBCAM_AQPOND,
             "brh": WEBCAM_BRH,
             "gag": WEBCAM_GAGLARDI,
-            "sbh": WEBCAM_SBH,
             "sub": WEBCAM_SUB,
             "sur": WEBCAM_SUR,
-            "tff": WEBCAM_TFF,
+            "obs": WEBCAM_OBS,
             "trn": WEBCAM_TRN,
             "trs": WEBCAM_TRS,
             "udn": WEBCAM_UDN,
@@ -111,10 +112,9 @@ class SFURoads(SFUBase):
             aqpond: AQ Pond
             brh:    Barbara Rae Housing (Burnaby Residence)
             gag:    Gaglardi intersection
-            sbh:    Shadbolt Housing (Burnaby Residence)
+            obs:    Trottier Observatory and Science Courtyard
             sub:    AQ overlooking student union building
             sur:    Surrey Central intersection
-            tff:    Terry Fox Field
             trn:    Tower Road North
             trs:    Tower Road South
             udn:    University Drive North
