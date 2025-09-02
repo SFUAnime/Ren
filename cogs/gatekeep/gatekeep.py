@@ -716,7 +716,9 @@ class Gatekeep(commands.Cog):
             # Break down into words
             words = message.content.strip().split(" ")
             th = await self.config.guild(message.guild).get_attr(KEY_THRESHOLD)()
-            attachmentWeight = await self.config.guild(message.guild).get_attr(KEY_ATTACHMENT_WEIGHT)()
+            attachmentWeight = await self.config.guild(message.guild).get_attr(
+                KEY_ATTACHMENT_WEIGHT
+            )()
 
             score = 0
             # Begin scoring
