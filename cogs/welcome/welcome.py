@@ -10,7 +10,7 @@ import random
 from redbot.core import Config, checks, commands
 from redbot.core.bot import Red
 from redbot.core.commands.context import Context
-from redbot.core.utils.chat_formatting import box, info, pagify, warning
+from redbot.core.utils.chat_formatting import box, info, pagify, warning, escape
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 from redbot.core.utils import AsyncIter
 from typing import Optional
@@ -298,7 +298,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 if channel:
                     await channel.send(
                         f":white_check_mark: ``Server Welcome:`` User {joinUser.mention} "
-                        f"{joinUser.name}#{joinUser.discriminator} "
+                        f"{escape(joinUser.name, formatting=True)} "
                         f"({joinUser.id}) has joined."
                     )
                 LOGGER.info(
@@ -320,7 +320,7 @@ class Welcome(commands.Cog):  # pylint: disable=too-many-instance-attributes
                 if channel:
                     await channel.send(
                         f":x: ``Server Leave  :`` User {leaveUser.mention} "
-                        f"{leaveUser.name}#{leaveUser.discriminator} "
+                        f"{escape(leaveUser.name, formatting=True)} "
                         f"({leaveUser.id}) has left the server."
                     )
                 LOGGER.info(
