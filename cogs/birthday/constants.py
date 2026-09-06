@@ -28,3 +28,6 @@ CANNED_MESSAGES = [
     "Hey everyone! It's {} birthday, come and wish them a happy birthday!",
     "Wow {}, happy birthday! How does it feel to be more boomer than you were yesterday?",
 ]
+
+# Using default year of 2020 for a leap year.
+DEFAULT_YEAR = 2020
