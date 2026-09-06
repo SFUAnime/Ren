@@ -1,0 +1,4 @@
+[submodule "cogs/lui-cogs"]
+	path = cogs/lui-cogs
+	url = https://github.com/Injabie3/lui-cogs-v3.git
+	branch = dpy2
