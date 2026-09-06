@@ -7,7 +7,10 @@ DEFAULT_DATE: datetime = datetime(2020, 1, 1)
 
 
 class MonthDayConverter(commands.Converter):
-    async def convert(self, ctx: commands.Context, dateString: str) -> datetime:
+    InputType = str
+    OutputType = datetime
+
+    async def convert(self, ctx: commands.Context, dateString: InputType) -> OutputType:
         try:
             dateObj = parse(dateString, default=DEFAULT_DATE)
         except ParserError:
